@@ -1,1 +1,1 @@
-"# sc2006-UpGrade" MX is racist
+"# sc2006-UpGrade"
