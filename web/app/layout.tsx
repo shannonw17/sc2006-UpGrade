@@ -45,6 +45,12 @@ export default function RootLayout({
           >
             Contact
           </Link>
+          <Link
+            href="/users"
+            className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10"
+          >
+            Users
+          </Link>
         </div>
         {children}
       </body>
