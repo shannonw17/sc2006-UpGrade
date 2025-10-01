@@ -1,3 +1,8 @@
 export default function Contact(){
-    return <div>Contact Joshua @joshywawaMightBGay</div>
+    return (
+    <>
+        <div>Contact Joshua @joshywawaMightBGay</div>
+        <div>Contact Shannon @channingtatum</div>
+    </>
+    )
 }

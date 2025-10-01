@@ -51,6 +51,12 @@ export default function RootLayout({
           >
             Users
           </Link>
+          <Link
+            href="/groups"
+            className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10"
+          >
+            List of Groups
+          </Link>
         </div>
         {children}
       </body>

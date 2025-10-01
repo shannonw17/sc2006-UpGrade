@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  //output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String   @unique
+  passwordHash String
+  eduLevel     String?
+  createdAt    DateTime @default(now())
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  groupID     String   @unique   
+  name        String
+  //slug       String   @unique 
+  visibility  Boolean
+  start       DateTime
+  end         DateTime
+  location    String
+  capacity    Int
+  currentSize Int      @default(1)
+  hostId      String
+  createdAt   DateTime @default(now())
+}
