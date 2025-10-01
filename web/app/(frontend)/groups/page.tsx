@@ -7,7 +7,7 @@ export const runtime = "nodejs"; // Prisma needs Node
 
 function getCurrentUserId() {
   // Use Test by default
-  return "cmg86g3a60000vobc2o7b7776"; // replace with actual ID from Prisma Studio
+  return "cmg87rs3w0002vofsnekwzvyg"; // replace with actual ID from Prisma Studio
 }
 
 export default async function GroupPage() {

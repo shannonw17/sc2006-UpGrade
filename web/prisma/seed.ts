@@ -44,6 +44,17 @@ async function main() {
     },
   });
 
+  const test = await prisma.user.upsert({
+    where: { email: "test@e.ntu.edu.sg" },
+    update: {},
+    create: {
+      email: "test@e.ntu.edu.sg",
+      name: "Test",
+      passwordHash: "hashedpasswordTest",
+      eduLevel: "Everywhere",
+    },
+  });
+
     const g1 = await prisma.group.upsert({
     where: { groupID: "GROUP001" },
     update: { hostId: alice.id, name: "Math Revision" },

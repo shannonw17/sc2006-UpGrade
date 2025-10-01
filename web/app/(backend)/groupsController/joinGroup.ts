@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 // Demo: you probably have auth; wire your real user id here.
 function getCurrentUserId() {
   // e.g., from session. For demo, hardcode or pass via form.
-  return "cmg86g3a60000vobc2o7b7776"; // Test user
+  return "cmg87rs3w0002vofsnekwzvyg"; // Test user
 }
 
 export async function joinGroup(formData: FormData) {
