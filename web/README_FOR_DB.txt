@@ -10,3 +10,8 @@ cp .env.example.txt .env
 npm install
 npx prisma db push
 npx prisma db seed
+
+note: make sure under your .gitignore these lines exist:
+
+# env files (can opt-in for committing if needed)
+.env*
