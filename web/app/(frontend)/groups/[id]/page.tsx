@@ -1,13 +1,15 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 interface GroupPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function GroupDetailPage({ params }: GroupPageProps) {
+  const { id } = await params
   const group = await prisma.group.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!group) {
