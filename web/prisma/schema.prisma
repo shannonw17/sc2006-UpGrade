@@ -18,6 +18,8 @@ model User {
   passwordHash String
   eduLevel     String?
   createdAt    DateTime @default(now())
+
+  memberships GroupMember[]
 }
 
 model Group {
@@ -33,4 +35,19 @@ model Group {
   currentSize Int      @default(1)
   hostId      String
   createdAt   DateTime @default(now())
+
+  members GroupMember[]
+
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId]) // a user can join a group only once
 }
