@@ -57,6 +57,12 @@ export default function RootLayout({
           >
             List of Groups
           </Link>
+          <Link
+            href="/Maps"
+            className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10"
+          >
+            Maps
+          </Link>
         </div>
         {children}
       </body>
