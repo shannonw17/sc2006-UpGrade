@@ -15,3 +15,6 @@ note: make sure under your .gitignore these lines exist:
 
 # env files (can opt-in for committing if needed)
 .env*
+
+if no .env folder, create one in \web and paste whatevers inside of .env.example.txt to 
+the created .env folder. (still make sure under .gitignore has those lines mentioned above)
