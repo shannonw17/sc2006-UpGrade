@@ -9,6 +9,6 @@ export default async function RootPage() {
     redirect("/login");
   } else {
     // logged in → send to your protected homepage
-    redirect("/testHomepage");
+    redirect("/homepage");
   }
 }

@@ -40,6 +40,6 @@ export async function login(
     return { error: "Something went wrong. Please try again." };
   }
 
-  redirect("/testHomepage");
+  redirect("/homepage");
 
 }
