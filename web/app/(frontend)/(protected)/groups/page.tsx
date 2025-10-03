@@ -1,20 +1,18 @@
+// app/(frontend)/(protected)/groups/page.tsx
 import prisma from "@/lib/db";
 import Link from "next/link";
 import { joinGroup } from "@/app/(backend)/GroupController/joinGroup";
-import { leaveGroup } from "@/app/(backend)/GroupController/leaveGroup"; 
+import { leaveGroup } from "@/app/(backend)/GroupController/leaveGroup";
+import { requireUser } from "@/lib/requireUser";  // <-- use this to get the logged-in user
 
 export const runtime = "nodejs"; // Prisma needs Node
 
-function getCurrentUserId() {
-  // Use Test by default
-  return "cmg87rs3w0002vofsnekwzvyg"; // replace with actual ID from Prisma Studio
-}
-
 export default async function GroupPage() {
+  // 👇 force authentication and get the logged-in user
+  const user = await requireUser();
+  const CURRENT_USER_ID = user.id;
 
-    const CURRENT_USER_ID = getCurrentUserId();
-   
-    const [groups, myMemberships] = await Promise.all([
+  const [groups, myMemberships] = await Promise.all([
     prisma.group.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -29,7 +27,7 @@ export default async function GroupPage() {
 
   const joinedSet = new Set(myMemberships.map((m) => m.groupId));
 
-    return (
+  return (
     <main className="flex flex-col items-center gap-y-5 pt-24 text-center">
       <div className="flex items-center gap-4">
         <h1 className="text-3xl font-semibold">All Groups ({groups.length})</h1>
@@ -44,7 +42,7 @@ export default async function GroupPage() {
       <ul className="w-full max-w-3xl border-t border-b border-black/10 py-5 leading-8">
         {groups.map((group) => {
           const isJoined = joinedSet.has(group.id);
-          const count = group._count.members; // server truth
+          const count = group._count.members;
           const isFull = count >= group.capacity;
 
           return (
@@ -69,6 +67,7 @@ export default async function GroupPage() {
                 {!isJoined && (
                   <form action={joinGroup}>
                     <input type="hidden" name="groupId" value={group.id} />
+                    <input type="hidden" name="userId" value={CURRENT_USER_ID} />
                     <button
                       type="submit"
                       disabled={isFull}
@@ -87,6 +86,7 @@ export default async function GroupPage() {
                 {isJoined && (
                   <form action={leaveGroup}>
                     <input type="hidden" name="groupId" value={group.id} />
+                    <input type="hidden" name="userId" value={CURRENT_USER_ID} />
                     <button
                       type="submit"
                       className="rounded-lg border px-3 py-1.5 text-sm hover:bg-black/5"
