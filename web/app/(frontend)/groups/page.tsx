@@ -1,7 +1,7 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
-import { joinGroup } from "@/app/(backend)/groupsController/joinGroup";
-import { leaveGroup } from "@/app/(backend)/groupsController/leaveGroup"; 
+import { joinGroup } from "@/app/(backend)/GroupController/joinGroup";
+import { leaveGroup } from "@/app/(backend)/GroupController/leaveGroup"; 
 
 export const runtime = "nodejs"; // Prisma needs Node
 

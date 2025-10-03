@@ -1,59 +1,37 @@
-// src/app/login/page.tsx (Next.js 13+ App Router example)
+// app/(auth)/login/LoginForm.tsx
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const router = useRouter();
+import { useActionState } from "react";
+import { login, type LoginState } from "@/app/(backend)/AccountController/login";
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Mock validation
-    if (username === "admin" && password === "password123") {
-      router.push("/about"); // ✅ redirect to homepage
-    } else {
-      setError("Invalid username or password");
-    }
-  };
+const initial: LoginState = {};
+
+export default function LoginForm() {
+  const [state, formAction, pending] = useActionState(login, initial);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-6 rounded-xl shadow-md w-80"
-      >
-        <h1 className="text-xl font-bold mb-4 text-center">Login</h1>
+    <main className="min-h-screen flex items-center justify-center p-6">
+      <form action={formAction} className="w-full max-w-sm space-y-4 border p-6 rounded-lg">
+        <h1 className="text-2xl font-semibold">Login</h1>
 
-        {error && <p className="text-red-500 mb-2">{error}</p>}
+        {state?.error && (
+          <p className="text-sm text-red-600" aria-live="polite">{state.error}</p>
+        )}
 
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full p-2 border rounded mb-3"
-          required
-        />
+        <label className="block">
+          <div className="text-sm text-gray-600">Username or Email</div>
+          <input name="identifier" required className="mt-1 w-full border rounded px-3 py-2" />
+        </label>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border rounded mb-4"
-          required
-        />
+        <label className="block">
+          <div className="text-sm text-gray-600">Password</div>
+          <input name="password" type="password" required className="mt-1 w-full border rounded px-3 py-2" />
+        </label>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-        >
-          Login
+        <button type="submit" disabled={pending} className="w-full rounded bg-black text-white py-2 font-medium disabled:opacity-60">
+          {pending ? "Signing in..." : "Sign in"}
         </button>
       </form>
-    </div>
+    </main>
   );
 }

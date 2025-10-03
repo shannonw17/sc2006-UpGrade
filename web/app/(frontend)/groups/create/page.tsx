@@ -1,4 +1,4 @@
-import { createGroup } from "@/app/(backend)/groupsController/createGroups";
+import { createGroup } from "@/app/(backend)/GroupController/createGroups";
 
 export default function CreateGroupPage() {
   return (
