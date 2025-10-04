@@ -14,12 +14,15 @@ datasource db {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  name         String   @unique
+  username     String   @unique
   passwordHash String
   eduLevel     String?
   createdAt    DateTime @default(now())
 
   memberships GroupMember[]
+  sentInvites   Invitation[]  @relation("SentInvites")
+  receivedInvites Invitation[] @relation("ReceivedInvites")
+  notifications Notification[]
 }
 
 model Group {
@@ -37,7 +40,7 @@ model Group {
   createdAt   DateTime @default(now())
 
   members GroupMember[]
-
+  invitations Invitation[]
 }
 
 model GroupMember {
@@ -50,4 +53,47 @@ model GroupMember {
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId]) // a user can join a group only once
+}
+
+
+enum NotificationType {
+  INVITE_RECEIVED
+  INVITE_REJECTED
+  INVITE_EXPIRED
+  GROUP_MEMBER_JOINED
+  GROUP_MEMBER_LEFT
+  GROUP_START_REMINDER
+}
+
+model Invitation {
+  id         String            @id @default(cuid())
+  senderId   String
+  receiverId String
+  groupId    String
+  //status     InvitationStatus  @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  sender     User   @relation("SentInvites",     fields: [senderId],   references: [id], onDelete: Cascade)
+  receiver   User   @relation("ReceivedInvites", fields: [receiverId], references: [id], onDelete: Cascade)
+  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  notifications Notification[] @relation("InvitationNotifications")
+
+  @@unique([receiverId, groupId])
+}
+
+model Notification {
+  id         String            @id @default(cuid())
+  userId     String
+  type       NotificationType
+  message    String
+  read       Boolean           @default(false)
+  createdAt  DateTime          @default(now())
+
+  //optional link to Invitation (to delete inbox entry when invite remove when accept or reject)
+  invitationId String? 
+  invitation   Invitation?      @relation("InvitationNotifications", fields: [invitationId], references: [id], onDelete: Cascade)
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
