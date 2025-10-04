@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { cancelPending } from "../InvitationController/cancelPending";
 
 // Demo: you probably have auth; wire your real user id here.
 function getCurrentUserId() {
@@ -38,6 +39,7 @@ export async function joinGroup(formData: FormData) {
       where: { id: groupId },
       data: { currentSize: { increment: 1 } },
     });
+    await cancelPending(groupId); //call to check if membership capacity reach --> clear pending invitations
   });
 
   revalidatePath("/groups");
