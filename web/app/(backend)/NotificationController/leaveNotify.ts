@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 export async function leaveNotify(groupId: string, leavingUserId: string) {
   const group = await prisma.group.findUnique({ where: { id: groupId } });
@@ -23,4 +24,5 @@ export async function leaveNotify(groupId: string, leavingUserId: string) {
       message: `${leavingName} has left "${group.name} (${groupId})".`,
     })),
   });
+  revalidatePath("/groups");
 }

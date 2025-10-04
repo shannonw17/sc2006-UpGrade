@@ -2,6 +2,7 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 export async function rejectNotify(senderId: string, receiverId: string, groupId: string) {
   // fetch grp name for msg
@@ -18,4 +19,5 @@ export async function rejectNotify(senderId: string, receiverId: string, groupId
       message: `${receivererUserName} rejected your invite to join group "${group.name}(${groupId})".`,
     },
   });
+  revalidatePath("/groups");
 }

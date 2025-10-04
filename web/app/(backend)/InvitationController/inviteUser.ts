@@ -2,6 +2,7 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/requireUser";
 
 export async function sendInvite(formData: FormData) {
@@ -32,6 +33,7 @@ export async function sendInvite(formData: FormData) {
       invitationId: invite.id,
     },
   });
-
+  
+  revalidatePath("/groups");
   return invite;
 }

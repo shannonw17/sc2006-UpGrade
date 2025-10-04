@@ -1,9 +1,12 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/requireUser";
 import { joinNotify } from "../NotificationController/joinNotify";
 import { cancelPending } from "./cancelPending";
+import { checkOverlap } from "../ConflictController/checkOverlap";
+import { resolveConflict } from "../ConflictController/resolveConflict";
 
 export async function acceptInvite(formData: FormData) {
   const user = await requireUser();
@@ -21,6 +24,17 @@ export async function acceptInvite(formData: FormData) {
   
   const groupId = invite.group.id;
   const capacity = invite.group.capacity;
+
+  //check for overlap
+  const overlap = await checkOverlap(user.id, groupId); //return conflict: Boolean
+
+  if (overlap.conflict) {
+    //to prompt user on frontend "This group timing overlaps with Group __. Leave Group __ to join this group?" - 2 options (confirm or cancel) 
+    const choice = true; // how to get choice from frontend, assume click confirm sets boolean to true
+
+    await resolveConflict(user.id, overlap.conflictingGroup?.id, groupId, false, true);
+    return;
+  }
 
   // Transaction: add member, increment group size, remove invitation, remove invitation notification
   await prisma.$transaction([
@@ -47,5 +61,6 @@ export async function acceptInvite(formData: FormData) {
 
   await cancelPending(groupId); //run to delete pending invitation if group capacity becomes full
 
+  revalidatePath("/groups");
   return { success: true, message: "Successfully accepted invite and joined group." }; //not sure if message is needed/where it will be displayed
 }

@@ -3,6 +3,8 @@
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { cancelPending } from "../InvitationController/cancelPending";
+import { checkOverlap } from "../ConflictController/checkOverlap";
+import { resolveConflict } from "../ConflictController/resolveConflict";
 
 // Demo: you probably have auth; wire your real user id here.
 function getCurrentUserId() {
@@ -15,6 +17,18 @@ export async function joinGroup(formData: FormData) {
   const userId  = String(formData.get("userId")  || getCurrentUserId());
 
   if (!groupId || !userId) throw new Error("Missing groupId or userId");
+
+  //check for overlap
+  const overlap = await checkOverlap(userId, groupId); //return conflict: Boolean
+
+  if (overlap.conflict) {
+    //to prompt user on frontend "This group timing overlaps with Group __. Leave Group __ to join this group?" - 2 options (confirm or cancel) 
+    const choice = true; // how to get choice from frontend, assume click confirm sets boolean to true
+
+    await resolveConflict(userId, overlap.conflictingGroup?.id, groupId, false, choice);
+    return;
+  }
+
 
   await prisma.$transaction(async (tx) => {
     const group = await tx.group.findUnique({
