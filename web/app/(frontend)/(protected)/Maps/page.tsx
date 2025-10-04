@@ -1,5 +1,5 @@
 // export default function Maps() {
-//   const apiKey = "AIzaSyCUQiQ8Ku1c06N3e3CYVRdKKozErIydD9w";
+ 
 
 //   return (
 //     <div
@@ -26,24 +26,45 @@
 
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 declare global {
   interface Window {
-    google: any; // or you can use more precise types if you install @types/google.maps
+    google: any; // or install @types/google.maps for proper types
   }
 }
+
+
 export default function Maps() {
+  const apiKey = "AIzaSyCUQiQ8Ku1c06N3e3CYVRdKKozErIydD9w";
   const mapRef = useRef(null);
+  const markerRef = useRef<any>(null); // Store current marker
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapInstance, setMapInstance] = useState(null);
+  const [mapInstance, setMapInstance] = useState<any>(null);
   const [location, setLocation] = useState("");
   const [query, setQuery] = useState("Singapore");
+  const router = useRouter();
+  const [selectedLocation, setSelectedLocation] = useState("");
+
+  const handleMapClick = (location: string) => {
+    setSelectedLocation(location);
+  };
+  
+
+  const returnLocation = () => {
+    if (!selectedLocation) {
+      alert("Please select a location first!");
+      return; // stop execution
+    }
+    // Redirect back to the input page with the selected location in query
+    router.push(`/groups/create?loc=${encodeURIComponent(selectedLocation)}`);
+  };
 
   // Load Google Maps JS API
   useEffect(() => {
     if (!window.google) {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCUQiQ8Ku1c06N3e3CYVRdKKozErIydD9w&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
       script.async = true;
       script.defer = true;
       script.onload = () => setMapLoaded(true);
@@ -70,33 +91,59 @@ export default function Maps() {
       const geocoder = new window.google.maps.Geocoder();
       const res = await geocoder.geocode({ location: { lat, lng } });
 
+      let address = "";
       if (res.results[0]) {
-        setLocation(res.results[0].formatted_address);
+        address = res.results[0].formatted_address;
+        setLocation(address);
       } else {
-        setLocation(`Lat: ${lat}, Lng: ${lng}`);
+        address = `Lat: ${lat}, Lng: ${lng}`;
+        setLocation(address);
       }
+
+      // Also update selectedLocation so Return button works
+      setSelectedLocation(address);
+
+      // Remove previous marker if it exists
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+      }
+
+      // Add a new marker at the clicked location
+      markerRef.current = new window.google.maps.Marker({
+        position: { lat, lng },
+        map: map,
+      });
     });
 
     setMapInstance(map);
   }, [mapLoaded, mapInstance]);
 
   // Handle search form submit
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query || !mapInstance) return;
 
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ address: query }, (results, status) => {
       if (status === "OK" && results[0]) {
-        const location = results[0].geometry.location;
-        // mapInstance.setCenter(location);
-        // mapInstance.setZoom(15);
+        const loc = results[0].geometry.location;
 
-        // Optional: mark searched location
-        new window.google.maps.Marker({
-          position: location,
+        mapInstance.setCenter(loc);
+        mapInstance.setZoom(15);
+
+        // Remove previous marker if it exists
+        if (markerRef.current) {
+          markerRef.current.setMap(null);
+        }
+
+        // Add new marker at search result
+        markerRef.current = new window.google.maps.Marker({
+          position: loc,
           map: mapInstance,
         });
+
+        setLocation(results[0].formatted_address);
+        setSelectedLocation(results[0].formatted_address);
       } else {
         alert("Location not found");
       }
@@ -147,7 +194,34 @@ export default function Maps() {
       />
 
       {/* Selected location */}
-      <p style={{ marginTop: "50px" }}>Selected Location: {location}</p>
+      <div
+        style={{
+          marginTop: "50px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "10px",
+        }}
+      >
+        <span>Selected Location: {location}</span>
+        {!selectedLocation && (
+          <span style={{ color: "#f87171", fontSize: "14px" }}>
+            No location selected
+          </span>
+        )}
+        <button
+          className={`mt-1 px-4 py-1 rounded ${
+            selectedLocation
+              ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+              : "bg-gray-400 text-gray-200 cursor-not-allowed"
+          }`}
+          onClick={returnLocation}
+          disabled={!selectedLocation}
+        >
+          Return Location
+        </button>
+      </div>
     </div>
   );
 }
+

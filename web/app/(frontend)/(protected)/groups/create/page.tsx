@@ -1,11 +1,29 @@
+"use client";
 import { createGroup } from "@/app/(backend)/GroupController/createGroups";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function CreateGroupPage() {
+  const [location, setLocation] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnedLocation = searchParams.get("loc");
+  if (returnedLocation && returnedLocation !== location) {
+    setLocation(returnedLocation);
+  }
+
+  const goToMap = () => {
+    router.push("/Maps"); // redirect to map page
+  };
+  
   return (
     <main className="flex flex-col items-center gap-y-6 pt-24">
       <h1 className="text-3xl font-semibold">Create a New Group</h1>
 
-      <form action={createGroup} className="w-full max-w-xl space-y-4 border rounded-lg p-6">
+      <form
+        action={createGroup}
+        className="w-full max-w-xl space-y-4 border rounded-lg p-6"
+      >
         <div>
           <label className="block text-sm font-medium mb-1">Group Name</label>
           <input
@@ -45,15 +63,33 @@ export default function CreateGroupPage() {
           </div>
         </div>
 
+
+
+
         <div>
           <label className="block text-sm font-medium mb-1">Location</label>
-          <input
-            name="location"
-            type="text"
-            required
-            className="w-full rounded border px-3 py-2"
-          />
+          <div className="flex mb-2">
+            <input
+              name="location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="flex-1 rounded-l border border-r-0 px-3 py-2"
+            />
+            <button
+              type="button"
+              onClick={goToMap}
+              className="rounded-r bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
+            >
+              Select on Map
+            </button>
+          </div>
         </div>
+
+
+
+
+
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -78,7 +114,10 @@ export default function CreateGroupPage() {
         </div>
 
         <div className="flex justify-end gap-3">
-          <a href="/groups" className="rounded-lg border px-4 py-2 text-sm hover:bg-black/5">
+          <a
+            href="/groups"
+            className="rounded-lg border px-4 py-2 text-sm hover:bg-black/5"
+          >
             Cancel
           </a>
           <button
