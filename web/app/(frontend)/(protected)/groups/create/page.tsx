@@ -2,19 +2,63 @@
 import { createGroup } from "@/app/(backend)/GroupController/createGroups";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function CreateGroupPage() {
   const [location, setLocation] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnedLocation = searchParams.get("loc");
-  if (returnedLocation && returnedLocation !== location) {
-    setLocation(returnedLocation);
-  }
+
+
+const [name, setName] = useState("");
+const [visibility, setVisibility] = useState("public");
+const [start, setStart] = useState("");
+const [end, setEnd] = useState("");
+const [capacity, setCapacity] = useState(4);
+const [hostId, setHostId] = useState("");
+
+
+
+
+  useEffect(() => {
+    const savedForm = sessionStorage.getItem("createGroupForm");
+    if (savedForm) {
+      const obj = JSON.parse(savedForm);
+      setName(obj.name || "");
+      setVisibility(obj.visibility || "public");
+      setStart(obj.start || "");
+      setEnd(obj.end || "");
+      setCapacity(Number(obj.capacity) || 4);
+      setHostId(obj.hostId || "");
+      setLocation(obj.location || "");
+      sessionStorage.removeItem("createGroupForm");
+    }
+
+    const savedLocation = sessionStorage.getItem("selectedLocation");
+    if (savedLocation) {
+      setLocation(savedLocation);
+      sessionStorage.removeItem("selectedLocation");
+    }
+  }, []);
+
 
   const goToMap = () => {
-    router.push("/Maps"); // redirect to map page
+    const formState = {
+      name,
+      visibility,
+      start,
+      end,
+      capacity: capacity.toString(),
+      hostId,
+      location,
+    };
+    sessionStorage.setItem("createGroupForm", JSON.stringify(formState));
+    router.push("/Maps");
   };
+  
+  
+  
   
   return (
     <main className="flex flex-col items-center gap-y-6 pt-24">
@@ -29,14 +73,20 @@ export default function CreateGroupPage() {
           <input
             name="name"
             type="text"
-            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="w-full rounded border px-3 py-2"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Visibility</label>
-          <select name="visibility" className="w-full rounded border px-3 py-2">
+          <select
+            name="visibility"
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value)}
+            className="w-full rounded border px-3 py-2"
+          >
             <option value="public">Public</option>
             <option value="private">Private</option>
           </select>
@@ -49,6 +99,8 @@ export default function CreateGroupPage() {
               name="start"
               type="datetime-local"
               required
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
               className="w-full rounded border px-3 py-2"
             />
           </div>
@@ -58,13 +110,12 @@ export default function CreateGroupPage() {
               name="end"
               type="datetime-local"
               required
+              value={end}
+              onChange={(e) => setEnd(e.target.value)}
               className="w-full rounded border px-3 py-2"
             />
           </div>
         </div>
-
-
-
 
         <div>
           <label className="block text-sm font-medium mb-1">Location</label>
@@ -86,11 +137,6 @@ export default function CreateGroupPage() {
           </div>
         </div>
 
-
-
-
-
-
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Capacity</label>
@@ -98,7 +144,8 @@ export default function CreateGroupPage() {
               name="capacity"
               type="number"
               min={1}
-              defaultValue={4}
+              value={capacity}
+              onChange={(e) => setCapacity(Number(e.target.value))}
               className="w-full rounded border px-3 py-2"
             />
           </div>
@@ -108,6 +155,8 @@ export default function CreateGroupPage() {
               name="hostId"
               type="text"
               required
+              value={hostId}
+              onChange={(e) => setHostId(e.target.value)}
               className="w-full rounded border px-3 py-2"
             />
           </div>

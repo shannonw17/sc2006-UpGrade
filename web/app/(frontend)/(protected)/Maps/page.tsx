@@ -1,28 +1,3 @@
-// export default function Maps() {
- 
-
-//   return (
-//     <div
-//       style={{
-//         width: "2000px", // frame width
-//         height: "1000px", // frame height
-//         border: "2px solid #000", // optional border
-//         borderRadius: "8px", // optional rounded corners
-//         overflow: "hidden", // ensures map fits nicely
-//         margin: "100px auto", // center on page
-//       }}
-//     >
-//       <iframe
-//         width="100%"
-//         height="100%"
-//         style={{ border: 0 }}
-//         allowFullScreen
-//         loading="lazy"
-//         src={`https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=Singapore`}
-//       ></iframe>
-//     </div>
-//   );
-// }
 
 "use client";
 
@@ -54,10 +29,12 @@ export default function Maps() {
   const returnLocation = () => {
     if (!selectedLocation) {
       alert("Please select a location first!");
-      return; // stop execution
+      return; 
     }
-    // Redirect back to the input page with the selected location in query
-    router.push(`/groups/create?loc=${encodeURIComponent(selectedLocation)}`);
+
+     sessionStorage.setItem("selectedLocation", selectedLocation);
+     router.push("/groups/create");
+
   };
 
   // Load Google Maps JS API
