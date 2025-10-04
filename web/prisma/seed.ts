@@ -32,7 +32,7 @@ async function main() {
     where: { email: "alice@e.ntu.edu.sg" },
     update: {},
     create: {
-      name: "alice",
+      username: "alice",
       email: "alice@e.ntu.edu.sg",
       passwordHash: aliceHash,
       eduLevel: "University",
@@ -43,7 +43,7 @@ async function main() {
     where: { email: "bob@e.ntu.edu.sg" },
     update: {},
     create: {
-      name: "bob",
+      username: "bob",
       email: "bob@e.ntu.edu.sg",
       passwordHash: bobHash,
       eduLevel: "Polytechnic",
@@ -54,7 +54,7 @@ async function main() {
     where: { email: "test@e.ntu.edu.sg" },
     update: {},
     create: {
-      name: "test",
+      username: "test",
       email: "test@e.ntu.edu.sg",
       passwordHash: testHash,
       eduLevel: "Everywhere",

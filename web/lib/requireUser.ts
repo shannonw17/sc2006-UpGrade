@@ -9,7 +9,7 @@ export async function requireUser() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, name: true, email: true, eduLevel: true },
+    select: { id: true, username: true, email: true, eduLevel: true },
   });
 
   if (!user) redirect("/login"); // stale session

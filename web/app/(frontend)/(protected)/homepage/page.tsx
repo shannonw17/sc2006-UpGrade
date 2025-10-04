@@ -7,7 +7,7 @@ export default async function Home() {
 
   return (
     <main className="p-10 space-y-6">
-      <h1 className="text-2xl">Welcome, {user.name}</h1>
+      <h1 className="text-2xl">Welcome, {user.username}</h1>
       <form action={logout}>
         <button className="border px-3 py-2 rounded">Log out</button>
       </form>

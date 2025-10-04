@@ -28,7 +28,7 @@ export async function sendInvite(formData: FormData) {
     data: {
       userId: receiverId,
       type: "INVITE_RECEIVED",
-      message: `${user.name} has invited you to join group "${group.name}".`,
+      message: `${user.username} has invited you to join group "${group.name}".`,
       invitationId: invite.id,
     },
   });

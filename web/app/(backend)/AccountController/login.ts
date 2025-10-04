@@ -25,7 +25,7 @@ export async function login(
     const user = await prisma.user.findFirst({
       where: looksLikeEmail
         ? { email: identifier }
-        : { name: identifier },
+        : { username: identifier },
     });
 
     if (!user) return { error: "Invalid username/email or password." };
@@ -33,7 +33,7 @@ export async function login(
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return { error: "Invalid username/email or password." };
 
-    await createSessionCookie({ userId: user.id, name: user.name });
+    await createSessionCookie({ userId: user.id, name: user.username });
     
   } catch (e) {
     console.error(e);

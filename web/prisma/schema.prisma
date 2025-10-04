@@ -37,6 +37,7 @@ model Group {
   capacity    Int
   currentSize Int      @default(1)
   hostId      String
+  isClosed    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   members GroupMember[]

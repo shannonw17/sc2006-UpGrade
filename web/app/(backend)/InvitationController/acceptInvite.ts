@@ -19,7 +19,7 @@ export async function acceptInvite(formData: FormData) {
   if (!invite) throw new Error("Invitation not found");
   if (invite.receiverId !== user.id) throw new Error("Not authorized to accept this invite");
   
-  const groupId = invite.groupdD;
+  const groupId = invite.group.id;
   const capacity = invite.group.capacity;
 
   // Transaction: add member, increment group size, remove invitation, remove invitation notification
