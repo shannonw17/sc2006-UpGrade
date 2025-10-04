@@ -33,6 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/contact" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Contact</Link>
             <Link href="/users" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Users</Link>
             <Link href="/groups" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Study Groups</Link>
+            <Link href="/inbox" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Inbox</Link>
             <Link href="/Maps" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Maps</Link>
 
             <div className="ml-auto flex items-center gap-3 text-sm">
