@@ -15,17 +15,6 @@ export async function leaveGroup(formData: FormData) {
 
   if (!groupId || !userId) throw new Error("Missing groupId or userId");
 
-  const group = await prisma.group.findUnique({
-    where: { id: groupId },
-    select: { hostId: true, currentSize: true },
-  });
-  if (!group) throw new Error("Group not found");
-
-  // 🚫 Host cannot leave their own group
-  if (group.hostId === userId) {
-    throw new Error("Hosts cannot leave their own group. Close the group instead.");
-  }
-
   await prisma.$transaction(async (tx) => {
     const membership = await tx.groupMember.findUnique({
       where: { userId_groupId: { userId, groupId } },
