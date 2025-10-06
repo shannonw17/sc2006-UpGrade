@@ -32,5 +32,5 @@ export async function checkOverlap(userId: string, newGroupId: string) {
             };
         }
     }
-    return { conflict: false };
+    return { conflict: false, conflictingGroup: null };
 }

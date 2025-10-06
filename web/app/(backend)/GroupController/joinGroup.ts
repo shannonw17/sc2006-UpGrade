@@ -21,7 +21,7 @@ export async function joinGroup(formData: FormData) {
   //check for overlap
   const overlap = await checkOverlap(userId, groupId); //return conflict: Boolean
 
-  if (overlap.conflict) {
+  if (overlap.conflict && overlap.conflictingGroup) {
     //to prompt user on frontend "This group timing overlaps with Group __. Leave Group __ to join this group?" - 2 options (confirm or cancel) 
     const choice = true; // how to get choice from frontend, assume click confirm sets boolean to true
 

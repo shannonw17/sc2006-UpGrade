@@ -1,4 +1,4 @@
-//to be linked when button is clicked in group/page.tsx
+//to be linked when button is clicked in user/page.tsx
 "use server";
 
 import prisma from "@/lib/db";
