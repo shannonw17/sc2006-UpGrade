@@ -3,6 +3,7 @@ export default function Contact(){
     <>
         <div>Contact Joshua @joshywawaMightBGay</div>
         <div>Contact Shannon @channingtatum</div>
+        <div>Contact MingXuan @ihvchatgptpremium</div>
     </>
     )
 }
