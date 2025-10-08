@@ -61,6 +61,6 @@ export async function acceptInvite(formData: FormData) {
 
   await cancelPending(groupId); //run to delete pending invitation if group capacity becomes full
 
-  revalidatePath("/groups");
+  revalidatePath("/inbox");
   return { success: true, message: "Successfully accepted invite and joined group." }; //not sure if message is needed/where it will be displayed
 }

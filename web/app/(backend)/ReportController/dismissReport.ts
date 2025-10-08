@@ -1,0 +1,1 @@
+// settle report --> delete from database; either warn or ban reporter user

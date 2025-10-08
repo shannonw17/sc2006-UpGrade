@@ -34,6 +34,6 @@ export async function sendInvite(formData: FormData) {
     },
   });
   
-  revalidatePath("/groups");
+  revalidatePath("/inbox"); //not sure if needed
   return invite;
 }

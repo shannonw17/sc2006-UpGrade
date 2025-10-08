@@ -49,5 +49,6 @@ export async function resolveConflict(
     await cancelPending(newGroupId);
 
     revalidatePath("/groups");
+    revalidatePath("/inbox");
     return { success: true };
 }

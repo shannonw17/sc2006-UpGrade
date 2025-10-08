@@ -24,5 +24,5 @@ export async function leaveNotify(groupId: string, leavingUserId: string) {
       message: `${leavingName} has left "${group.name} (${groupId})".`,
     })),
   });
-  revalidatePath("/groups");
+  revalidatePath("/inbox");
 }

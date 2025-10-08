@@ -21,12 +21,14 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Hash passwords in parallel
-  const [aliceHash, bobHash, testHash, johnHash, maryHash] = await Promise.all([
+  const [aliceHash, bobHash, testHash, johnHash, maryHash, admin1Hash, admin2Hash] = await Promise.all([
     bcrypt.hash("alice123", 10),
     bcrypt.hash("bob123", 10),
     bcrypt.hash("test123", 10),
     bcrypt.hash("john123", 10),
     bcrypt.hash("mary123", 10),
+    bcrypt.hash("admin123987", 10),
+    bcrypt.hash("admin543678", 10), //not sure if can directly add admin pwd hash here
   ]);
 
   // Tip: use lowercase names to match case-sensitive lookups
@@ -49,6 +51,7 @@ async function main() {
       email: "bob@e.ntu.edu.sg",
       passwordHash: bobHash,
       eduLevel: "Polytechnic",
+      warning: true,
     },
   });
 
@@ -82,6 +85,26 @@ async function main() {
       email: "mary@e.ntu.edu.sg",
       passwordHash: maryHash,
       eduLevel: "University",
+    },
+  });
+
+  const admin1 = await prisma.admin.upsert({
+    where: { email: "admin1@gmail.com" },
+    update: {},
+    create: {
+      username: "admin1",
+      email: "admin1@gmail.com",
+      passwordHash: admin1Hash,
+    },
+  });
+
+  const admin2 = await prisma.admin.upsert({
+    where: { email: "admin2@gmail.com" },
+    update: {},
+    create: {
+      username: "admin2",
+      email: "admin2@gmail.com",
+      passwordHash: admin2Hash,
     },
   });
 
@@ -141,11 +164,15 @@ async function main() {
 
   console.log("🌱 Seeding complete!");
   console.log("Test creds:");
+  console.log("Users:");
   console.log("  alice / alice@e.ntu.edu.sg  | password: alice123");
   console.log("  bob   / bob@e.ntu.edu.sg    | password: bob123");
   console.log("  test  / test@e.ntu.edu.sg   | password: test123");
   console.log("  john  / john@e.ntu.edu.sg   | password: john123");
   console.log("  mary  / mary@e.ntu.edu.sg   | password: mary123");
+  console.log("Admins: ");
+  console.log("  admin1  / admin1@gmail.com   | password: admin123987");
+  console.log("  admin2  / admin2@gmail.com   | password: admin543678");
 }
 
 main()
