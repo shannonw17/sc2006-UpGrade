@@ -17,25 +17,23 @@ export async function dismissReport(reportId : string, action: "warn" | "ban") {
     const warning = reporter?.warning;
 
     if (warning) {
-        //check if front end choose "Ban User" option
+        //check if front end choose "Ban User"/"Yes" option
         if (action === "ban") {
-        await banUser(reporterId, false);
+            await banUser(reporterId, false);
         }
-        //else if front end choose "Cancel" option
-        //nth happens
+        //else nth happens if front end choose "Cancel"/"No" option
     }
     else {
-        //check if front end choose "Warn User" option
+        //check if front end choose "Warn User"/"Yes" option
         if (action === "warn") {
-        await warnUser(reporterId, false, report.groupId);
+            await warnUser(reporterId, false, report.groupId);
         }
-        //else if front end choose "Cancel" option
-        //nth happens
+        //else nth happens if front end choose "Cancel"/"No" option
     }
 
     await prisma.$transaction([
         prisma.report.delete({ where: { id: reportId } }),
     ])
 
-    revalidatePath("/admin"); //to set as report page that can only be viewed by admin
+    revalidatePath("/admin"); //to set as the report page that can only be viewed by admin
 }

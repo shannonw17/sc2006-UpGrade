@@ -30,7 +30,7 @@ export async function approveReport(reportId : string, action: "warn" | "ban") {
     } else {
         //check if front end choose "Warn Host"/"Yes" option
         if (action === "warn") {
-        await warnUser(hostId, true, groupId);
+            await warnUser(hostId, true, groupId);
         }
         //else nth happens if front end choose "Cancel"/"No" option
     }
@@ -42,5 +42,5 @@ export async function approveReport(reportId : string, action: "warn" | "ban") {
         prisma.report.delete({ where: { id: reportId } }),
     ]);
 
-    revalidatePath("/admin"); //to set as report page that can only be viewed by admin
+    revalidatePath("/admin"); //to set as the report page that can only be viewed by admin
 }
