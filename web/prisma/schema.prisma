@@ -34,6 +34,8 @@ model User {
   warning      Boolean  @default(false)
   status       UserType @default(BANNED)
 
+  hostedGroups   Group[]        @relation("GroupHost")
+
   memberships GroupMember[]
   sentInvites   Invitation[]  @relation("SentInvites")
   receivedInvites Invitation[] @relation("ReceivedInvites")
@@ -54,6 +56,7 @@ model Group {
   capacity    Int
   currentSize Int      @default(1)
   hostId      String
+  host        User     @relation("GroupHost", fields: [hostId], references: [id], onDelete: Cascade)
   isClosed    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
