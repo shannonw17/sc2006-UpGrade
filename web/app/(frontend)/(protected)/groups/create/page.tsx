@@ -1,25 +1,19 @@
 "use client";
 import { createGroup } from "@/app/(backend)/GroupController/createGroups";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 
 export default function CreateGroupPage() {
   const [location, setLocation] = useState("");
+  const [name, setName] = useState("");
+  const [visibility, setVisibility] = useState("public");
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [capacity, setCapacity] = useState(4);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnedLocation = searchParams.get("loc");
-
-
-const [name, setName] = useState("");
-const [visibility, setVisibility] = useState("public");
-const [start, setStart] = useState("");
-const [end, setEnd] = useState("");
-const [capacity, setCapacity] = useState(4);
-const [hostId, setHostId] = useState("");
-
-
-
 
   useEffect(() => {
     const savedForm = sessionStorage.getItem("createGroupForm");
@@ -30,7 +24,6 @@ const [hostId, setHostId] = useState("");
       setStart(obj.start || "");
       setEnd(obj.end || "");
       setCapacity(Number(obj.capacity) || 4);
-      setHostId(obj.hostId || "");
       setLocation(obj.location || "");
       sessionStorage.removeItem("createGroupForm");
     }
@@ -40,8 +33,9 @@ const [hostId, setHostId] = useState("");
       setLocation(savedLocation);
       sessionStorage.removeItem("selectedLocation");
     }
-  }, []);
 
+    if (returnedLocation) setLocation(returnedLocation);
+  }, [returnedLocation]);
 
   const goToMap = () => {
     const formState = {
@@ -50,29 +44,23 @@ const [hostId, setHostId] = useState("");
       start,
       end,
       capacity: capacity.toString(),
-      hostId,
       location,
     };
     sessionStorage.setItem("createGroupForm", JSON.stringify(formState));
     router.push("/Maps");
   };
-  
-  
-  
-  
+
   return (
     <main className="flex flex-col items-center gap-y-6 pt-24">
       <h1 className="text-3xl font-semibold">Create a New Group</h1>
 
-      <form
-        action={createGroup}
-        className="w-full max-w-xl space-y-4 border rounded-lg p-6"
-      >
+      <form action={createGroup} className="w-full max-w-xl space-y-4 border rounded-lg p-6">
         <div>
           <label className="block text-sm font-medium mb-1">Group Name</label>
           <input
             name="name"
             type="text"
+            required
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full rounded border px-3 py-2"
@@ -123,6 +111,7 @@ const [hostId, setHostId] = useState("");
             <input
               name="location"
               type="text"
+              required
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="flex-1 rounded-l border border-r-0 px-3 py-2"
@@ -144,35 +133,20 @@ const [hostId, setHostId] = useState("");
               name="capacity"
               type="number"
               min={1}
+              required
               value={capacity}
               onChange={(e) => setCapacity(Number(e.target.value))}
               className="w-full rounded border px-3 py-2"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Host ID</label>
-            <input
-              name="hostId"
-              type="text"
-              required
-              value={hostId}
-              onChange={(e) => setHostId(e.target.value)}
-              className="w-full rounded border px-3 py-2"
-            />
-          </div>
+          {/* hostId field removed */}
         </div>
 
         <div className="flex justify-end gap-3">
-          <a
-            href="/groups"
-            className="rounded-lg border px-4 py-2 text-sm hover:bg-black/5"
-          >
+          <a href="/groups" className="rounded-lg border px-4 py-2 text-sm hover:bg-black/5">
             Cancel
           </a>
-          <button
-            type="submit"
-            className="rounded-lg bg-black px-4 py-2 text-sm text-white hover:bg-black/80"
-          >
+          <button type="submit" className="rounded-lg bg-black px-4 py-2 text-sm text-white hover:bg-black/80">
             Create Group
           </button>
         </div>
