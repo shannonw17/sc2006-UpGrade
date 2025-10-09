@@ -26,26 +26,75 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {session && (
-          <div className="flex items-center gap-4 p-4 border-b">
-            <Link href="/" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Home</Link>
-            <Link href="/about" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">About</Link>
-            <Link href="/contact" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Contact</Link>
-            <Link href="/users" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Users</Link>
-            <Link href="/groups" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Study Groups</Link>
-            <Link href="/inbox" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Inbox</Link>
-            <Link href="/Maps" className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Maps</Link>
+        {session ? (
+          <main className="min-h-screen bg-white">
+            <header className="border-b border-gray-300 px-6 py-4 bg-white shadow-sm">
+              <div className="flex justify-between items-center">
+                
+                <div className="flex items-center gap-2">
+                  <img src="/logo.png" alt="website logo" className="w-10 h-10" />
+                  <span className="text-xl font-bold text-gray-700">
+                    UpGrade
+                  </span>
+                </div>
 
-            <div className="ml-auto flex items-center gap-3 text-sm">
-              <span className="text-gray-600">Signed in as <b>{session.name}</b></span>
-              {/* ✅ This is now an inline server action, safe anywhere */}
-              <form action={logout}>
-                <button className="px-3 py-1 border rounded-md shadow-sm hover:bg-gray-10">Logout</button>
-              </form>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-600">
+                    Signed in as <b>{session.name}</b>
+                  </span>
+                  {/* ✅ This is now an inline server action, safe anywhere */}
+                  <form action={logout}>
+                    <button className="text-blue-600 text-sm font-medium">Logout</button>
+                  </form>
+                </div>
+
+              </div>
+            </header>
+
+            <div className="flex">
+              {/* This div ensures the content below the header */}
+              <aside className="w-64 border-r border-gray-300 min-h-screen bg-gray-50">
+                <nav>
+                  <ul className="space-y-4">
+                    <li>
+                      <Link href="/homepage" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Home</Link>
+                    </li>
+                    <li>
+                      <Link href="/groups" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Study Groups</Link>
+                    </li>
+                    <li>
+                      <Link href="/inbox" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Inbox</Link>
+                    </li>
+                    <li>
+                      <Link href="/schedule" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Schedule</Link>
+                    </li>
+                    <li>
+                      <Link href="/Maps" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Location Map</Link>
+                    </li>
+                    <li>
+                      <Link href="/myprofile" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Profile</Link>
+                    </li>
+                    <li>
+                      <Link href="/about" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">About</Link>
+                    </li>
+                    <li>
+                      <Link href="/contact" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Contact</Link>
+                    </li>
+                    <li>
+                      <Link href="/users" className="text-gray-700 hover:text-blue-600 block px-6 py-1 font-medium">Users</Link>
+                    </li>
+                  </ul>
+                </nav>
+              </aside>
+
+              <section className="flex-1 p-6">
+                {children}
+              </section>
             </div>
-          </div>
+          </main>
+        ) : (
+          <main>{children}</main>
         )}
-        {children}
       </body>
     </html>
   );
