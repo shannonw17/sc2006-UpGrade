@@ -23,7 +23,7 @@ export async function rejectInviteById(userId: string, inviteId: string) {
   // Notify the sender that recipient rejected the invite
   await rejectNotify(invite.senderId, invite.receiverId, invite.groupId);
 
-  revalidatePath("/groups");
+  revalidatePath("/inbox");
   return { success: true };
 }
 

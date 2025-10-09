@@ -21,10 +21,9 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Hash passwords in parallel
-  const [aliceHash, bobHash, testHash, johnHash, maryHash, admin1Hash, admin2Hash] = await Promise.all([
+  const [aliceHash, bobHash, johnHash, maryHash, admin1Hash, admin2Hash] = await Promise.all([
     bcrypt.hash("alice123", 10),
     bcrypt.hash("bob123", 10),
-    bcrypt.hash("test123", 10),
     bcrypt.hash("john123", 10),
     bcrypt.hash("mary123", 10),
     bcrypt.hash("admin123987", 10),
@@ -52,17 +51,6 @@ async function main() {
       passwordHash: bobHash,
       eduLevel: "Polytechnic",
       warning: true,
-    },
-  });
-
-  const test = await prisma.user.upsert({
-    where: { email: "test@e.ntu.edu.sg" },
-    update: {},
-    create: {
-      username: "test",
-      email: "test@e.ntu.edu.sg",
-      passwordHash: testHash,
-      eduLevel: "Everywhere",
     },
   });
 
@@ -167,7 +155,6 @@ async function main() {
   console.log("Users:");
   console.log("  alice / alice@e.ntu.edu.sg  | password: alice123");
   console.log("  bob   / bob@e.ntu.edu.sg    | password: bob123");
-  console.log("  test  / test@e.ntu.edu.sg   | password: test123");
   console.log("  john  / john@e.ntu.edu.sg   | password: john123");
   console.log("  mary  / mary@e.ntu.edu.sg   | password: mary123");
   console.log("Admins: ");
