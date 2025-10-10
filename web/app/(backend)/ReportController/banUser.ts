@@ -1,4 +1,5 @@
 //differentiate b/w host user vs. reporting user --> email to inform them
+"use server";
 
 import prisma from "@/lib/db";
 //import { revalidatePath } from "next/cache";

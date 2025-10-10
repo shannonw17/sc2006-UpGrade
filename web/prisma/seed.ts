@@ -41,7 +41,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U1",
       gender: "FEMALE",
-      preferredTiming: ["MORNING", "EVENING"].join(",")
+      preferredTiming: ["MORNING", "EVENING"].join(","),
     },
   });
 

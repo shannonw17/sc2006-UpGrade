@@ -20,6 +20,7 @@ model Admin {
 }
 
 enum UserType {
+  INACTIVE
   ACTIVE
   BANNED
 }
@@ -68,10 +69,11 @@ model User {
   school       String?  
   academicGrades String?
   usualStudyPeriod String? //to store as eg. "16:00-18:00"
+  emailReminder Boolean @default(true)
 
   createdAt    DateTime @default(now())
   warning      Boolean  @default(false)
-  status       UserType @default(ACTIVE)
+  status       UserType @default(INACTIVE)
 
   hostedGroups   Group[]        @relation("GroupHost")
 
@@ -81,6 +83,16 @@ model User {
   notifications Notification[]
 
   reports Report[] 
+  verificationToken VerificationToken?
+}
+
+model VerificationToken { //assign token to each user, delete when expires
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Group {
