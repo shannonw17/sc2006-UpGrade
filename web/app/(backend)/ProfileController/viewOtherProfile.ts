@@ -5,7 +5,6 @@
 
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/requireUser";
 
 export async function viewOtherProfile(formData:FormData){
     const userId = String(formData.get("userId"));

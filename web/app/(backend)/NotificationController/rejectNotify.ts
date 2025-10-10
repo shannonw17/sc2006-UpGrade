@@ -15,6 +15,7 @@ export async function rejectNotify(senderId: string, receiverId: string, groupId
   await prisma.notification.create({
     data: {
       userId: senderId,
+      groupId: groupId,
       type: "INVITE_REJECTED",
       message: `${receivererUserName} rejected your invite to join group "${group.name}(${groupId})".`,
     },

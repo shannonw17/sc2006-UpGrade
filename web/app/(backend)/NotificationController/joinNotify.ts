@@ -23,6 +23,7 @@ export async function joinNotify(groupId: string, newUserId: string) {
   await prisma.notification.createMany({
     data: members.map((m) => ({
       userId: m.userId,
+      groupId: groupId,
       type: "GROUP_MEMBER_JOINED",
       message: `${newUserName} has joined "${group.name} (${groupId})".`,
     })),
