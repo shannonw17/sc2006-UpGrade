@@ -19,7 +19,7 @@ export async function sendVerificationCode(userId: string) {
         where: { userId },
         update: { code, expiresAt, createdAt: new Date() },
         create: { userId, code, expiresAt },
-    })
+    });
 
     await sendEmail(
         user.email,
@@ -34,16 +34,16 @@ export async function verifyCode(userId: string, inputCode: string) {
     const token = await prisma.verificationToken.findUnique({ where: { userId } });
     if (!token) return false;
 
-    if (token.expiresAt < new Date()) {
+    if (token.expiresAt < new Date()) { //expired
         await prisma.verificationToken.delete({ where: {userId} }).catch(()=>{});
         return false;
     }
-    if (token.code !== inputCode) return false;
+    if (token.code !== inputCode) return false; //wrong
 
     await prisma.user.update({
         where: {id: userId},
         data: { status: "ACTIVE"},
-    })
+    });
 
     await prisma.verificationToken.delete({ where: {userId}});
 

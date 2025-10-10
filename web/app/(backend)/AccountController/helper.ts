@@ -1,4 +1,3 @@
-// helpers.ts
 export function validatePassword(password: string): { success: boolean; message?: string } {
     if (typeof password !== "string") return { success: false, message: "Password must be a string" };
     if (password.length < 12) return { success: false, message: "Password must be at least 12 characters" };

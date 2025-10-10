@@ -1,6 +1,8 @@
 // TO IGNORE FOR NOW --> HAVE NO IDEA WHETHER NEED THIS FUNCTION OR CAN DIRECTLY ACCESS DATABASE WHEN VIEWING PROFILE VIA FRONTEND
 
 //display all attributes of user
+//note: profile page calls { resetPassword } from "../AccountController/resetPassword"; //see UI Mockup "change password" section
+
 "use server";
 
 import prisma from "@/lib/db";
@@ -9,28 +11,40 @@ import { requireUser } from "@/lib/requireUser";
 
 export async function viewProfile(){
     const user = await requireUser();
+    const userId = user.id;
+    const currentUser = await prisma.user.findUnique({where: {id: userId}});
+    if (!currentUser) throw new Error("User is not found");
 
+    //map enums to strings
+    const eduLevelMap: Record<string, string> = {
+        SEC: "Secondary",
+        JC: "Junior College",
+        POLY: "Polytechnic",
+        UNI: "University",
+    };
+
+    //format gender to string
+    const formatGender = (gender: string) =>
+        gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
+
+    const formatTiming = (timing: string) => timing
+      .split(",")
+      .map(t => t.charAt(0) + t.slice(1).toLowerCase())
+      .join(", "); //not sure if this works
+
+    //return all attributes
+    const profile = {
+        email: currentUser.email,
+        username: currentUser.username,
+        eduLevel: eduLevelMap[currentUser.eduLevel],
+        gender: formatGender(currentUser.gender),
+        // add "relevant subjects/modules", "preferred study location(s)"
+        preferredTiming: formatTiming(currentUser.preferredTiming), //convert into string in lowercase with first letter caps
+        school: currentUser.school,
+        academicGrades: currentUser.academicGrades,
+        usualStudyPeriod: currentUser.usualStudyPeriod,
+        emailReminder: currentUser.emailReminder,
+    };
     revalidatePath("/myprofile");
-}
-
-//if enum EducationalLevel = "UNI" --> display as "University" (?) or can js stay as it is
-
-export async function getUserProfile(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true, username: true, email: true,
-      eduLevel: true, yearOfStudy: true, gender: true,
-      preferredTiming: true, preferredLocations: true,
-      school: true, academicGrades: true, usualStudyPeriod: true,
-      createdAt: true, status: true
-    }
-  });
-  if (!user) throw new Error("User not found");
-
-  return {
-    ...user,
-    preferredTiming: user.preferredTiming ? user.preferredTiming.split(",") : [],
-    preferredLocations: user.preferredLocations ? user.preferredLocations.split(",") : [],
-  };
+    return profile;
 }
