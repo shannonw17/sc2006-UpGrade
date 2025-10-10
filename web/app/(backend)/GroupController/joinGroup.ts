@@ -5,56 +5,74 @@ import { revalidatePath } from "next/cache";
 import { cancelPending } from "../InvitationController/cancelPending";
 import { checkOverlap } from "../ConflictController/checkOverlap";
 import { resolveConflict } from "../ConflictController/resolveConflict";
-
-// Demo: you probably have auth; wire your real user id here.
-function getCurrentUserId() {
-  // e.g., from session. For demo, hardcode or pass via form.
-  return "cmg87rs3w0002vofsnekwzvyg"; // Test user
-}
+import { joinNotify } from "../NotificationController/joinNotify";
+import { requireUser } from "@/lib/requireUser";
 
 export async function joinGroup(formData: FormData) {
+
+  const user = await requireUser();
+  const userId = user.id;
   const groupId = String(formData.get("groupId") || "");
-  const userId  = String(formData.get("userId")  || getCurrentUserId());
 
   if (!groupId || !userId) throw new Error("Missing groupId or userId");
 
-  //check for overlap
-  const overlap = await checkOverlap(userId, groupId); //return conflict: Boolean
+  // Optional: read user's choice from the form (e.g., a hidden input set by your modal)
+  // <input type="hidden" name="confirmResolve" value="true" />
+  const confirmResolve = String(formData.get("confirmResolve") || "false") === "true";
+
+  // 1) Check for timing overlap
+  const overlap = await checkOverlap(userId, groupId); // { conflict: boolean, conflictingGroup?: { id: string } }
 
   if (overlap.conflict && overlap.conflictingGroup) {
-    //to prompt user on frontend "This group timing overlaps with Group __. Leave Group __ to join this group?" - 2 options (confirm or cancel) 
-    const choice = true; // how to get choice from frontend, assume click confirm sets boolean to true
-
-    await resolveConflict(userId, overlap.conflictingGroup?.id, groupId, false, choice);
-    return;
+    // If you use a UI confirm, only resolve if the user confirmed
+    if (!confirmResolve) {
+      // Surface to the UI however you prefer (throw, return structured error, etc.)
+      throw new Error(
+        `This group overlaps with another group you're in. Ask user to confirm before proceeding.`
+      );
+    }
+    // Resolve: leave conflicting group, then proceed to join target group
+    await resolveConflict(userId, overlap.conflictingGroup.id, groupId, /*silent*/ false, /*choice*/ true);
+    // Note: resolveConflict should handle membership changes. If it *already* joined the new group,
+    // you can return here or fall through (idempotency below will no-op).
   }
 
-
+  // 2) Join inside a transaction
+  let didJoin = false;
   await prisma.$transaction(async (tx) => {
     const group = await tx.group.findUnique({
       where: { id: groupId },
-      select: { capacity: true, currentSize: true },
+      select: { capacity: true, currentSize: true, isClosed: true },
     });
     if (!group) throw new Error("Group not found");
+    if (group.isClosed) throw new Error("Group is closed");
+    if (group.currentSize >= group.capacity) throw new Error("Group is full");
 
-    if (group.currentSize >= group.capacity) {
-      throw new Error("Group is full");
-    }
-
-    // Ensure not already a member
+    // Prevent duplicate membership
     const already = await tx.groupMember.findUnique({
       where: { userId_groupId: { userId, groupId } },
     });
-    if (already) return;
+    if (already) return; // idempotent: nothing to do
 
-    // Create membership and bump counter
+    // Create membership + bump size
     await tx.groupMember.create({ data: { groupId, userId } });
     await tx.group.update({
       where: { id: groupId },
       data: { currentSize: { increment: 1 } },
     });
-    await cancelPending(groupId); //call to check if membership capacity reach --> clear pending invitations
+
+    // Clear pending invites if capacity reached (your existing logic)
+    await cancelPending(groupId);
+
+    didJoin = true;
   });
 
+  // 3) Notify everyone else (outside the transaction)
+  if (didJoin) {
+    await joinNotify(groupId, userId);
+  }
+
+  // 4) Revalidate UI
   revalidatePath("/groups");
+  revalidatePath("/inbox");
 }

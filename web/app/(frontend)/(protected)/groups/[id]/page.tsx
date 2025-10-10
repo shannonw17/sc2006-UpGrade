@@ -12,9 +12,15 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
   const { id } = await params;
 
   const [group, user] = await Promise.all([
-    prisma.group.findUnique({ where: { id } }),
-    requireUser(), // current signed-in user
-  ]);
+  prisma.group.findUnique({
+    where: { id },
+    include: {
+      host: { select: { username: true } }, // 👈 bring in the host’s username
+    },
+  }),
+  requireUser(),
+]);
+
 
   if (!group) {
     return (
@@ -40,7 +46,7 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
         <p><strong>End:</strong> {new Date(group.end).toLocaleString()}</p>
         <p><strong>Location:</strong> {group.location}</p>
         <p><strong>Capacity:</strong> {group.currentSize}/{group.capacity}</p>
-        <p><strong>Host ID:</strong> {group.hostId}</p>
+        <p><strong>Host Name:</strong> {group.host.username}</p>
         <p><strong>Created At:</strong> {new Date(group.createdAt).toLocaleString()}</p>
 
         {isHost && (

@@ -3,6 +3,9 @@
 import prisma from "@/lib/db";
 import { buildWhereCommon, type NormalizedFilters } from "./filterUtils";
 
+// Can use this to build user profile filtering too
+// (e.g. in a "find members" page)
+
 export async function fetchGroupsWithFilters(
   currentUserId: string,
   filters: NormalizedFilters
