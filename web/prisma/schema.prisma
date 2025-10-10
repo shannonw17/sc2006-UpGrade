@@ -24,15 +24,54 @@ enum UserType {
   BANNED
 }
 
+enum EducationLevel {
+  SEC
+  JC
+  POLY
+  UNI
+}
+
+enum YearOfStudy {
+  S1
+  S2
+  S3
+  S4
+  S5
+  J1
+  J2
+  P1
+  P2
+  P3
+  U1
+  U2
+  U3
+  U4
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   username     String   @unique
   passwordHash String
-  eduLevel     String?
+
+  eduLevel     EducationLevel
+  yearOfStudy  YearOfStudy
+  gender       Gender
+  preferredTiming String
+  //preferredLocations String[]
+  school       String?  
+  academicGrades String?
+  usualStudyPeriod String? //to store as eg. "16:00-18:00"
+
   createdAt    DateTime @default(now())
   warning      Boolean  @default(false)
-  status       UserType @default(BANNED)
+  status       UserType @default(ACTIVE)
 
   hostedGroups   Group[]        @relation("GroupHost")
 

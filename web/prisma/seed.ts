@@ -38,7 +38,10 @@ async function main() {
       username: "alice",
       email: "alice@e.ntu.edu.sg",
       passwordHash: aliceHash,
-      eduLevel: "University",
+      eduLevel: "UNI",
+      yearOfStudy: "U1",
+      gender: "FEMALE",
+      preferredTiming: ["MORNING", "EVENING"].join(",")
     },
   });
 
@@ -49,7 +52,10 @@ async function main() {
       username: "bob",
       email: "bob@e.ntu.edu.sg",
       passwordHash: bobHash,
-      eduLevel: "Polytechnic",
+      eduLevel: "POLY",
+      yearOfStudy: "P3",
+      gender: "MALE",
+      preferredTiming: "MORNING",
       warning: true,
     },
   });
@@ -61,7 +67,11 @@ async function main() {
       username: "john",
       email: "john@e.ntu.edu.sg",
       passwordHash: johnHash,
-      eduLevel: "University",
+      eduLevel: "UNI",
+      yearOfStudy: "U1",
+      gender: "MALE",
+      preferredTiming: "EVENING",
+
     },
   });
 
@@ -72,7 +82,10 @@ async function main() {
       username: "mary",
       email: "mary@e.ntu.edu.sg",
       passwordHash: maryHash,
-      eduLevel: "University",
+      eduLevel: "UNI",
+      yearOfStudy: "U2",
+      gender: "FEMALE",
+      preferredTiming: "MORNING",
     },
   });
 
