@@ -24,5 +24,14 @@ export async function leaveNotify(groupId: string, leavingUserId: string) {
       message: `${leavingName} has left "${group.name} (${groupId})".`,
     })),
   });
+
+  await prisma.notification.create({
+  data: {
+    userId: leavingUserId,
+    type: "GROUP_MEMBER_LEFT",
+    message: `You have left "${group.name} (${groupId})".`,
+  },
+});
+
   revalidatePath("/inbox");
 }
