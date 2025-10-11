@@ -16,7 +16,9 @@ const yearOptions: Record<EducationLevel, YearOfStudy[]> = {
 
 export async function editProfile(formData: {
     yearOfStudy: string;
-    preferredTiming: string;
+    preferredTiming: string[];
+    currentCourse?: string | null;
+    relevantSubjects?: string | null;
     school?: string | null;
     academicGrades?: string | null;
     usualStudyPeriod?: string | null;
@@ -42,7 +44,9 @@ export async function editProfile(formData: {
         where: {id: existing.id},
         data: {
             yearOfStudy: formData.yearOfStudy as YearOfStudy,
-            preferredTiming: formData.preferredTiming,
+            preferredTiming: formData.preferredTiming.join(","),
+            currentCourse: formData.currentCourse,
+            relevantSubjects: formData.relevantSubjects,
             school: formData.school || null,
             academicGrades: formData.academicGrades || null,
             usualStudyPeriod: formData.usualStudyPeriod || null,

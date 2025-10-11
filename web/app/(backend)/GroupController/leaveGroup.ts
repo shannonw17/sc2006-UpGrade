@@ -3,6 +3,7 @@
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { leaveNotify } from "../NotificationController/leaveNotify";
+import { deleteNotif } from "../NotificationController/deleteNotifs";
 
 // Demo: you probably have auth; wire your real user id here.
 function getCurrentUserId() {
@@ -41,6 +42,7 @@ export async function leaveGroup(formData: FormData) {
   });
 
   await leaveNotify(groupId, userId);
+  await deleteNotif(userId, groupId);
 
   revalidatePath("/groups");
 }

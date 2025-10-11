@@ -64,8 +64,10 @@ model User {
   eduLevel     EducationLevel
   yearOfStudy  YearOfStudy
   gender       Gender
-  preferredTiming String
+  preferredTiming String 
   //preferredLocations String[]
+  currentCourse String?
+  relevantSubjects String? 
   school       String?  
   academicGrades String?
   usualStudyPeriod String? //to store as eg. "16:00-18:00"
@@ -131,7 +133,6 @@ model GroupMember {
 enum NotificationType {
   INVITE_RECEIVED
   INVITE_REJECTED
-  INVITE_EXPIRED
   GROUP_MEMBER_JOINED
   GROUP_MEMBER_LEFT
   GROUP_START_REMINDER
@@ -159,6 +160,7 @@ model Invitation {
 model Notification {
   id         String            @id @default(cuid())
   userId     String
+  groupId    String? //allow null
   type       NotificationType
   message    String
   read       Boolean           @default(false)

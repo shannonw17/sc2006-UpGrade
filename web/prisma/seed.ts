@@ -41,7 +41,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U1",
       gender: "FEMALE",
-      preferredTiming: ["MORNING", "EVENING"].join(","),
+      preferredTiming: ["Morning", "Evening"].join(","),
     },
   });
 
@@ -55,7 +55,7 @@ async function main() {
       eduLevel: "POLY",
       yearOfStudy: "P3",
       gender: "MALE",
-      preferredTiming: "MORNING",
+      preferredTiming: "Morning",
       warning: true,
     },
   });
@@ -70,7 +70,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U1",
       gender: "MALE",
-      preferredTiming: "EVENING",
+      preferredTiming: "Evening",
 
     },
   });
@@ -85,7 +85,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U2",
       gender: "FEMALE",
-      preferredTiming: "MORNING",
+      preferredTiming: "Morning",
     },
   });
 
