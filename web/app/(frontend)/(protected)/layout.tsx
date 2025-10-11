@@ -1,7 +1,19 @@
 // app/(frontend)/(protected)/layout.tsx
-import { requireUser } from "@/lib/requireUser";
+import { readSession, readAdminSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  await requireUser(); // redirects to /login if not logged in
+export default async function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const userSession = await readSession();
+  const adminSession = await readAdminSession();
+
+  if (!userSession && !adminSession) {
+    // neither logged in
+    redirect("/login");
+  }
+
   return <>{children}</>;
 }

@@ -15,13 +15,15 @@ export async function createSessionCookie(payload: SessionPayload) {
     .setExpirationTime("7d")
     .sign(secret);
 
+  const IS_PROD = process.env.NODE_ENV === "production";
+
   const cookieStore = await cookies(); // <-- await
   cookieStore.set({
     name: COOKIE_NAME,
     value: token,
     httpOnly: true,
     sameSite: "lax",
-    secure: true,         // set true in production
+    secure: IS_PROD,         // set true in production
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
@@ -45,5 +47,51 @@ export async function clearSession() {
   // Either delete:
   // cookieStore.delete(COOKIE_NAME);
   // or overwrite with maxAge 0:
+  cookieStore.delete(COOKIE_NAME);
   cookieStore.set({ name: COOKIE_NAME, value: "", path: "/", maxAge: 0 });
+}
+
+// --- Admin Auth Helpers ---
+
+const ADMIN_COOKIE = "admin_session";
+
+export type AdminSessionPayload = { adminId: string; username: string };
+
+export async function createAdminSession(payload: AdminSessionPayload) {
+  const token = await new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(secret);
+
+  const IS_PROD = process.env.NODE_ENV === "production";  
+
+  const cookieStore = await cookies();
+  cookieStore.set({
+    name: ADMIN_COOKIE,
+    value: token,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: IS_PROD,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+}
+
+export async function readAdminSession(): Promise<AdminSessionPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(ADMIN_COOKIE)?.value;
+  if (!token) return null;
+
+  try {
+    const { payload } = await jwtVerify(token, secret);
+    return payload as AdminSessionPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearAdminSession() {
+  const cookieStore = await cookies();
+  cookieStore.set({ name: ADMIN_COOKIE, value: "", path: "/", maxAge: 0 });
 }

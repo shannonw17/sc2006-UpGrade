@@ -28,7 +28,6 @@ export async function leaveNotify(groupId: string, leavingUserId: string) {
   await prisma.notification.create({
   data: {
     userId: leavingUserId,
-    groupId: groupId,
     type: "GROUP_MEMBER_LEFT",
     message: `You have left "${group.name} (${groupId})".`,
   },

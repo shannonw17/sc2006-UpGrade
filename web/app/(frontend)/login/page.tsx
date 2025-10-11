@@ -12,71 +12,78 @@ export default function LoginForm() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-md">
-        {/* logo on the top left */}
+        {/* logo */}
         <div className="absolute top-6 left-6 flex items-center gap-0.5">
-          <img 
-            src="/logo.png" 
-            alt="website Logo" 
-            className="w-12 h-12"  
-          />
+          <img src="/logo.png" alt="website Logo" className="w-12 h-12" />
           <span className="text-xl font-bold text-gray-700">UpGrade</span>
         </div>
-        
-        {/* centered header */}
+
+        {/* header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
           <p className="text-gray-600">Welcome back! Please sign in to your account.</p>
         </div>
 
-        {/* Form Card */}
         <form action={formAction} className="bg-white rounded-lg shadow-sm border p-8">
-          {/* Error Message */}
           {state?.error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600 text-center" aria-live="polite">{state.error}</p>
             </div>
           )}
 
-          {/* Username/Email Field */}
+          {/* Role toggle */}
+          <fieldset className="mb-6">
+            <legend className="block text-sm font-medium text-gray-900 mb-2">Sign in as</legend>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="radio" name="as" value="user" defaultChecked className="accent-blue-600" />
+                User
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="radio" name="as" value="admin" className="accent-blue-600" />
+                Admin
+              </label>
+            </div>
+          </fieldset>
+
+          {/* Username/Email */}
           <div className="mb-6">
             <label htmlFor="identifier" className="block text-sm font-medium text-gray-900 mb-2">
               Username or Email
             </label>
-            <input 
+            <input
               id="identifier"
-              name="identifier" 
-              required 
+              name="identifier"
+              required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-300 text-gray-900"
               placeholder="Enter your username or email"
             />
           </div>
 
-          {/* Password Field */}
+          {/* Password */}
           <div className="mb-6">
             <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-2">
               Password
             </label>
-            <input 
+            <input
               id="password"
-              name="password" 
-              type="password" 
-              required 
+              name="password"
+              type="password"
+              required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-300 text-gray-900"
               placeholder="Enter your password"
             />
           </div>
 
-          {/* Forgot Password Link */}
           <div className="text-right mb-6">
             <a href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
               Forgot password?
             </a>
           </div>
 
-          {/* Login Button */}
-          <button 
-            type="submit" 
-            disabled={pending} 
+          <button
+            type="submit"
+            disabled={pending}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {pending ? (
@@ -92,7 +99,6 @@ export default function LoginForm() {
             )}
           </button>
 
-          {/* Register Link */}
           <div className="text-center mt-6 pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
