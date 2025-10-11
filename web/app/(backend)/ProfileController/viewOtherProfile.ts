@@ -32,6 +32,8 @@ export async function viewOtherProfile(formData:FormData){
         gender: formatGender(currentUser.gender),
         // add "relevant subjects/modules", "preferred study location(s)"
         preferredTiming: currentUser.preferredTiming,
+        preferredLocations: currentUser.preferredLocations,
+        //if null, dont need display empty sections in frontend
         currentCourse: currentUser.currentCourse,
         relevantSubjects: currentUser.relevantSubjects,
         school: currentUser.school,

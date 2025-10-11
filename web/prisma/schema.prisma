@@ -65,7 +65,7 @@ model User {
   yearOfStudy  YearOfStudy
   gender       Gender
   preferredTiming String 
-  //preferredLocations String[]
+  preferredLocations String
   currentCourse String?
   relevantSubjects String? 
   school       String?  

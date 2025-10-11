@@ -30,6 +30,7 @@ export async function createProfile(formData: FormData) {
     const gender = String(formData.get("gender") || "");
     const preferredTiming = formData.getAll("preferredTiming") as string[]; //["Morning", "Evening"] multiple options selected, store as string
     //optional fields --> set as null if not filled in
+    const rawLocations = formData.getAll("preferredLocations") as string[];
     const currentCourse = formData.get("currentCourse")? String(formData.get("currentCourse")) : null;
     const relevantSubjects = formData.get("relevantSubjects")? String(formData.get("relevantSubjects")) : null; 
     const school = formData.get("school") ? String(formData.get("school")) : null;
@@ -58,6 +59,13 @@ export async function createProfile(formData: FormData) {
         throw new Error("Select at least one preferred timing");
     }
 
+    //format location input
+    const normLocations = rawLocations.map(
+        loc => loc.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))
+        .filter(Boolean); //remove empty entries?
+        //["Woodlands", "Jurong East"]
+    const preferredLocations = normLocations.join(","); //"Woodlands, Jurong East"
+
     //check if username is unique or if email already being used in database
     const existingUser = await prisma.user.findFirst({
         where: { OR: [{username}, {email}]},
@@ -85,6 +93,7 @@ export async function createProfile(formData: FormData) {
             yearOfStudy: yearOfStudy as YearOfStudy,
             gender: gender as Gender,
             preferredTiming: preferredTiming.join(","), //store as "Morning, Evening"
+            preferredLocations,
             currentCourse,
             relevantSubjects,
             school,

@@ -17,6 +17,7 @@ const yearOptions: Record<EducationLevel, YearOfStudy[]> = {
 export async function editProfile(formData: {
     yearOfStudy: string;
     preferredTiming: string[];
+    preferredLocations: string[];
     currentCourse?: string | null;
     relevantSubjects?: string | null;
     school?: string | null;
@@ -36,15 +37,21 @@ export async function editProfile(formData: {
     }
 
     //check if all mandatory fields are filled
-    if (!formData.yearOfStudy || !formData.preferredTiming) {
+    if (!formData.yearOfStudy || !formData.preferredTiming || !formData.preferredLocations) {
         throw new Error("Please fill in all mandatory fields!");
     }
+
+    const normLocations = formData.preferredLocations.map(
+        loc => loc.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))
+        .filter(Boolean); //remove empty entries?
+
     //update user profile (for fields allowed to be edited only)
     const updatedUser = await prisma.user.update({
         where: {id: existing.id},
         data: {
             yearOfStudy: formData.yearOfStudy as YearOfStudy,
             preferredTiming: formData.preferredTiming.join(","),
+            preferredLocations: normLocations.join(","),
             currentCourse: formData.currentCourse,
             relevantSubjects: formData.relevantSubjects,
             school: formData.school || null,

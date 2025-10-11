@@ -42,6 +42,7 @@ async function main() {
       yearOfStudy: "U1",
       gender: "FEMALE",
       preferredTiming: ["Morning", "Evening"].join(","),
+      preferredLocations: ["NTU", "Woodlands"].join(","),
     },
   });
 
@@ -56,6 +57,7 @@ async function main() {
       yearOfStudy: "P3",
       gender: "MALE",
       preferredTiming: "Morning",
+      preferredLocations: "Woodlands",
       warning: true,
     },
   });
@@ -71,7 +73,7 @@ async function main() {
       yearOfStudy: "U1",
       gender: "MALE",
       preferredTiming: "Evening",
-
+      preferredLocations: ["NTU", "Choa Chu Kang"].join(","),
     },
   });
 
@@ -86,6 +88,7 @@ async function main() {
       yearOfStudy: "U2",
       gender: "FEMALE",
       preferredTiming: "Morning",
+      preferredLocations: ["Woodlands", "Jurong East"].join(","),
     },
   });
 

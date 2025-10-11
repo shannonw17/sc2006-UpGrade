@@ -35,6 +35,7 @@ export async function viewProfile(){
         gender: formatGender(currentUser.gender),
         // add "relevant subjects/modules", "preferred study location(s)"
         preferredTiming: currentUser.preferredTiming, //already a astring
+        preferredLocations: currentUser.preferredLocations,
         school: currentUser.school,
         currentCourse: currentUser.currentCourse,
         relevantSubjects: currentUser.relevantSubjects,
