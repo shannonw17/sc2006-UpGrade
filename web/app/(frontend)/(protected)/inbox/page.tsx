@@ -12,19 +12,19 @@ export default async function InboxPage() {
     }),
     prisma.notification.findMany({
       where: { userId: user.id },
+      //where: { userId: "cmgks7des0001jud0nhtijq6m" }, //temp userId for testing
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
   return (
-    <main className="max-w-3xl mx-auto mt-10">
+    <main className="max-w-3xl mx-auto mt-10 text-cyan-500">
       <h1 className="text-xl font-semibold mb-4">Inbox</h1>
       <section>
         <h2 className="font-medium text-lg mb-2">Invitations</h2>
         {invitations.map((i) => (
           <div key={i.id} className="border p-3 mb-2 rounded">
-            Invite from <b>{i.sender.username}</b> to join{" "}
-            <b>{i.group.name}</b>
+            Invite from <b>{i.sender.username}</b> to join <b>{i.group.name}</b>
           </div>
         ))}
       </section>
