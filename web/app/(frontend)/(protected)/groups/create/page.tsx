@@ -51,106 +51,149 @@ export default function CreateGroupPage() {
   };
 
   return (
-    <main className="flex flex-col items-center gap-y-6 pt-24">
-      <h1 className="text-3xl font-semibold">Create a New Group</h1>
-
-      <form action={createGroup} className="w-full max-w-xl space-y-4 border rounded-lg p-6">
-        <div>
-          <label className="block text-sm font-medium mb-1">Group Name</label>
-          <input
-            name="name"
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded border px-3 py-2"
-          />
+    <main className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create a New Group</h1>
+          <p className="text-gray-600">Set up your study group and start collaborating</p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Visibility</label>
-          <select
-            name="visibility"
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value)}
-            className="w-full rounded border px-3 py-2"
-          >
-            <option value="public">Public</option>
-            <option value="private">Private</option>
-          </select>
+        {/* Form Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <form action={createGroup} className="space-y-6">
+            {/* Group Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Group Name
+              </label>
+              <input
+                name="name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter group name"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              />
+            </div>
+
+            {/* Visibility */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visibility
+              </label>
+              <select
+                name="visibility"
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              >
+                <option value="public">Public - Anyone can join</option>
+                <option value="private">Private - Invite only</option>
+              </select>
+            </div>
+
+            {/* Date & Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Time
+                </label>
+                <input
+                  name="start"
+                  type="datetime-local"
+                  required
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  End Time
+                </label>
+                <input
+                  name="end"
+                  type="datetime-local"
+                  required
+                  value={end}
+                  onChange={(e) => setEnd(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location
+              </label>
+              <div className="flex space-x-3">
+                <input
+                  name="location"
+                  type="text"
+                  required
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Enter location or select on map"
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={goToMap}
+                  className="rounded-lg bg-blue-600 text-white px-6 py-3 hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
+                >
+                  Select on Map
+                </button>
+              </div>
+            </div>
+
+            {/* Capacity */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Capacity
+              </label>
+              <div className="flex items-center space-x-3">
+                <input
+                  name="capacity"
+                  type="number"
+                  min={1}
+                  max={50}
+                  required
+                  value={capacity}
+                  onChange={(e) => setCapacity(Number(e.target.value))}
+                  className="w-32 rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                />
+                <span className="text-gray-500 text-sm">members</span>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+              <a 
+                href="/groups" 
+                className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </a>
+              <button 
+                type="submit" 
+                className="rounded-lg bg-gradient-to-r from-black to-blue-700 px-6 py-3 text-white font-medium hover:opacity-90 transition-opacity shadow-sm"
+              >
+                Create Group
+              </button>
+            </div>
+          </form>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Start</label>
-            <input
-              name="start"
-              type="datetime-local"
-              required
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-              className="w-full rounded border px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">End</label>
-            <input
-              name="end"
-              type="datetime-local"
-              required
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-              className="w-full rounded border px-3 py-2"
-            />
-          </div>
+        {/* Help Text */}
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-500">
+            Your group will be visible to others based on the visibility settings you choose.
+          </p>
         </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Location</label>
-          <div className="flex mb-2">
-            <input
-              name="location"
-              type="text"
-              required
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="flex-1 rounded-l border border-r-0 px-3 py-2"
-            />
-            <button
-              type="button"
-              onClick={goToMap}
-              className="rounded-r bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
-            >
-              Select on Map
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Capacity</label>
-            <input
-              name="capacity"
-              type="number"
-              min={1}
-              required
-              value={capacity}
-              onChange={(e) => setCapacity(Number(e.target.value))}
-              className="w-full rounded border px-3 py-2"
-            />
-          </div>
-          {/* hostId field removed */}
-        </div>
-
-        <div className="flex justify-end gap-3">
-          <a href="/groups" className="rounded-lg border px-4 py-2 text-sm hover:bg-black/5">
-            Cancel
-          </a>
-          <button type="submit" className="rounded-lg bg-black px-4 py-2 text-sm text-white hover:bg-black/80">
-            Create Group
-          </button>
-        </div>
-      </form>
+      </div>
     </main>
   );
 }
