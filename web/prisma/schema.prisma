@@ -116,6 +116,7 @@ model Group {
   members GroupMember[]
   invitations Invitation[]
   reports Report[]
+  notifications Notification[]
 }
 
 model GroupMember {
@@ -169,6 +170,9 @@ model Notification {
   //optional link to Invitation (to delete inbox entry when invite remove when accept or reject)
   invitationId String? 
   invitation   Invitation?      @relation("InvitationNotifications", fields: [invitationId], references: [id], onDelete: Cascade)
+
+  group        Group?            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
 
   user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
