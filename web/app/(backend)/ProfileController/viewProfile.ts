@@ -27,11 +27,6 @@ export async function viewProfile(){
     const formatGender = (gender: string) =>
         gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
 
-    const formatTiming = (timing: string) => timing
-      .split(",")
-      .map(t => t.charAt(0) + t.slice(1).toLowerCase())
-      .join(", "); //not sure if this works
-
     //return all attributes
     const profile = {
         email: currentUser.email,
@@ -39,8 +34,11 @@ export async function viewProfile(){
         eduLevel: eduLevelMap[currentUser.eduLevel],
         gender: formatGender(currentUser.gender),
         // add "relevant subjects/modules", "preferred study location(s)"
-        preferredTiming: formatTiming(currentUser.preferredTiming), //convert into string in lowercase with first letter caps
+        preferredTiming: currentUser.preferredTiming, //already a astring
+        preferredLocations: currentUser.preferredLocations,
         school: currentUser.school,
+        currentCourse: currentUser.currentCourse,
+        relevantSubjects: currentUser.relevantSubjects,
         academicGrades: currentUser.academicGrades,
         usualStudyPeriod: currentUser.usualStudyPeriod,
         emailReminder: currentUser.emailReminder,

@@ -23,10 +23,6 @@ export async function viewOtherProfile(formData:FormData){
     const formatGender = (gender: string) =>
         gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
 
-    const formatTiming = (timing: string) => timing
-      .split(",")
-      .map(t => t.charAt(0) + t.slice(1).toLowerCase())
-      .join(", "); //not sure if this works
 
     //return all attributes
     const profile = {
@@ -35,7 +31,11 @@ export async function viewOtherProfile(formData:FormData){
         eduLevel: eduLevelMap[currentUser.eduLevel],
         gender: formatGender(currentUser.gender),
         // add "relevant subjects/modules", "preferred study location(s)"
-        preferredTiming: formatTiming(currentUser.preferredTiming), //convert into string in lowercase with first letter caps
+        preferredTiming: currentUser.preferredTiming,
+        preferredLocations: currentUser.preferredLocations,
+        //if null, dont need display empty sections in frontend
+        currentCourse: currentUser.currentCourse,
+        relevantSubjects: currentUser.relevantSubjects,
         school: currentUser.school,
         academicGrades: currentUser.academicGrades,
         usualStudyPeriod: currentUser.usualStudyPeriod,

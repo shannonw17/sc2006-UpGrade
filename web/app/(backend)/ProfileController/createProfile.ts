@@ -28,8 +28,11 @@ export async function createProfile(formData: FormData) {
     const eduLevel = String(formData.get("eduLevel") || "");
     const yearOfStudy = String(formData.get("yearOfStudy") || "");
     const gender = String(formData.get("gender") || "");
-    const preferredTiming = String(formData.get("preferredTiming") || "");
+    const preferredTiming = formData.getAll("preferredTiming") as string[]; //["Morning", "Evening"] multiple options selected, store as string
     //optional fields --> set as null if not filled in
+    const rawLocations = formData.getAll("preferredLocations") as string[];
+    const currentCourse = formData.get("currentCourse")? String(formData.get("currentCourse")) : null;
+    const relevantSubjects = formData.get("relevantSubjects")? String(formData.get("relevantSubjects")) : null; 
     const school = formData.get("school") ? String(formData.get("school")) : null;
     const academicGrades = formData.get("academicGrades") ? String(formData.get("academicGrades")) : null;
     const usualStudyPeriod = formData.get("usualStudyPeriod") ? String(formData.get("usualStudyPeriod")) : null;
@@ -51,6 +54,17 @@ export async function createProfile(formData: FormData) {
     if (!Object.values(Gender).includes(gender as Gender)) {
         throw new Error("Invalid gender");
     }
+
+    if (preferredTiming.length === 0) {
+        throw new Error("Select at least one preferred timing");
+    }
+
+    //format location input
+    const normLocations = rawLocations.map(
+        loc => loc.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))
+        .filter(Boolean); //remove empty entries?
+        //["Woodlands", "Jurong East"]
+    const preferredLocations = normLocations.join(","); //"Woodlands, Jurong East"
 
     //check if username is unique or if email already being used in database
     const existingUser = await prisma.user.findFirst({
@@ -78,7 +92,10 @@ export async function createProfile(formData: FormData) {
             eduLevel: eduLevel as EducationLevel, 
             yearOfStudy: yearOfStudy as YearOfStudy,
             gender: gender as Gender,
-            preferredTiming, 
+            preferredTiming: preferredTiming.join(","), //store as "Morning, Evening"
+            preferredLocations,
+            currentCourse,
+            relevantSubjects,
             school,
             academicGrades,
             usualStudyPeriod,
