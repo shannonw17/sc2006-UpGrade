@@ -9,8 +9,9 @@ export async function addEntry() {
   const sessionId = await readSession();
   if (!sessionId) redirect("/login");
 
-    const studyGroups = await viewSchedule();
-    const validStudyGroups: Group[] = [];
+  const studyGroups = await viewSchedule();
+  const validStudyGroups: Group[] = [];
+  const invalidStudyGroups: Group[] = [];
 
   const now = Date.now();
 
@@ -21,14 +22,9 @@ export async function addEntry() {
 
     if (now <= expiryTime) {
       validStudyGroups.push(group);
-    } else {
-        deleteNotifs(group.id);   // Delete expired study group
-
-        
-        // await prisma.groupMember.deleteMany({ where: { groupId: group.id } });
-        // await prisma.group.delete({ where: { id: group.id } });
-        // This is to remove all group members and the group itself from the database
-        // Note: Not yet tested
+    }
+    else {
+        invalidStudyGroups.push(group); // Lists not used yet, but may be useful for future features
     }
   }
 
