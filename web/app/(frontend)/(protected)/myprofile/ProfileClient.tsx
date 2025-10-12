@@ -4,6 +4,7 @@ import React, { useState } from "react";
 
 export default function ProfileClient({ user }: any) {
   const [isEditing, setIsEditing] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [formData, setFormData] = useState({
     email: user.email,
     yearOfStudy: user.yearOfStudy,
@@ -22,6 +23,14 @@ export default function ProfileClient({ user }: any) {
     // Placeholder: add an API route later to update the user
     console.log("Saving data:", formData);
     setIsEditing(false);
+    
+    // Show success popup
+    setShowSuccessPopup(true);
+    
+    // Auto hide popup after 3 seconds
+    setTimeout(() => {
+      setShowSuccessPopup(false);
+    }, 3000);
   };
 
   const handleCancel = () => {
@@ -179,6 +188,18 @@ export default function ProfileClient({ user }: any) {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-semibold">Profile updated successfully!</span>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 p-10 flex flex-col items-center">
         <div className="bg-gray-100 shadow-lg rounded-lg p-10 w-full max-w-6xl">
           {/* Two Column Layout */}
