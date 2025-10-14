@@ -22,8 +22,11 @@ export default function HomepageClient({ user, initialProfiles }) {
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [loadingProfileId, setLoadingProfileId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const filterPopupRef = useRef<HTMLDivElement>(null);
+  const profileModalRef = useRef<HTMLDivElement>(null);
 
   // Close filter popup when clicking outside
   useEffect(() => {
@@ -31,18 +34,17 @@ export default function HomepageClient({ user, initialProfiles }) {
       if (filterPopupRef.current && !filterPopupRef.current.contains(event.target as Node)) {
         setShowFilterPopup(false);
       }
+      if (profileModalRef.current && !profileModalRef.current.contains(event.target as Node) && showProfileModal) {
+        setShowProfileModal(false);
+        setSelectedProfile(null);
+      }
     };
 
-    // Add event listener when popup is open
-    if (showFilterPopup) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    // Clean up event listener
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showFilterPopup]);
+  }, [showFilterPopup, showProfileModal]);
 
   // Handle view profile - DIRECT SERVER ACTION CALL
   const handleViewProfile = async (targetUserId: string) => {
@@ -53,21 +55,8 @@ export default function HomepageClient({ user, initialProfiles }) {
       const result = await viewOtherProfile(targetUserId);
 
       if (result.success) {
-        // Display profile data in alert
-        alert(
-          `Profile Details:\n\n` +
-          `Username: ${result.profile.username}\n` +
-          `Email: ${result.profile.email}\n` +
-          `Education Level: ${result.profile.eduLevel}\n` +
-          `Year of Study: ${result.profile.yearOfStudy}\n` +
-          `Gender: ${result.profile.gender}\n` +
-          `Preferred Timing: ${result.profile.preferredTiming}\n` +
-          `Preferred Locations: ${result.profile.preferredLocations}\n` +
-          `Current Course: ${result.profile.currentCourse || 'Not specified'}\n` +
-          `Relevant Subjects: ${result.profile.relevantSubjects || 'Not specified'}\n` +
-          `School: ${result.profile.school || 'Not specified'}\n` +
-          `Usual Study Period: ${result.profile.usualStudyPeriod || 'Not specified'}`
-        );
+        setSelectedProfile(result.profile);
+        setShowProfileModal(true);
       } else {
         setError(result.message || 'Failed to load profile');
       }
@@ -77,6 +66,11 @@ export default function HomepageClient({ user, initialProfiles }) {
     } finally {
       setLoadingProfileId(null);
     }
+  };
+
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+    setSelectedProfile(null);
   };
 
   const handleSearch = (query: string) => {
@@ -128,6 +122,81 @@ export default function HomepageClient({ user, initialProfiles }) {
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {/* Profile Detail Modal */}
+      {showProfileModal && selectedProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div 
+            ref={profileModalRef}
+            className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="p-6">
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={closeProfileModal}
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    ← Back to profiles
+                  </button>
+                  <button
+                    onClick={closeProfileModal}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  </div>
+                  <h1 className="text-3xl font-bold text-emerald-900 bg-green-100 px-4 py-2 rounded-lg mb-2 inline-block border border-red-200">{selectedProfile.username}
+                  </h1>
+                  <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
+                  </div>
+              </div>
+
+              {/* Profile Details Card */}
+              <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+                <div className="grid gap-4">
+                  <DetailItem label="Username" value={selectedProfile.username} />
+                  <DetailItem label="Email" value={selectedProfile.email} />
+                  <DetailItem label="Education Level" value={selectedProfile.eduLevel} />
+                  <DetailItem label="Year of Study" value={selectedProfile.yearOfStudy} />
+                  <DetailItem label="Gender" value={selectedProfile.gender} />
+                  <DetailItem label="Preferred Timing" value={selectedProfile.preferredTiming} />
+                  <DetailItem 
+                    label="Preferred Locations" 
+                    value={selectedProfile.preferredLocations || 'Not specified'} 
+                  />
+                  <DetailItem 
+                    label="Current Course" 
+                    value={selectedProfile.currentCourse || 'Not specified'} 
+                  />
+                  <DetailItem 
+                    label="Relevant Subjects" 
+                    value={selectedProfile.relevantSubjects || 'Not specified'} 
+                  />
+                  <DetailItem 
+                    label="School" 
+                    value={selectedProfile.school || 'Not specified'} 
+                  />
+                  <DetailItem 
+                    label="Usual Study Period" 
+                    value={selectedProfile.usualStudyPeriod || 'Not specified'} 
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex gap-3">
+                <button className="flex-1 bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition">
+                  + Invite to Study
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -320,6 +389,16 @@ export default function HomepageClient({ user, initialProfiles }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// DetailItem component for consistent styling
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-200 last:border-b-0">
+      <span className="text-sm font-medium text-gray-600 mb-1 sm:mb-0">{label}</span>
+      <span className="text-gray-900 font-medium text-right">{value}</span>
     </div>
   );
 }

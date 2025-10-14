@@ -76,10 +76,7 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
             <DetailItem label="End Time" value={new Date(group.end).toLocaleString()} />
             <DetailItem label="Location" value={group.location} />
             <DetailItem label="Capacity" value={`${group.currentSize}/${group.capacity}`} />
-            <DetailItem
-              label="Host"
-              value={group.host?.username || "Unknown"}
-            />
+            <DetailItem label="Host" value={group.host?.username || "Unknown"} />
             <DetailItem label="Created At" value={new Date(group.createdAt).toLocaleString()} />
           </div>
 
