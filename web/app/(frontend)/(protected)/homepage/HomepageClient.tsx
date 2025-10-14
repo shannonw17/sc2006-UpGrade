@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { viewOtherProfile } from '@/app/(backend)/ProfileController/viewOtherProfile';
 
 async function handleLogout() {
   try {
@@ -19,6 +20,8 @@ export default function HomepageClient({ user, initialProfiles }) {
   const [genderFilter, setGenderFilter] = useState('');
   const [studyDuration, setStudyDuration] = useState(1);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [loadingProfileId, setLoadingProfileId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const filterPopupRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +43,41 @@ export default function HomepageClient({ user, initialProfiles }) {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilterPopup]);
+
+  // Handle view profile - DIRECT SERVER ACTION CALL
+  const handleViewProfile = async (targetUserId: string) => {
+    setLoadingProfileId(targetUserId);
+    setError(null);
+    
+    try {
+      const result = await viewOtherProfile(targetUserId);
+
+      if (result.success) {
+        // Display profile data in alert
+        alert(
+          `Profile Details:\n\n` +
+          `Username: ${result.profile.username}\n` +
+          `Email: ${result.profile.email}\n` +
+          `Education Level: ${result.profile.eduLevel}\n` +
+          `Year of Study: ${result.profile.yearOfStudy}\n` +
+          `Gender: ${result.profile.gender}\n` +
+          `Preferred Timing: ${result.profile.preferredTiming}\n` +
+          `Preferred Locations: ${result.profile.preferredLocations}\n` +
+          `Current Course: ${result.profile.currentCourse || 'Not specified'}\n` +
+          `Relevant Subjects: ${result.profile.relevantSubjects || 'Not specified'}\n` +
+          `School: ${result.profile.school || 'Not specified'}\n` +
+          `Usual Study Period: ${result.profile.usualStudyPeriod || 'Not specified'}`
+        );
+      } else {
+        setError(result.message || 'Failed to load profile');
+      }
+    } catch (error) {
+      console.error('View profile error:', error);
+      setError('Failed to load profile');
+    } finally {
+      setLoadingProfileId(null);
+    }
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -80,6 +118,19 @@ export default function HomepageClient({ user, initialProfiles }) {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600 text-center">{error}</p>
+          <button 
+            onClick={() => setError(null)}
+            className="mt-2 text-sm text-red-600 hover:text-red-800"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">All profiles</h1>
@@ -219,11 +270,29 @@ export default function HomepageClient({ user, initialProfiles }) {
                 <div className="font-semibold text-gray-900 text-lg mb-1">
                   {profile.username}
                 </div>
-                <div className="text-gray-800 mb-1">{profile.year}</div>
+                <div className="text-gray-800 mb-1">
+                  <span className={`px-2 py-1 text-sm font-bold ${profile.yearColor}`}>
+                    {profile.year}
+                  </span>
+                </div>
                 <div className="text-gray-600 mb-3">({profile.gender})</div>
 
-                <button className="text-blue-600 hover:text-blue-800 font-medium text-sm mb-3">
-                  view profile
+                <button 
+                  onClick={() => handleViewProfile(profile.id)}
+                  disabled={loadingProfileId === profile.id}
+                  className="text-blue-600 hover:text-blue-800 font-medium text-sm mb-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loadingProfileId === profile.id ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading...
+                    </span>
+                  ) : (
+                    'view profile'
+                  )}
                 </button>
 
                 <button className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-2 rounded-full hover:opacity-90 transition text-sm">
