@@ -7,6 +7,7 @@ import { checkOverlap } from "../ConflictController/checkOverlap";
 import { resolveConflict } from "../ConflictController/resolveConflict";
 import { joinNotify } from "../NotificationController/joinNotify";
 import { requireUser } from "@/lib/requireUser";
+import { checkGroupStatus } from "../ConflictController/checkGroupStatus";
 
 export async function joinGroup(formData: FormData) {
   const user = await requireUser();
@@ -16,14 +17,14 @@ export async function joinGroup(formData: FormData) {
 
   const confirmResolve = String(formData.get("confirmResolve") || "false") === "true";
 
-  // --- Step 0: Is user already in this group? ---------------------------------
+  // --- Step 1: Is user already in this group? ---------------------------------
   const existingMembership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
     select: { userId: true, groupId: true },
   });
 
   if (existingMembership) {
-    // User already in the target group: ensure no conflicts with other groups.
+    // Already in target group: at most resolve overlap with some other group.
     const overlap = await checkOverlap(userId, groupId);
     if (overlap.conflict && overlap.conflictingGroup) {
       if (!confirmResolve) {
@@ -31,9 +32,7 @@ export async function joinGroup(formData: FormData) {
           "This group's time overlaps with another group you're in. Please confirm to leave the conflicting group."
         );
       }
-
-      // Switch away from the conflicting (old) group, keep membership in this (new) group.
-      // resolveConflict will notify and revalidate internally.
+      // Leave the conflicting (old) group; keep membership in this group.
       await resolveConflict(
         userId,
         overlap.conflictingGroup.id, // oldGroupId
@@ -43,13 +42,18 @@ export async function joinGroup(formData: FormData) {
       );
     }
 
-    // Already a member (and either resolved or no conflict) → nothing else to do.
+    // Nothing to join; just refresh UI.
     revalidatePath("/groups");
     revalidatePath("/inbox");
     return;
   }
 
-  // --- Step 1: Not yet a member → check overlap BEFORE joining ----------------
+  // --- Step 2: Not yet a member → guard with group status ---------------------
+  // Use the shared helper: only proceed if group is open, not full, and not expired.
+  const ok = await checkGroupStatus(groupId);
+  if (!ok) throw new Error("Group is closed, full, or expired");
+
+  // Before we actually join, also check overlap so we can resolve via resolveConflict.
   const overlap = await checkOverlap(userId, groupId);
   if (overlap.conflict && overlap.conflictingGroup) {
     if (!confirmResolve) {
@@ -67,28 +71,30 @@ export async function joinGroup(formData: FormData) {
       /* userConfirmed */ true
     );
 
-    // ResolveConflict already did the join + notifications + revalidate
-    // but we still revalidate here (harmless) for safety.
+    // resolveConflict already did join + notifications + (likely) revalidate.
+    // Revalidate again is harmless.
     revalidatePath("/groups");
     revalidatePath("/inbox");
     return;
   }
 
-  // --- Step 2: Normal join path (no conflict) ---------------------------------
+  // --- Step 3: Normal join path (no conflict) ---------------------------------
   let didJoinHere = false;
   await prisma.$transaction(async (tx) => {
+    // Re-check state inside the transaction to avoid races
     const group = await tx.group.findUnique({
       where: { id: groupId },
-      select: { capacity: true, currentSize: true, isClosed: true },
+      select: { capacity: true, currentSize: true, isClosed: true, start: true },
     });
     if (!group) throw new Error("Group not found");
     if (group.isClosed) throw new Error("Group is closed");
     if (group.currentSize >= group.capacity) throw new Error("Group is full");
+    if (!group.start || group.start <= new Date()) throw new Error("Group has expired");
 
     const already = await tx.groupMember.findUnique({
       where: { userId_groupId: { userId, groupId } },
     });
-    if (already) return; // Idempotent: someone else joined the user meanwhile
+    if (already) return; // someone added them meanwhile (idempotent)
 
     await tx.groupMember.create({ data: { groupId, userId } });
     await tx.group.update({
