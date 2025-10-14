@@ -1,8 +1,6 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/requireUser";
-import { deleteGroup } from "@/app/(backend)/GroupController/deleteGroup";
 import { DeleteButton } from "./DeleteButton";
 
 interface GroupPageProps {
@@ -13,8 +11,11 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
   const { id } = await params;
 
   const [group, user] = await Promise.all([
-    prisma.group.findUnique({ where: { id } }),
-    requireUser(), // current signed-in user
+    prisma.group.findUnique({
+      where: { id },
+      include: { host: { select: { username: true } } }, // ✅ fetch host username
+    }),
+    requireUser(),
   ]);
 
   if (!group) {
@@ -37,25 +38,31 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link 
-            href="/groups" 
+          <Link
+            href="/groups"
             className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium mb-6"
           >
             ← Back to all groups
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{group.name}</h1>
           <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-            <span className={`px-3 py-1 rounded-full ${
-              group.visibility ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
-            }`}>
+            <span
+              className={`px-3 py-1 rounded-full ${
+                group.visibility ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+              }`}
+            >
               {group.visibility ? "Public" : "Private"}
             </span>
             <span>•</span>
-            <span>{group.currentSize}/{group.capacity} members</span>
+            <span>
+              {group.currentSize}/{group.capacity} members
+            </span>
             {isHost && (
               <>
                 <span>•</span>
-                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full">You are hosting</span>
+                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
+                  You are hosting
+                </span>
               </>
             )}
           </div>
@@ -64,12 +71,15 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
         {/* Group Details Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="grid gap-4">
-            <DetailItem label="Group ID" value={group.groupID} />
+            <DetailItem label="Group Name" value={group.groupID} />
             <DetailItem label="Start Time" value={new Date(group.start).toLocaleString()} />
             <DetailItem label="End Time" value={new Date(group.end).toLocaleString()} />
             <DetailItem label="Location" value={group.location} />
             <DetailItem label="Capacity" value={`${group.currentSize}/${group.capacity}`} />
-            <DetailItem label="Host ID" value={group.hostId} />
+            <DetailItem
+              label="Host"
+              value={group.host?.username || "Unknown"}
+            />
             <DetailItem label="Created At" value={new Date(group.createdAt).toLocaleString()} />
           </div>
 

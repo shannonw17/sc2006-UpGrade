@@ -9,36 +9,73 @@ import { joinNotify } from "../NotificationController/joinNotify";
 import { requireUser } from "@/lib/requireUser";
 
 export async function joinGroup(formData: FormData) {
-
   const user = await requireUser();
   const userId = user.id;
   const groupId = String(formData.get("groupId") || "");
-
   if (!groupId || !userId) throw new Error("Missing groupId or userId");
 
-  // Optional: read user's choice from the form (e.g., a hidden input set by your modal)
-  // <input type="hidden" name="confirmResolve" value="true" />
   const confirmResolve = String(formData.get("confirmResolve") || "false") === "true";
 
-  // 1) Check for timing overlap
-  const overlap = await checkOverlap(userId, groupId); // { conflict: boolean, conflictingGroup?: { id: string } }
+  // --- Step 0: Is user already in this group? ---------------------------------
+  const existingMembership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId, groupId } },
+    select: { userId: true, groupId: true },
+  });
 
-  if (overlap.conflict && overlap.conflictingGroup) {
-    // If you use a UI confirm, only resolve if the user confirmed
-    if (!confirmResolve) {
-      // Surface to the UI however you prefer (throw, return structured error, etc.)
-      throw new Error(
-        `This group overlaps with another group you're in. Ask user to confirm before proceeding.`
+  if (existingMembership) {
+    // User already in the target group: ensure no conflicts with other groups.
+    const overlap = await checkOverlap(userId, groupId);
+    if (overlap.conflict && overlap.conflictingGroup) {
+      if (!confirmResolve) {
+        throw new Error(
+          "This group's time overlaps with another group you're in. Please confirm to leave the conflicting group."
+        );
+      }
+
+      // Switch away from the conflicting (old) group, keep membership in this (new) group.
+      // resolveConflict will notify and revalidate internally.
+      await resolveConflict(
+        userId,
+        overlap.conflictingGroup.id, // oldGroupId
+        groupId,                     // newGroupId (this group)
+        /* isInvite */ false,
+        /* userConfirmed */ true
       );
     }
-    // Resolve: leave conflicting group, then proceed to join target group
-    await resolveConflict(userId, overlap.conflictingGroup.id, groupId, /*silent*/ false, /*choice*/ true);
-    // Note: resolveConflict should handle membership changes. If it *already* joined the new group,
-    // you can return here or fall through (idempotency below will no-op).
+
+    // Already a member (and either resolved or no conflict) → nothing else to do.
+    revalidatePath("/groups");
+    revalidatePath("/inbox");
+    return;
   }
 
-  // 2) Join inside a transaction
-  let didJoin = false;
+  // --- Step 1: Not yet a member → check overlap BEFORE joining ----------------
+  const overlap = await checkOverlap(userId, groupId);
+  if (overlap.conflict && overlap.conflictingGroup) {
+    if (!confirmResolve) {
+      throw new Error(
+        "This group overlaps with another group you're in. Please confirm to leave the conflicting group."
+      );
+    }
+
+    // Resolve conflict by leaving old and joining this group (resolveConflict also notifies).
+    await resolveConflict(
+      userId,
+      overlap.conflictingGroup.id, // oldGroupId
+      groupId,                     // newGroupId
+      /* isInvite */ false,
+      /* userConfirmed */ true
+    );
+
+    // ResolveConflict already did the join + notifications + revalidate
+    // but we still revalidate here (harmless) for safety.
+    revalidatePath("/groups");
+    revalidatePath("/inbox");
+    return;
+  }
+
+  // --- Step 2: Normal join path (no conflict) ---------------------------------
+  let didJoinHere = false;
   await prisma.$transaction(async (tx) => {
     const group = await tx.group.findUnique({
       where: { id: groupId },
@@ -48,31 +85,27 @@ export async function joinGroup(formData: FormData) {
     if (group.isClosed) throw new Error("Group is closed");
     if (group.currentSize >= group.capacity) throw new Error("Group is full");
 
-    // Prevent duplicate membership
     const already = await tx.groupMember.findUnique({
       where: { userId_groupId: { userId, groupId } },
     });
-    if (already) return; // idempotent: nothing to do
+    if (already) return; // Idempotent: someone else joined the user meanwhile
 
-    // Create membership + bump size
     await tx.groupMember.create({ data: { groupId, userId } });
     await tx.group.update({
       where: { id: groupId },
       data: { currentSize: { increment: 1 } },
     });
 
-    // Clear pending invites if capacity reached (your existing logic)
-    await cancelPending(groupId);
-
-    didJoin = true;
+    await cancelPending(groupId); // if capacity reached, clear pending
+    didJoinHere = true;
   });
 
-  // 3) Notify everyone else (outside the transaction)
-  if (didJoin) {
+  // Only notify if the join happened here (resolveConflict already notifies)
+  if (didJoinHere) {
     await joinNotify(groupId, userId);
   }
 
-  // 4) Revalidate UI
+  // Final revalidate
   revalidatePath("/groups");
   revalidatePath("/inbox");
 }
