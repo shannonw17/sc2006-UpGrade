@@ -2,51 +2,79 @@
 
 import React, { useState } from "react";
 
-export default function ProfileClient({ user }: any) {
+export default function ProfileClient({ user = {} }: any) {
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    current: "",
+    new: "",
+    confirm: ""
+  });
   const [formData, setFormData] = useState({
-    email: user.email,
-    yearOfStudy: user.yearOfStudy,
-    gender: user.gender,
-    school: user.school || "",
-    relevantSubjects: user.relevantSubjects || "",
-    preferredLocations: user.preferredLocations || "",
-    schoolInstitution: user.schoolInstitution || "",
-    preferredTiming: user.preferredTiming || "",
-    usualStudyPeriod: user.usualStudyPeriod || "",
-    academicGrades: user.academicGrades || "",
-    emailReminder: user.emailReminder || false,
+    email: user?.email || "",
+    yearOfStudy: user?.yearOfStudy || "U1",
+    gender: user?.gender || "MALE",
+    school: user?.school || "",
+    relevantSubjects: user?.relevantSubjects || "",
+    preferredLocations: user?.preferredLocations || "",
+    schoolInstitution: user?.schoolInstitution || "",
+    preferredTiming: user?.preferredTiming || [],
+    usualStudyPeriod: user?.usualStudyPeriod || "",
+    academicGrades: user?.academicGrades || "",
+    emailReminder: user?.emailReminder || false,
   });
 
+  const timingOptions = [
+    { value: "morning", label: "Morning (6am-12pm)" },
+    { value: "afternoon", label: "Afternoon (12pm-6pm)" },
+    { value: "evening", label: "Evening (6pm-12am)" },
+    { value: "night", label: "Night (12am-6am)" },
+  ];
+
+  const handlePasswordChange = () => {
+    if (passwordData.new !== passwordData.confirm) {
+      alert("New passwords do not match!");
+      return;
+    }
+    if (passwordData.new.length < 8) {
+      alert("Password must be at least 8 characters long!");
+      return;
+    }
+    console.log("Changing password...");
+    alert("Password changed successfully!");
+    setShowPasswordModal(false);
+    setPasswordData({ current: "", new: "", confirm: "" });
+  };
+
   const handleSave = async () => {
-    // Placeholder: add an API route later to update the user
+    if (!formData.schoolInstitution || !formData.preferredTiming.length) {
+      alert("Please fill in all mandatory fields (marked with *)");
+      return;
+    }
+
     console.log("Saving data:", formData);
     setIsEditing(false);
     
-    // Show success popup
     setShowSuccessPopup(true);
-    
-    // Auto hide popup after 3 seconds
     setTimeout(() => {
       setShowSuccessPopup(false);
     }, 3000);
   };
 
   const handleCancel = () => {
-    // Reset form data to original values
     setFormData({
-      email: user.email,
-      yearOfStudy: user.yearOfStudy,
-      gender: user.gender,
-      school: user.school || "",
-      relevantSubjects: user.relevantSubjects || "",
-      preferredLocations: user.preferredLocations || "",
-      schoolInstitution: user.schoolInstitution || "",
-      preferredTiming: user.preferredTiming || "",
-      usualStudyPeriod: user.usualStudyPeriod || "",
-      academicGrades: user.academicGrades || "",
-      emailReminder: user.emailReminder || false,
+      email: user?.email || "",
+      yearOfStudy: user?.yearOfStudy || "U1",
+      gender: user?.gender || "MALE",
+      school: user?.school || "",
+      relevantSubjects: user?.relevantSubjects || "",
+      preferredLocations: user?.preferredLocations || "",
+      schoolInstitution: user?.schoolInstitution || "",
+      preferredTiming: user?.preferredTiming || [],
+      usualStudyPeriod: user?.usualStudyPeriod || "",
+      academicGrades: user?.academicGrades || "",
+      emailReminder: user?.emailReminder || false,
     });
     setIsEditing(false);
   };
@@ -55,12 +83,24 @@ export default function ProfileClient({ user }: any) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const renderField = (label: string, field: string, value: any, editable = true, type = "text", exampleText = "") => {
+  const handleTimingToggle = (value: string) => {
+    const current = Array.isArray(formData.preferredTiming) ? formData.preferredTiming : [];
+    if (current.includes(value)) {
+      handleInputChange("preferredTiming", current.filter((v) => v !== value));
+    } else {
+      handleInputChange("preferredTiming", [...current, value]);
+    }
+  };
+
+  const renderField = (label: string, field: string, value: any, editable = true, type = "text", exampleText = "", mandatory = false) => {
     if (!editable) {
       return (
         <div className="flex flex-col mb-6">
           <div className="flex items-start">
-            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">{label}</label>
+            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
+              {label}
+              {mandatory && <span className="text-red-500 ml-1">*</span>}
+            </label>
             <div className="flex-1 border border-gray-300 rounded bg-white px-4 py-2">
               {value}
             </div>
@@ -73,14 +113,17 @@ export default function ProfileClient({ user }: any) {
       return (
         <div className="flex flex-col mb-6">
           <div className="flex items-start">
-            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">{label}</label>
+            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
+              {label}
+              {mandatory && <span className="text-red-500 ml-1">*</span>}
+            </label>
             {isEditing ? (
               <select
                 value={formData.yearOfStudy}
                 onChange={(e) => handleInputChange("yearOfStudy", e.target.value)}
                 className="flex-1 border border-gray-300 rounded px-4 py-2 bg-white"
               >
-                {user.yearOptions.map((opt: any) => (
+                {(user?.yearOptions || []).map((opt: any) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
@@ -88,7 +131,7 @@ export default function ProfileClient({ user }: any) {
               </select>
             ) : (
               <div className="flex-1 border border-gray-300 rounded bg-white px-4 py-2">
-                {user.mapYear}
+                {user?.mapYear || "Year 1"}
               </div>
             )}
           </div>
@@ -100,10 +143,12 @@ export default function ProfileClient({ user }: any) {
       return (
         <div className="flex flex-col mb-6">
           <div className="flex items-start">
-            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">{label}</label>
-            {/* Gender is always non-editable - removed the editing condition */}
+            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
+              {label}
+              {mandatory && <span className="text-red-500 ml-1">*</span>}
+            </label>
             <div className="flex-1 border border-gray-300 rounded bg-white px-4 py-2">
-              {user.mapGender}
+              {user?.mapGender || "Other"}
             </div>
           </div>
         </div>
@@ -114,37 +159,25 @@ export default function ProfileClient({ user }: any) {
       return (
         <div className="flex flex-col mb-6">
           <div className="flex items-start">
-            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">{label}</label>
+            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
+              {label}
+              {mandatory && <span className="text-red-500 ml-1">*</span>}
+            </label>
             <div className="flex-1 flex items-center">
-              {isEditing ? (
-                <button
-                  type="button"
-                  onClick={() => handleInputChange("emailReminder", !formData.emailReminder)}
-                  className={`relative inline-flex items-center h-8 rounded-full w-16 transition-colors duration-300 ${
-                    formData.emailReminder ? 'bg-green-500' : 'bg-gray-300'
+              <button
+                type="button"
+                onClick={() => isEditing && handleInputChange("emailReminder", !formData.emailReminder)}
+                disabled={!isEditing}
+                className={`relative inline-flex items-center h-8 rounded-full w-16 transition-colors duration-300 ${
+                  formData.emailReminder ? 'bg-green-500' : 'bg-gray-300'
+                } ${!isEditing ? 'cursor-default' : 'cursor-pointer'}`}
+              >
+                <span
+                  className={`inline-block w-6 h-6 transform bg-white rounded-full transition-transform duration-300 shadow-md ${
+                    formData.emailReminder ? 'translate-x-9' : 'translate-x-1'
                   }`}
-                >
-                  <span
-                    className={`inline-block w-6 h-6 transform bg-white rounded-full transition-transform duration-300 shadow-md ${
-                      formData.emailReminder ? 'translate-x-9' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => isEditing && handleInputChange("emailReminder", !formData.emailReminder)}
-                  className={`relative inline-flex items-center h-8 rounded-full w-16 transition-colors duration-300 ${
-                    formData.emailReminder ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block w-6 h-6 transform bg-white rounded-full transition-transform duration-300 shadow-md ${
-                      formData.emailReminder ? 'translate-x-9' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              )}
+                />
+              </button>
               <span className="ml-3 text-gray-700">
                 {formData.emailReminder ? 'On' : 'Off'}
               </span>
@@ -154,10 +187,56 @@ export default function ProfileClient({ user }: any) {
       );
     }
 
+    if (field === "preferredTiming") {
+      return (
+        <div className="flex flex-col mb-6">
+          <div className="flex items-start">
+            <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
+              {label}
+              {mandatory && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className="flex-1">
+              {isEditing ? (
+                <div className="space-y-2">
+                  {timingOptions.map((option) => {
+                    const current = Array.isArray(formData.preferredTiming) ? formData.preferredTiming : [];
+                    return (
+                      <label key={option.value} className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={current.includes(option.value)}
+                          onChange={() => handleTimingToggle(option.value)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-gray-700">{option.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="w-full border border-gray-300 rounded bg-white px-4 py-2">
+                  {Array.isArray(formData.preferredTiming) && formData.preferredTiming.length > 0 ? (
+                    formData.preferredTiming.map((v) => 
+                      timingOptions.find((opt) => opt.value === v)?.label
+                    ).join(", ")
+                  ) : (
+                    <span className="text-gray-400">Not specified</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col mb-6">
         <div className="flex items-start">
-          <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">{label}</label>
+          <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
+            {label}
+            {mandatory && <span className="text-red-500 ml-1">*</span>}
+          </label>
           <div className="flex-1">
             {isEditing ? (
               <input
@@ -188,7 +267,6 @@ export default function ProfileClient({ user }: any) {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Success Popup */}
       {showSuccessPopup && (
         <div className="fixed top-4 right-4 z-50 animate-fade-in">
           <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
@@ -200,46 +278,114 @@ export default function ProfileClient({ user }: any) {
         </div>
       )}
 
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-6">Change Password</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block font-semibold mb-2">Current Password</label>
+                <input
+                  type="password"
+                  value={passwordData.current}
+                  onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-2">New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.new}
+                  onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-2">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.confirm}
+                  onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-4 py-2"
+                />
+              </div>
+            </div>
+            <div className="flex gap-4 mt-6">
+              <button
+                onClick={handlePasswordChange}
+                className="flex-1 bg-gradient-to-r from-black via-indigo-900 to-blue-700 text-white px-6 py-2 rounded-lg hover:from-gray-900 hover:via-indigo-800 hover:to-blue-600 font-semibold"
+              >
+                Update Password
+              </button>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="flex-1 bg-gray-400 text-white px-6 py-2 rounded-lg hover:bg-gray-500 font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 p-10 flex flex-col items-center">
         <div className="bg-gray-100 shadow-lg rounded-lg p-10 w-full max-w-6xl">
-          {/* Two Column Layout */}
           <div className="grid grid-cols-2 gap-8">
-            {/* Left Column */}
             <div className="space-y-2">
-              {/* Email is now non-editable */}
-              {renderField("Email:", "email", formData.email, false, "email")}
-              {renderField("Year of study:", "yearOfStudy", user.mapYear, true)}
-              {renderField("Education Level:", "eduLevel", user.mapEdu, false)}
-              {/* Gender is non-editable */}
-              {renderField("Gender:", "gender", user.mapGender, false)}
-              {renderField("Current course:", "school", formData.school, true, "text", "e.g., Computer Science, Information Systems")}
-              {renderField("Relevant subjects/modules:", "relevantSubjects", formData.relevantSubjects, true, "text", "e.g., SC2006, SC2005, SC2001")}
-              {renderField("Preferred study location(s):", "preferredLocations", formData.preferredLocations, true, "text", "e.g., NTU, Jurong, Yishun")}
-              {renderField("School/ Institution:", "schoolInstitution", formData.schoolInstitution, true, "text", "e.g., Nanyang Technological University")}
+              {renderField("Email:", "email", formData.email, false, "email", "", false)}
+              {renderField("Year of study:", "yearOfStudy", user?.mapYear || "Year 1", true, "", "", false)}
+              {renderField("Education Level:", "eduLevel", user?.mapEdu || "University", false, "", "", false)}
+              {renderField("Gender:", "gender", user?.mapGender || "Other", false, "", "", false)}
+              {renderField("Current course:", "school", formData.school, true, "text", "e.g., Computer Science, Information Systems", false)}
+              {renderField("Relevant subjects/modules:", "relevantSubjects", formData.relevantSubjects, true, "text", "e.g., SC2006, SC2005, SC2001", false)}
+              {renderField("Preferred study location(s):", "preferredLocations", formData.preferredLocations, true, "text", "e.g., NTU, Jurong, Yishun", false)}
+              {renderField("School/ Institution:", "schoolInstitution", formData.schoolInstitution, true, "text", "e.g., Nanyang Technological University", true)}
             </div>
 
-            {/* Right Column */}
             <div className="space-y-2">
-              {/* Avatar Section */}
               <div className="flex flex-col items-center mb-8">
-                <div className="bg-gradient-to-r from-black via-indigo-900 to-blue-700 rounded-full w-40 h-40 flex items-center justify-center text-white text-6xl font-bold">
-                  {user.username[0].toUpperCase()}
+                <div className="relative">
+                  <div className="bg-gradient-to-r from-black via-indigo-900 to-blue-700 rounded-full w-40 h-40 flex items-center justify-center text-white text-6xl font-bold">
+                    {user?.username ? user.username[0].toUpperCase() : "U"}
+                  </div>
+                  <div className="absolute bottom-2 right-2">
+                    <div className={`w-8 h-8 rounded-full border-4 border-white flex items-center justify-center ${
+                      user?.hasWarning ? 'bg-red-500' : 'bg-green-500'
+                    }`}>
+                      {user?.hasWarning ? (
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-4 font-semibold text-2xl">{user.username}</p>
-                <a href="#" className="text-sm text-blue-600 hover:underline mt-1">
+                <p className="mt-4 font-semibold text-2xl">{user?.username || "User"}</p>
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="text-sm text-blue-600 hover:underline mt-1"
+                >
                   Change password
-                </a>
+                </button>
+                {user?.hasWarning && (
+                  <div className="mt-2 text-sm text-red-600 font-semibold">
+                    ⚠ Account Warning Active
+                  </div>
+                )}
               </div>
 
-              {/* Right Column Fields */}
-              {renderField("Email reminders:", "emailReminder", formData.emailReminder, true)}
-              {renderField("Preferred study timing:", "preferredTiming", formData.preferredTiming, true, "text", "e.g., 8am–12pm, 6pm onwards")}
-              {renderField("Usual study duration:", "usualStudyPeriod", formData.usualStudyPeriod, true, "text", "e.g., 2–3 hours per day")}
-              {renderField("Academic grades/ CGPA:", "academicGrades", formData.academicGrades, true, "text", "e.g., 4.20 / 5.00")}
+              {renderField("Email reminders:", "emailReminder", formData.emailReminder, true, "", "", false)}
+              {renderField("Preferred study timing:", "preferredTiming", formData.preferredTiming, true, "text", "", true)}
+              {renderField("Usual study duration:", "usualStudyPeriod", formData.usualStudyPeriod, true, "text", "e.g., 2–3 hours per day", false)}
+              {renderField("Academic grades/ CGPA:", "academicGrades", formData.academicGrades, true, "text", "e.g., 4.20 / 5.00", false)}
             </div>
           </div>
 
-          {/* Action Buttons - Removed Logout Button */}
           <div className="flex justify-center gap-4 mt-10">
             {isEditing ? (
               <>
