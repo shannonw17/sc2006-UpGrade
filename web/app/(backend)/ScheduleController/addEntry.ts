@@ -1,32 +1,38 @@
+// app/(backend)/ScheduleController/addEntry.ts
 import prisma from "@/lib/db";
 import { readSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { viewSchedule } from "./viewSchedule";
-import { deleteNotifs } from "../NotificationController/deleteNotifs";
 import { Group } from "@prisma/client";
 
 export async function addEntry() {
-  const sessionId = await readSession();
-  if (!sessionId) redirect("/login");
+    const session = await readSession();
+    if (!session) redirect("/login");
 
-  const studyGroups = await viewSchedule();
-  const validStudyGroups: Group[] = [];
-  const invalidStudyGroups: Group[] = [];
+    try {
+        const studyGroups = await viewSchedule();
+        const validStudyGroups: Group[] = [];
+        const invalidStudyGroups: Group[] = [];
 
-  const now = Date.now();
+        const now = Date.now();
 
-  for (let i = 0; i < studyGroups.length; i++) {
-    const group = studyGroups[i];
-    const endTime = new Date(group.end).getTime();
-    const expiryTime = endTime + 72 * 60 * 60 * 1000; // +72 hours
+        for (let i = 0; i < studyGroups.length; i++) {
+            const group = studyGroups[i];
+            if (!group || !group.end) continue;
+            
+            const endTime = new Date(group.end).getTime();
+            const expiryTime = endTime + 72 * 60 * 60 * 1000; // +72 hours
 
-    if (now <= expiryTime) {
-      validStudyGroups.push(group);
+            if (now <= expiryTime) {
+                validStudyGroups.push(group);
+            } else {
+                invalidStudyGroups.push(group);
+            }
+        }
+
+        return validStudyGroups;
+    } catch (error) {
+        console.error("Error in addEntry:", error);
+        return [];
     }
-    else {
-        invalidStudyGroups.push(group); // Lists not used yet, but may be useful for future features
-    }
-  }
-
-  return validStudyGroups;
 }
