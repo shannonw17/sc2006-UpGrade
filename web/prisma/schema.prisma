@@ -86,6 +86,8 @@ model User {
 
   reports Report[] 
   verificationToken VerificationToken?
+  SentMessages     Message[]   @relation("SentMessages")
+  ReceivedMessages Message[]   @relation("ReceivedMessages")
 }
 
 model VerificationToken { //assign token to each user, delete when expires
@@ -186,4 +188,15 @@ model Report {
 
   group     Group       @relation(fields: [groupId], references: [id])
   user      User        @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id         String  @id @default(cuid())
+  senderId   String
+  receiverId String
+  message    String
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
