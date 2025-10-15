@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/requireUser";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, EducationLevel, YearOfStudy, Gender } from "@prisma/client";
 import ProfileClient from "./ProfileClient";
+import type { ProfileUser } from "./types";
 
 const prisma = new PrismaClient();
 
@@ -18,20 +19,20 @@ export default async function ProfilePage() {
     );
   }
 
-  const mapEdu = {
+  const mapEdu: Record<EducationLevel, string> = {
     SEC: "Secondary",
     JC: "Junior College",
     POLY: "Polytechnic",
     UNI: "University",
-  }[user.eduLevel];
+  };
 
-  const mapGender = {
+  const mapGender: Record<Gender, string> = {
     MALE: "Male",
     FEMALE: "Female",
     OTHER: "Other",
-  }[user.gender];
+  };
 
-  const mapYear = {
+  const mapYear: Record<YearOfStudy, string> = {
     S1: "Sec 1",
     S2: "Sec 2",
     S3: "Sec 3",
@@ -46,9 +47,9 @@ export default async function ProfilePage() {
     U2: "Year 2",
     U3: "Year 3",
     U4: "Year 4",
-  }[user.yearOfStudy];
+  };
 
-  const yearOptions = {
+  const yearOptions: Record<EducationLevel, { value: string; label: string }[]> = {
     SEC: [
       { value: "S1", label: "Sec 1" },
       { value: "S2", label: "Sec 2" },
@@ -73,16 +74,31 @@ export default async function ProfilePage() {
     ],
   };
 
-  return (
-    <ProfileClient
-      user={{
-        ...user,
-        mapEdu,
-        mapGender,
-        mapYear,
-        yearOptions: yearOptions[user.eduLevel],
-      }}
-    />
-  );
-}
+  // Ensure strings are properly formatted, never undefined
+  const preferredTiming = user.preferredTiming || "";
+  const preferredLocations = user.preferredLocations || "";
 
+  const profileUser: ProfileUser = {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    gender: user.gender,
+    eduLevel: user.eduLevel,
+    yearOfStudy: user.yearOfStudy,
+    currentCourse: user.currentCourse ?? null,
+    relevantSubjects: user.relevantSubjects ?? null,
+    preferredLocations: preferredLocations,
+    school: user.school ?? null,
+    preferredTiming: preferredTiming,
+    usualStudyPeriod: user.usualStudyPeriod ?? null,
+    academicGrades: user.academicGrades ?? null,
+    emailReminder: user.emailReminder,
+    mapEdu: mapEdu[user.eduLevel],
+    mapGender: mapGender[user.gender],
+    mapYear: mapYear[user.yearOfStudy],
+    yearOptions: yearOptions[user.eduLevel],
+    hasWarning: user.warning,
+  };
+
+  return <ProfileClient user={profileUser} />;
+}
