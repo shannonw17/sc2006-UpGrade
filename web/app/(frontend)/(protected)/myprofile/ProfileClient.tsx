@@ -247,9 +247,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           <div className="flex items-start">
             <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
               {label}
-              {mandatory && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <div className="flex-1 border border-gray-300 rounded bg-white px-4 py-2">
+            <div className={`flex-1 border border-gray-300 rounded px-4 py-2 ${isEditing ? 'bg-gray-200' : 'bg-white'}`}>
               {value}
             </div>
           </div>
@@ -263,7 +262,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           <div className="flex items-start">
             <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
               {label}
-              {mandatory && <span className="text-red-500 ml-1">*</span>}
+              {mandatory && isEditing && <span className="text-red-500 ml-1">*</span>}
             </label>
             {isEditing ? (
               <select
@@ -293,9 +292,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           <div className="flex items-start">
             <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
               {label}
-              {mandatory && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <div className="flex-1 border border-gray-300 rounded bg-white px-4 py-2">
+            <div className={`flex-1 border border-gray-300 rounded px-4 py-2 ${isEditing ? 'bg-gray-200' : 'bg-white'}`}>
               {userData.mapGender}
             </div>
           </div>
@@ -309,7 +307,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           <div className="flex items-start">
             <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
               {label}
-              {mandatory && <span className="text-red-500 ml-1">*</span>}
             </label>
             <div className="flex-1 flex items-center">
               <button
@@ -341,7 +338,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           <div className="flex items-start">
             <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
               {label}
-              {mandatory && <span className="text-red-500 ml-1">*</span>}
+              {mandatory && isEditing && <span className="text-red-500 ml-1">*</span>}
             </label>
             <div className="flex-1">
               {isEditing ? (
@@ -349,7 +346,11 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                   type="text"
                   value={Array.isArray(formData.preferredLocations) ? formData.preferredLocations.join(', ') : formData.preferredLocations}
                   onChange={(e) => {
-                    const locations = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                    // Just update the raw value, let user type freely
+                    const rawValue = e.target.value;
+                    // Only split and filter when they're done typing (on blur) or when saving
+                    // For now, just store the locations as they type
+                    const locations = rawValue.split(',').map(s => s.trim());
                     handleInputChange("preferredLocations", locations);
                   }}
                   className="w-full border border-gray-300 rounded px-4 py-2 bg-white"
@@ -358,7 +359,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
               ) : (
                 <div className="w-full border border-gray-300 rounded bg-white px-4 py-2">
                   {Array.isArray(formData.preferredLocations) && formData.preferredLocations.length > 0 ? (
-                    formData.preferredLocations.join(", ")
+                    formData.preferredLocations.filter(l => l.length > 0).join(", ")
                   ) : (
                     <span className="text-red-400 font-semibold">Required - Please fill in</span>
                   )}
@@ -374,7 +375,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
               </p>
             </div>
           )}
-          {isEditing && formData.preferredLocations.length === 0 && (
+          {isEditing && formData.preferredLocations.filter(l => l.length > 0).length === 0 && (
             <div className="flex mt-1">
               <div className="w-48 mr-6"></div>
               <p className="text-xs text-red-500 font-semibold">
@@ -392,7 +393,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           <div className="flex items-start">
             <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
               {label}
-              {mandatory && <span className="text-red-500 ml-1">*</span>}
+              {mandatory && isEditing && <span className="text-red-500 ml-1">*</span>}
             </label>
             <div className="flex-1">
               {isEditing ? (
@@ -415,7 +416,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
               ) : (
                 <div className="w-full border border-gray-300 rounded bg-white px-4 py-2">
                   {Array.isArray(formData.preferredTiming) && formData.preferredTiming.length > 0 ? (
-                    formData.preferredTiming
+                    Array.from(new Set(formData.preferredTiming))
                       .filter(v => v && v.trim().length > 0)
                       .map((v) => timingOptions.find((opt) => opt.value === v)?.label)
                       .filter(Boolean)
@@ -444,7 +445,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         <div className="flex items-start">
           <label className="font-semibold w-48 text-left mr-6 pt-2 flex-shrink-0">
             {label}
-            {mandatory && <span className="text-red-500 ml-1">*</span>}
+            {mandatory && isEditing && <span className="text-red-500 ml-1">*</span>}
           </label>
           <div className="flex-1">
             {isEditing ? (
@@ -559,10 +560,10 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         <div className="bg-gray-100 shadow-lg rounded-lg p-10 w-full max-w-6xl">
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-2">
-              {renderField("Email:", "email", formData.email, false, "email", "", true)}
+              {renderField("Email:", "email", formData.email, false, "email", "", false)}
               {renderField("Year of study:", "yearOfStudy", userData.mapYear, true, "", "", true)}
-              {renderField("Education Level:", "eduLevel", userData.mapEdu, false, "", "", true)}
-              {renderField("Gender:", "gender", userData.mapGender, false, "", "", true)}
+              {renderField("Education Level:", "eduLevel", userData.mapEdu, false, "", "", false)}
+              {renderField("Gender:", "gender", userData.mapGender, false, "", "", false)}
               {renderField("Current course:", "currentCourse", formData.currentCourse, true, "text", "e.g., Computer Science, Information Systems", true)}
               {renderField("Relevant subjects/modules:", "relevantSubjects", formData.relevantSubjects, true, "text", "e.g., SC2006, SC2005, SC2001", false)}
               {renderField("Preferred study location(s):", "preferredLocations", formData.preferredLocations, true, "text", "e.g., NTU, Jurong, Yishun", true)}
