@@ -9,23 +9,6 @@ export default async function ProfilePage() {
   const user1 = await requireUser();
   const user = await prisma.user.findUnique({
     where: { email: user1.email },
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      gender: true,
-      eduLevel: true,
-      yearOfStudy: true,
-      currentCourse: true,
-      relevantSubjects: true,
-      preferredLocations: true,
-      school: true,
-      preferredTiming: true,
-      usualStudyPeriod: true,
-      academicGrades: true,
-      emailReminder: true,
-      warning: true,
-    }
   });
 
   if (!user) {
@@ -91,6 +74,10 @@ export default async function ProfilePage() {
     ],
   };
 
+  // Ensure strings are properly formatted, never undefined
+  const preferredTiming = user.preferredTiming || "";
+  const preferredLocations = user.preferredLocations || "";
+
   const profileUser: ProfileUser = {
     id: user.id,
     email: user.email,
@@ -100,9 +87,9 @@ export default async function ProfilePage() {
     yearOfStudy: user.yearOfStudy,
     currentCourse: user.currentCourse ?? null,
     relevantSubjects: user.relevantSubjects ?? null,
-    preferredLocations: user.preferredLocations,
+    preferredLocations: preferredLocations,
     school: user.school ?? null,
-    preferredTiming: user.preferredTiming,
+    preferredTiming: preferredTiming,
     usualStudyPeriod: user.usualStudyPeriod ?? null,
     academicGrades: user.academicGrades ?? null,
     emailReminder: user.emailReminder,

@@ -67,24 +67,29 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   });
 
   // Helper function to parse comma-separated strings into arrays
-  const parseStringToArray = (str: string | null): string[] => {
-    if (!str || str.trim() === '') return [];
-    // Split by comma, trim each item, and filter out empty strings
-    return str.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  const parseStringToArray = (str: string | null | undefined): string[] => {
+    if (!str || typeof str !== 'string' || str.trim() === '') return [];
+    // Split by comma, trim each item, convert to lowercase, and filter out empty strings
+    return str.split(',').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
   };
 
-  const [formData, setFormData] = useState({
-    email: userData.email,
-    yearOfStudy: userData.yearOfStudy,
-    gender: userData.gender,
-    currentCourse: userData.currentCourse || "",
-    relevantSubjects: userData.relevantSubjects || "",
-    preferredLocations: parseStringToArray(userData.preferredLocations),
-    school: userData.school || "",
-    preferredTiming: parseStringToArray(userData.preferredTiming),
-    usualStudyPeriod: userData.usualStudyPeriod || "",
-    academicGrades: userData.academicGrades || "",
-    emailReminder: userData.emailReminder,
+  const [formData, setFormData] = useState(() => {
+    const timingArray = parseStringToArray(userData.preferredTiming);
+    const locationsArray = parseStringToArray(userData.preferredLocations);
+    
+    return {
+      email: userData.email,
+      yearOfStudy: userData.yearOfStudy,
+      gender: userData.gender,
+      currentCourse: userData.currentCourse || "",
+      relevantSubjects: userData.relevantSubjects || "",
+      preferredLocations: locationsArray,
+      school: userData.school || "",
+      preferredTiming: timingArray,
+      usualStudyPeriod: userData.usualStudyPeriod || "",
+      academicGrades: userData.academicGrades || "",
+      emailReminder: userData.emailReminder,
+    };
   });
 
   const timingOptions = [
@@ -355,7 +360,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                   {Array.isArray(formData.preferredLocations) && formData.preferredLocations.length > 0 ? (
                     formData.preferredLocations.join(", ")
                   ) : (
-                    <span className="text-gray-400">Not specified</span>
+                    <span className="text-red-400 font-semibold">Required - Please fill in</span>
                   )}
                 </div>
               )}
@@ -366,6 +371,14 @@ export default function ProfileClient({ user }: ProfileClientProps) {
               <div className="w-48 mr-6"></div>
               <p className="text-xs text-gray-500 italic">
                 {exampleText}
+              </p>
+            </div>
+          )}
+          {isEditing && formData.preferredLocations.length === 0 && (
+            <div className="flex mt-1">
+              <div className="w-48 mr-6"></div>
+              <p className="text-xs text-red-500 font-semibold">
+                * This field is required. Please enter at least one location.
               </p>
             </div>
           )}
@@ -408,12 +421,20 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                       .filter(Boolean)
                       .join(", ")
                   ) : (
-                    <span className="text-gray-400">Not specified</span>
+                    <span className="text-red-400 font-semibold">Required - Please select</span>
                   )}
                 </div>
               )}
             </div>
           </div>
+          {isEditing && formData.preferredTiming.length === 0 && (
+            <div className="flex mt-1">
+              <div className="w-48 mr-6"></div>
+              <p className="text-xs text-red-500 font-semibold">
+                * This field is required. Please select at least one timing.
+              </p>
+            </div>
+          )}
         </div>
       );
     }
@@ -436,7 +457,13 @@ export default function ProfileClient({ user }: ProfileClientProps) {
               />
             ) : (
               <div className="w-full border border-gray-300 rounded bg-white px-4 py-2">
-                {formData[field as keyof typeof formData] || <span className="text-gray-400">Not specified</span>}
+                {formData[field as keyof typeof formData] ? (
+                  formData[field as keyof typeof formData]
+                ) : mandatory ? (
+                  <span className="text-red-400 font-semibold">Required - Please fill in</span>
+                ) : (
+                  <span className="text-gray-400">Not specified</span>
+                )}
               </div>
             )}
           </div>
@@ -446,6 +473,14 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             <div className="w-48 mr-6"></div>
             <p className="text-xs text-gray-500 italic">
               {exampleText}
+            </p>
+          </div>
+        )}
+        {isEditing && mandatory && !formData[field as keyof typeof formData] && (
+          <div className="flex mt-1">
+            <div className="w-48 mr-6"></div>
+            <p className="text-xs text-red-500 font-semibold">
+              * This field is required
             </p>
           </div>
         )}
