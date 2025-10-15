@@ -346,11 +346,9 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                   type="text"
                   value={Array.isArray(formData.preferredLocations) ? formData.preferredLocations.join(', ') : formData.preferredLocations}
                   onChange={(e) => {
-                    // Just update the raw value, let user type freely
+                    // Don't trim while typing - only split by comma
                     const rawValue = e.target.value;
-                    // Only split and filter when they're done typing (on blur) or when saving
-                    // For now, just store the locations as they type
-                    const locations = rawValue.split(',').map(s => s.trim());
+                    const locations = rawValue === '' ? [] : rawValue.split(',');
                     handleInputChange("preferredLocations", locations);
                   }}
                   className="w-full border border-gray-300 rounded px-4 py-2 bg-white"
@@ -375,7 +373,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
               </p>
             </div>
           )}
-          {isEditing && formData.preferredLocations.filter(l => l.length > 0).length === 0 && (
+          {isEditing && formData.preferredLocations.filter(l => l.trim().length > 0).length === 0 && (
             <div className="flex mt-1">
               <div className="w-48 mr-6"></div>
               <p className="text-xs text-red-500 font-semibold">
