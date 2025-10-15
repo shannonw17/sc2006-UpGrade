@@ -1,5 +1,3 @@
-// when click on "edit profile" button in profile page --> can edit all fields (but check that mandatory fields are all filled) --> else prompt error message
-
 "use server";
 
 import prisma from "@/lib/db";
@@ -8,58 +6,91 @@ import { requireUser } from "@/lib/requireUser";
 import { EducationLevel, YearOfStudy } from "@prisma/client";
 
 const yearOptions: Record<EducationLevel, YearOfStudy[]> = {
-    SEC: ["S1", "S2", "S3", "S4"],
-    JC: ["J1", "J2"],
-    POLY: ["P1", "P2", "P3"],
-    UNI: ["U1", "U2", "U3", "U4"],
-}
+  SEC: ["S1", "S2", "S3", "S4", "S5"],
+  JC: ["J1", "J2"],
+  POLY: ["P1", "P2", "P3"],
+  UNI: ["U1", "U2", "U3", "U4"],
+};
 
 export async function editProfile(formData: {
-    yearOfStudy: string;
-    preferredTiming: string[];
-    preferredLocations: string[];
-    currentCourse?: string | null;
-    relevantSubjects?: string | null;
-    school?: string | null;
-    academicGrades?: string | null;
-    usualStudyPeriod?: string | null;
-    emailReminder: boolean;
-}){
+  yearOfStudy: string;
+  preferredTiming: string[];
+  preferredLocations: string[];
+  currentCourse?: string | null;
+  relevantSubjects?: string | null;
+  school?: string | null;
+  academicGrades?: string | null;
+  usualStudyPeriod?: string | null;
+  emailReminder: boolean;
+}) {
+  try {
     const user = await requireUser();
-    if (!user) throw new Error("User not authenticateed");
-    const existing = await prisma.user.findUnique({where: {id: user.id}});
+    if (!user) throw new Error("User not authenticated");
+
+    const existing = await prisma.user.findUnique({
+      where: { id: user.id },
+    });
     if (!existing) throw new Error("User not found");
 
-    //validate yearOfStudy based on eduLevel
+    // Validate yearOfStudy based on eduLevel
     const eduLevel = existing.eduLevel as EducationLevel;
     if (!yearOptions[eduLevel].includes(formData.yearOfStudy as YearOfStudy)) {
-        throw new Error(`Invalid year of study for ${eduLevel}`);
+      throw new Error(`Invalid year of study for ${eduLevel}`);
     }
 
-    //check if all mandatory fields are filled
-    if (!formData.yearOfStudy || !formData.preferredTiming || !formData.preferredLocations) {
-        throw new Error("Please fill in all mandatory fields!");
+    // Check mandatory fields
+    if (
+      !formData.yearOfStudy ||
+      !formData.preferredTiming ||
+      formData.preferredTiming.length === 0 ||
+      !formData.preferredLocations ||
+      formData.preferredLocations.length === 0 ||
+      !formData.currentCourse
+    ) {
+      throw new Error("Please fill in all mandatory fields!");
     }
 
-    const normLocations = formData.preferredLocations.map(
-        loc => loc.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))
-        .filter(Boolean); //remove empty entries?
+    // Clean and normalize data - remove empty strings and trim
+    const cleanLocations = formData.preferredLocations
+      .map((loc) => loc.trim())
+      .filter((loc) => loc.length > 0)
+      .map((loc) => loc.replace(/\b\w/g, (c) => c.toUpperCase()));
 
-    //update user profile (for fields allowed to be edited only)
+    const cleanTiming = formData.preferredTiming
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    // Join without spaces after comma for consistency
+    const normLocations = cleanLocations.join(",");
+    const normTiming = cleanTiming.join(",");
+
+    // Update user profile
     const updatedUser = await prisma.user.update({
-        where: {id: existing.id},
-        data: {
-            yearOfStudy: formData.yearOfStudy as YearOfStudy,
-            preferredTiming: formData.preferredTiming.join(","),
-            preferredLocations: normLocations.join(","),
-            currentCourse: formData.currentCourse,
-            relevantSubjects: formData.relevantSubjects,
-            school: formData.school || null,
-            academicGrades: formData.academicGrades || null,
-            usualStudyPeriod: formData.usualStudyPeriod || null,
-            emailReminder: formData.emailReminder,
-        }
-    })
+      where: { id: existing.id },
+      data: {
+        yearOfStudy: formData.yearOfStudy as YearOfStudy,
+        preferredTiming: normTiming,
+        preferredLocations: normLocations,
+        currentCourse: formData.currentCourse,
+        relevantSubjects: formData.relevantSubjects || null,
+        school: formData.school || null,
+        academicGrades: formData.academicGrades || null,
+        usualStudyPeriod: formData.usualStudyPeriod || null,
+        emailReminder: formData.emailReminder,
+      },
+    });
+
     revalidatePath("/myprofile");
-    return {sucess: true, message: "Profile updated successfully!", user: updatedUser};
+    return {
+      success: true,
+      message: "Profile updated successfully!",
+      user: updatedUser,
+    };
+  } catch (error: any) {
+    console.error("Error in editProfile:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update profile.",
+    };
+  }
 }
