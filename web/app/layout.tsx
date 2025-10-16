@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { readSession } from "@/lib/auth";
-import { Home, Users, Inbox, Calendar, MapPin, User } from "lucide-react";
+import { Home, Users, Inbox, Calendar, MapPin, User, MessageSquare } from "lucide-react";
 import { headers } from "next/headers";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -90,6 +90,7 @@ export default async function RootLayout({
                 <nav className="space-y-2">
                   <SidebarLink href="/homepage" icon={Home} label="Home" />
                   <SidebarLink href="/groups" icon={Users} label="Study groups" />
+                  <SidebarLink href="/chats" icon={MessageSquare} label="Chats" />
                   <SidebarLink href="/inbox" icon={Inbox} label="Inbox" />
                   <SidebarLink href="/schedule" icon={Calendar} label="Schedule" />
                   <SidebarLink href="/Maps" icon={MapPin} label="Location Map" />

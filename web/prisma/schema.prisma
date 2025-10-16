@@ -3,7 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  //output   = "../app/generated/prisma"
 }
 
 datasource db {
@@ -86,8 +85,11 @@ model User {
 
   reports Report[] 
   verificationToken VerificationToken?
-  SentMessages     Message[]   @relation("SentMessages")
-  ReceivedMessages Message[]   @relation("ReceivedMessages")
+  
+  // Chat relations
+  chatsAsUser1  Chat[]    @relation("User1Chats")
+  chatsAsUser2  Chat[]    @relation("User2Chats")
+  sentMessages  Message[] @relation("SentMessages")
 }
 
 model VerificationToken { //assign token to each user, delete when expires
@@ -175,7 +177,6 @@ model Notification {
 
   group        Group?            @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-
   user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -190,13 +191,29 @@ model Report {
   user      User        @relation(fields: [userId], references: [id])
 }
 
-model Message {
-  id         String  @id @default(cuid())
-  senderId   String
-  receiverId String
-  message    String
-  createdAt  DateTime @default(now())
+// NEW: Chat model for organizing conversations
+model Chat {
+  id        String   @id @default(cuid())
+  user1Id   String
+  user2Id   String
+  createdAt DateTime @default(now())
+  
+  user1     User     @relation("User1Chats", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2     User     @relation("User2Chats", fields: [user2Id], references: [id], onDelete: Cascade)
+  
+  messages  Message[]
+  
+  @@unique([user1Id, user2Id])
+}
 
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+// UPDATED: Message model now linked to Chat
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+  
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
 }
