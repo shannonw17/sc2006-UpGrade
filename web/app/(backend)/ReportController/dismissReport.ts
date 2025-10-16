@@ -7,7 +7,6 @@ import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { banUser } from "./banUser";
 import { warnUser } from "./warnUser";
-import { removeNotify } from "../NotificationController/removeNotify";
 
 export async function dismissReport(reportId : string, action: "warn" | "ban") {
     const report = await prisma.report.findUnique({ where: {id: reportId } })
