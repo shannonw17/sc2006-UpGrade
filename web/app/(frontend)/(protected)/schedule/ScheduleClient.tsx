@@ -17,7 +17,7 @@ type StudyGroup = {
   groupID?: string;
   currentSize?: number;
   visibility?: boolean;
-  createdAt?: string;
+  createdAt?: string | Date;
   host?: {
     username: string;
   };
@@ -135,9 +135,15 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
     return date;
   });
 
+  type TimeSlot = {
+  time: Date;
+  label: string;
+  isMidnight: boolean;
+};
+
   // Time slots for weekly view (12am to 11pm)
   const timeSlots = useMemo(() => {
-    const slots = [];
+    const slots: TimeSlot[] = [];
     for (let hour = 0; hour < 24; hour++) {
       const period = hour < 12 ? 'AM' : 'PM';
       const displayHour = hour === 0 ? 12 : 
