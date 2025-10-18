@@ -12,7 +12,7 @@ async function handleLogout() {
   }
 }
 
-export default function HomepageClient({ user, initialProfiles }) {
+export default function HomepageClient({ user, initialProfiles, messages }) {
   const [profiles, setProfiles] = useState(initialProfiles);
   const [filteredProfiles, setFilteredProfiles] = useState(initialProfiles);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +45,14 @@ export default function HomepageClient({ user, initialProfiles }) {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilterPopup, showProfileModal]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      for (const msg of messages) {
+        alert(`[in-website alert] ${msg}`);
+      }
+    }
+  }, [messages]);
 
   // Handle view profile - DIRECT SERVER ACTION CALL
   const handleViewProfile = async (targetUserId: string) => {

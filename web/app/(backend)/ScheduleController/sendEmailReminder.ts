@@ -23,28 +23,61 @@ async function sendEmail({ to, subject, html }: { to: string; subject: string; h
   console.log(`[email → ${to}] ${subject}`);
 }
 
+
+
+export async function sendInWebsiteAlert(): Promise<string[]> {
+  const messages: string[] = [];
+
+  const notifications = await prisma.notification.findMany({
+    where: {
+      type: {
+        in: [
+          "GROUP_MEMBER_JOINED",
+          "GROUP_MEMBER_LEFT",
+          "GROUP_START_REMINDER",
+        ],
+      },
+      // read: false,
+    },
+  });
+
+  for (const n of notifications) {
+    messages.push(n.message);
+  }
+
+  return messages; // Always return an array
+}
+
+
+
+
+
 /**
  * Sends inbox + (optional) email reminders for groups starting soon.
  * Bucketed window (5 min) and also scans the **previous** bucket to avoid misses.
  * Emails are idempotent via EmailReminderLog unique([userId, groupId, window]).
  */
 export async function sendGroupReminders(windowLabel: WindowLabel) {
-  const now = new Date();          // UTC
-  const tick = floorTo5Min(now);   // e.g., 11:45, 11:50, 11:55, 12:00...
+  const now = new Date(); // UTC
+  const tick = floorTo5Min(now); // e.g., 11:45, 11:50, 11:55, 12:00...
 
   // Current bucket (e.g., 12:00..12:05)
   const baseCurr = addMinutes(tick, WINDOW_TO_MINUTES[windowLabel]);
   const currFrom = baseCurr;
-  const currTo   = addMinutes(baseCurr, 5);
+  const currTo = addMinutes(baseCurr, 5);
 
   // Previous bucket (e.g., 11:55..12:00) shifted by the same lookahead
-  const basePrev = addMinutes(addMinutes(tick, -5), WINDOW_TO_MINUTES[windowLabel]);
+  const basePrev = addMinutes(
+    addMinutes(tick, -5),
+    WINDOW_TO_MINUTES[windowLabel]
+  );
   const prevFrom = basePrev;
-  const prevTo   = addMinutes(basePrev, 5);
+  const prevTo = addMinutes(basePrev, 5);
+
 
   console.log(
     `[reminders] window=${windowLabel} now=${now.toISOString()} tick=${tick.toISOString()} ` +
-    `curr=[${currFrom.toISOString()} .. ${currTo.toISOString()}) prev=[${prevFrom.toISOString()} .. ${prevTo.toISOString()})`
+      `curr=[${currFrom.toISOString()} .. ${currTo.toISOString()}) prev=[${prevFrom.toISOString()} .. ${prevTo.toISOString()})`
   );
 
   const groups = await prisma.group.findMany({
@@ -67,37 +100,41 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
 
   for (const g of groups) {
     console.log(
-      `[reminders] group id=${g.id} "${g.name}" start=${g.start.toISOString()} members=${g.members.length}`
+      `[reminders] group id=${g.id} "${
+        g.name
+      }" start=${g.start.toISOString()} members=${g.members.length}`
     );
 
-    const users = g.members.map(m => m.user).filter(Boolean);
+    const users = g.members.map((m) => m.user).filter(Boolean);
 
     // Inbox notifications (SQLite has no skipDuplicates; add your own guard if needed)
     if (users.length) {
       await prisma.notification.createMany({
-        data: users.map(u => ({
+        data: users.map((u) => ({
           userId: u!.id,
           groupId: g.id,
           type: "GROUP_START_REMINDER",
-          message: `Reminder: "${g.name}" starts at ${g.start.toISOString()} (UTC) @ ${g.location}`,
+          message: `Reminder: "${
+            g.name
+          }" starts at ${g.start.toISOString()} (UTC) @ ${g.location}`,
           // expiresAt: g.end,
         })),
       });
     }
 
     // Email reminders (only for users with emailReminder = true) with de-dupe log
-    const toEmail = users.filter(u => u!.emailReminder);
+    const toEmail = users.filter((u) => u!.emailReminder);
     if (toEmail.length) {
       const existing = await prisma.emailReminderLog.findMany({
         where: {
           groupId: g.id,
           window: windowLabel,
-          userId: { in: toEmail.map(u => u!.id) },
+          userId: { in: toEmail.map((u) => u!.id) },
         },
         select: { userId: true },
       });
-      const already = new Set(existing.map(e => e.userId));
-      const fresh = toEmail.filter(u => !already.has(u!.id));
+      const already = new Set(existing.map((e) => e.userId));
+      const fresh = toEmail.filter((u) => !already.has(u!.id));
 
       for (const u of fresh) {
         await sendEmail({
@@ -105,7 +142,9 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
           subject: `Reminder: ${g.name} starts soon`,
           html: `
             <p>Hi ${u!.username},</p>
-            <p>Your study group <strong>${g.name}</strong> will start on <strong>${g.start.toISOString()}</strong> (UTC).</p>
+            <p>Your study group <strong>${
+              g.name
+            }</strong> will start on <strong>${g.start.toISOString()}</strong> (UTC).</p>
             <p>Location: ${g.location}</p>
             <p>Group ID: ${g.groupID}</p>
           `,

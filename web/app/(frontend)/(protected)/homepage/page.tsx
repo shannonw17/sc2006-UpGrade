@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/requireAdmin";
 import { logout } from "@/app/(backend)/AccountController/logout";
 import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";
+import { sendInWebsiteAlert } from "@/app/(backend)/ScheduleController/sendEmailReminder";
+
 
 async function getProfiles(currentUserId: string) {
   try {
@@ -100,6 +102,13 @@ async function getProfiles(currentUserId: string) {
 export default async function Home() {
   const user = await requireUser();
   const profiles = await getProfiles(user.id);
+  const messages = await sendInWebsiteAlert();
 
-  return <HomepageClient user={user} initialProfiles={profiles} />;
+  return (
+    <HomepageClient
+      user={user}
+      initialProfiles={profiles}
+      messages={messages}
+    />
+  );
 }
