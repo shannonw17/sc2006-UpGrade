@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/requireUser";
+import { requireAdmin } from "@/lib/requireAdmin";
 import { logout } from "@/app/(backend)/AccountController/logout";
 import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";

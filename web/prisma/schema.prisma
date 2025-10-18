@@ -170,6 +170,7 @@ model Notification {
   message    String
   read       Boolean           @default(false)
   createdAt  DateTime          @default(now())
+  expiresAt DateTime? 
 
   //optional link to Invitation (to delete inbox entry when invite remove when accept or reject)
   invitationId String? 
@@ -179,6 +180,16 @@ model Notification {
 
   user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model EmailReminderLog {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  window    String   // "24h" | "2h" | "15m"
+  sentAt    DateTime @default(now())
+  @@unique([userId, groupId, window]) // dedupe per window
+}
+
 
 model Report {
   id         String  @id @default(cuid())
