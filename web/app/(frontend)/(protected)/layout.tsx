@@ -1,9 +1,24 @@
 // app/(frontend)/(protected)/layout.tsx
 import { readSession, readAdminSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Home, Users, Inbox, Calendar, MapPin, User, MessageSquare } from "lucide-react";
-import Link from "next/link";
-import { headers } from "next/headers";
+import prisma from "@/lib/db";
+import Sidebar from "./sidebar"; // Import the Sidebar component
+
+// Function to check for unread notifications
+async function getUnreadNotificationCount(userId: string) {
+  try {
+    const unreadCount = await prisma.notification.count({
+      where: {
+        userId: userId,
+        read: false
+      }
+    });
+    return unreadCount;
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return 0;
+  }
+}
 
 export default async function ProtectedLayout({
   children,
@@ -17,8 +32,13 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  const headersList = await headers();
-  const currentPath = headersList.get("x-invoke-path") || "";
+  // Get user ID safely
+  const currentUserId = (userSession as any)?.userId || 
+                       (userSession as any)?.id || 
+                       (adminSession as any)?.userId || 
+                       (adminSession as any)?.id;
+
+  const unreadCount = currentUserId ? await getUnreadNotificationCount(currentUserId) : 0;
 
   async function logout() {
     "use server";
@@ -26,38 +46,12 @@ export default async function ProtectedLayout({
     await clearSession();
   }
 
-  // Safe display name - use type assertion or fallback
+  // Safe display name
   const displayName = (userSession as any)?.name || 
                      (userSession as any)?.username || 
                      (adminSession as any)?.name || 
                      (adminSession as any)?.username || 
                      "User";
-
-  // Sidebar link component
-  function SidebarLink({
-    href,
-    icon: Icon,
-    label,
-  }: {
-    href: string;
-    icon: React.ElementType;
-    label: string;
-  }) {
-    const isActive = currentPath === href;
-    const baseClasses = "flex items-center gap-3 px-6 py-2 font-medium rounded-xl transition-all";
-    const activeClasses = "bg-gradient-to-r from-blue-700 to-blue-500 text-white shadow-md";
-    const inactiveClasses = "text-gray-700 hover:text-blue-600 hover:bg-gray-100";
-
-    return (
-      <Link
-        href={href}
-        className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
-      >
-        <Icon size={18} />
-        <span>{label}</span>
-      </Link>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-white">
@@ -74,7 +68,7 @@ export default async function ProtectedLayout({
               Signed in as <b>{displayName}</b>
             </span>
             <form action={logout}>
-              <button className="text-blue-600 text-sm font-medium">
+              <button className="text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors">
                 Logout
               </button>
             </form>
@@ -84,17 +78,7 @@ export default async function ProtectedLayout({
 
       {/* Sidebar + Main Content */}
       <div className="flex">
-        <aside className="w-64 border-r border-gray-300 min-h-screen bg-white p-4">
-          <nav className="space-y-2">
-            <SidebarLink href="/homepage" icon={Home} label="Home" />
-            <SidebarLink href="/groups" icon={Users} label="Study groups" />
-            <SidebarLink href="/chats" icon={MessageSquare} label="Chats" />
-            <SidebarLink href="/inbox" icon={Inbox} label="Inbox" />
-            <SidebarLink href="/schedule" icon={Calendar} label="Schedule" />
-            <SidebarLink href="/Maps" icon={MapPin} label="Location Map" />
-            <SidebarLink href="/myprofile" icon={User} label="Profile" />
-          </nav>
-        </aside>
+        <Sidebar unreadCount={unreadCount} />
 
         <section className="flex-1 p-6 bg-white">
           {children}
