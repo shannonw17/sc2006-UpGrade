@@ -46,7 +46,7 @@ export default function Sidebar({ unreadCount, isAdmin = false }: SidebarProps) 
               href={link.href}
               className={`flex items-center gap-3 px-6 py-2 font-medium rounded-xl transition-all duration-200 relative group ${
                 isActive 
-                  ? "bg-gradient-to-r from-blue-700 to-blue-500 text-white shadow-lg" 
+                  ? "bg-gradient-to-r from-blue-900 via-blue-800 to-black text-white shadow-lg" 
                   : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
               }`}
             >
@@ -60,11 +60,7 @@ export default function Sidebar({ unreadCount, isAdmin = false }: SidebarProps) 
               
               {/* Only show badge if count is 1 or more */}
               {link.showBadge && link.badgeCount !== undefined && link.badgeCount > 0 && (
-                <span className={`absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 text-xs font-bold rounded-full px-1 ${
-                  isActive 
-                    ? "bg-white text-blue-700"
-                    : "bg-red-500 text-white"
-                }`}>
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 text-xs font-bold rounded-full px-1 bg-red-500 text-white">
                   {link.badgeCount > 99 ? '99+' : link.badgeCount}
                 </span>
               )}
