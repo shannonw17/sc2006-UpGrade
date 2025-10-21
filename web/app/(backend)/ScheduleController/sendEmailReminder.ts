@@ -37,7 +37,7 @@ export async function sendInWebsiteAlert(): Promise<string[]> {
           "GROUP_START_REMINDER",
         ],
       },
-      // read: false,
+      read: false,
     },
   });
 
