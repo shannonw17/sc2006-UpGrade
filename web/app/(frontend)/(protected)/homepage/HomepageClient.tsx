@@ -46,13 +46,13 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
     };
   }, [showFilterPopup, showProfileModal]);
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      for (const msg of messages) {
-        alert(`[in-website alert] ${msg}`);
-      }
-    }
-  }, [messages]);
+  // useEffect(() => {
+  //   if (messages.length > 0) {
+  //     for (const msg of messages) {
+  //       alert(`[in-website alert] ${msg}`);
+  //     }
+  //   }
+  // }, [messages]);
 
   // Handle view profile - DIRECT SERVER ACTION CALL
   const handleViewProfile = async (targetUserId: string) => {
