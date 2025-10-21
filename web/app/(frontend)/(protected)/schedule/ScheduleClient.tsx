@@ -240,7 +240,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
   const studyGroupsCount = Array.isArray(studyGroups) ? studyGroups.length : 0;
 
   return (
-    <main className="p-6 bg-gray-50 min-h-screen overflow-x-auto">
+    <main className="p-6 bg-gray-100 min-h-screen overflow-x-auto">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Study Group Schedule</h1>
@@ -353,7 +353,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
                   )}
                 </div>
               ) : (
-                <div key={idx} className="border rounded-lg bg-gray-100 min-h-[120px]" />
+                <div key={idx} className="border rounded-lg bg-gray-300 min-h-[120px]" />
               )
             )}
           </div>
