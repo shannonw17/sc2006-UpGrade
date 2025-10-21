@@ -198,8 +198,8 @@ model Report {
   types      Json //store in JSON array for multiple tags ["VULGARITIES, SEXUAL_CONTENT, HARASSMENT, HARMFUL_ACTS, SPAM, MISINFORMATION]
   createdAt  DateTime @default(now())
 
-  group     Group       @relation(fields: [groupId], references: [id])
-  user      User        @relation(fields: [userId], references: [id])
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // NEW: Chat model for organizing conversations

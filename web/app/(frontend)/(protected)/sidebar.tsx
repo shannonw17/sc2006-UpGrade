@@ -1,17 +1,20 @@
+// app/(frontend)/(protected)/sidebar.tsx
 "use client";
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, Users, Inbox, Calendar, MapPin, User, MessageSquare } from "lucide-react";
+import { Home, Users, Inbox, Calendar, MapPin, User, MessageSquare, Shield } from "lucide-react";
 
 interface SidebarProps {
   unreadCount: number;
+  isAdmin?: boolean;
 }
 
-export default function Sidebar({ unreadCount }: SidebarProps) {
+export default function Sidebar({ unreadCount, isAdmin = false }: SidebarProps) {
   const pathname = usePathname();
 
-  const links = [
+  // User links
+  const userLinks = [
     { href: "/homepage", icon: Home, label: "Home" },
     { href: "/groups", icon: Users, label: "Study groups" },
     { href: "/chats", icon: MessageSquare, label: "Chats" },
@@ -20,6 +23,15 @@ export default function Sidebar({ unreadCount }: SidebarProps) {
     { href: "/Maps", icon: MapPin, label: "Location Map" },
     { href: "/myprofile", icon: User, label: "Profile" },
   ];
+
+  // Admin links
+  const adminLinks = [
+    { href: "/admin", icon: Shield, label: "Admin Dashboard" },
+    { href: "/reports", icon: Users, label: "Report Management" },
+  ];
+
+  // Use admin links if user is admin, otherwise user links
+  const links = isAdmin ? adminLinks : userLinks;
 
   return (
     <aside className="w-64 border-r border-gray-300 min-h-screen bg-white p-4">

@@ -32,6 +32,9 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
+  // Check if user is admin
+  const isAdmin = !!adminSession;
+
   // Get user ID safely
   const currentUserId = (userSession as any)?.userId || 
                        (userSession as any)?.id || 
@@ -42,8 +45,9 @@ export default async function ProtectedLayout({
 
   async function logout() {
     "use server";
-    const { clearSession } = await import("@/lib/auth");
+    const { clearSession, clearAdminSession } = await import("@/lib/auth");
     await clearSession();
+    await clearAdminSession();
   }
 
   // Safe display name
@@ -66,6 +70,7 @@ export default async function ProtectedLayout({
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600">
               Signed in as <b>{displayName}</b>
+              {isAdmin && <span className="ml-2 text-red-600">(Admin)</span>}
             </span>
             <form action={logout}>
               <button className="text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors">
@@ -78,7 +83,7 @@ export default async function ProtectedLayout({
 
       {/* Sidebar + Main Content */}
       <div className="flex">
-        <Sidebar unreadCount={unreadCount} />
+        <Sidebar unreadCount={unreadCount} isAdmin={isAdmin}/>
 
         <section className="flex-1 p-6 bg-white">
           {children}

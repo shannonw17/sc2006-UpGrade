@@ -1,30 +1,55 @@
-import { requireAdmin } from "@/lib/requireAdmin";
+// app/(frontend)/reports/page.tsx
 import prisma from "@/lib/db";
+import { requireAdmin } from "@/lib/requireAdmin";
+import AdminHomepageClient from "../admin/AdminHomepageClient"; // Import the existing component
 
-export const runtime = "nodejs";
+export default async function ReportsPage() {
+  await requireAdmin();
 
-export default async function AdminPage() {
-  let admin;
-  try {
-    admin = await requireAdmin();
-  } catch (e) {
-    const { redirect } = await import("next/navigation");
-    redirect("/login"); // fallback if not logged in
-  }
+  const reportedGroups = await prisma.report.findMany({
+    include: {
+      group: {
+        include: {
+          host: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              warning: true,
+              status: true,
+            }
+          }
+        }
+      },
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          warning: true,
+          status: true,
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
 
-  const reportCount = await prisma.report.count();
+  const formattedReports = reportedGroups.map(report => ({
+    id: report.id,
+    group: {
+      id: report.group.id,
+      name: report.group.name,
+      location: report.group.location,
+      start: report.group.start.toISOString(),
+      end: report.group.end.toISOString(),
+      host: report.group.host
+    },
+    reporter: report.user,
+    reportTypes: report.types,
+    createdAt: report.createdAt.toISOString()
+  }));
 
-  return (
-    <main className="max-w-3xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-      <p className="text-gray-600">Welcome back, {admin.username}</p>
-
-      <div className="rounded-lg border p-4">
-        <h2 className="font-medium text-lg">System Overview</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Total reports: {reportCount}
-        </p>
-      </div>
-    </main>
-  );
+  return <AdminHomepageClient reportedGroups={formattedReports} />;
 }

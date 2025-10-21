@@ -39,7 +39,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     if (!ok) return { error: "Invalid admin credentials." };
 
     await createAdminSession({ adminId: admin.id, username: admin.username });
-    redirect("/homepage"); // let it throw; do NOT wrap in try/catch
+    redirect("/admin"); // let it throw; do NOT wrap in try/catch
   } else {
     // --- USER LOGIN ---
     const user = looksLikeEmail
