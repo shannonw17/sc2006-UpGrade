@@ -337,10 +337,6 @@ useEffect(() => {
                     mapInstance.setCenter({ lat, lng });
                     mapInstance.setZoom(16);
                   }
-                  if (markerRef.current) {
-                    markerRef.current.setMap(null);
-                    markerRef.current = null;
-                  }
 
                   // Change marker colors using the ref, not state
                   markersRef.current.forEach(({ libName, marker }) => {
@@ -352,8 +348,23 @@ useEffect(() => {
                     });
                   });
 
-                  setSelectedLocation(lib.name);
-                  setLocation(lib.name);
+ 
+                  const countryAndPostal =
+                    lib.address?.country && lib.address?.postalCode
+                      ? `${lib.address.country} ${lib.address.postalCode}`
+                      : lib.address?.country || lib.address?.postalCode || "";
+
+                  const fullAddress = [
+                    lib.address?.block,
+                    lib.address?.streetName,
+                    lib.address?.buildingName,
+                    countryAndPostal,
+                  ]
+                    .filter(Boolean)
+                    .join(", ");
+
+                  setSelectedLocation(fullAddress);
+                  setLocation(fullAddress);
                 }}
                 style={{
                   backgroundColor:
