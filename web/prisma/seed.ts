@@ -43,6 +43,7 @@ async function main() {
       gender: "FEMALE",
       preferredTiming: ["Morning", "Evening"].join(","),
       preferredLocations: ["NTU", "Woodlands"].join(","),
+      currentCourse: "Computer Science",
     },
   });
 
@@ -58,6 +59,7 @@ async function main() {
       gender: "MALE",
       preferredTiming: "Morning",
       preferredLocations: "Woodlands",
+      currentCourse: "Interior Design",
       warning: true,
     },
   });
@@ -74,6 +76,7 @@ async function main() {
       gender: "MALE",
       preferredTiming: "Evening",
       preferredLocations: ["NTU", "Choa Chu Kang"].join(","),
+      currentCourse: "Computer Engineering",
     },
   });
 
@@ -89,6 +92,7 @@ async function main() {
       gender: "FEMALE",
       preferredTiming: "Morning",
       preferredLocations: ["Woodlands", "Jurong East"].join(","),
+      currentCourse: "Data Science and AI",
     },
   });
 
