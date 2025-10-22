@@ -3,21 +3,19 @@
 //const appCode = process.env.LIBRARY_APP_CODE!;
 
 import { writeFileSync } from "fs";
-const apiKey = "]&pYtmAwzu{yy^[~F;5fAXd-S<%MyJrU";
-const appCode = "DEV-Joshua";
 const baseUrl = "https://openweb.nlb.gov.sg/api/v1";
 const endpoint = "/Library/GetBranches";
 
 
 export async function fetchLibraries() {
-    console.log("API Key:", apiKey);
-    console.log("App Code:", appCode);
+    //console.log("API Key:", apiKey);
+    //console.log("App Code:", appCode);
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
       method: "GET",
       headers: {
-        "X-Api-Key": apiKey,
-        "X-App-Code": appCode,
+        //"X-Api-Key": apiKey,
+        //"X-App-Code": appCode,
         Accept: "application/json",
       },
     });

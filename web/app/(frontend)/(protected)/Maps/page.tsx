@@ -26,7 +26,6 @@ interface Library {
   };
 }
 export default function Maps() {
-  //const mapsAPIKey = process.env.MAPS_API_KEY;
   const mapsAPIKey = "AIzaSyCUQiQ8Ku1c06N3e3CYVRdKKozErIydD9w";
   const mapRef = useRef(null);
   const markerRef = useRef<any>(null); // Store current marker
