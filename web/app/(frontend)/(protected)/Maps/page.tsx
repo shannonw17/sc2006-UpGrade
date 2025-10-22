@@ -35,7 +35,7 @@ export default function Maps() {
   const [query, setQuery] = useState("Singapore");
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [markers, setMarkers] = useState<any[]>([]);
+  const markersRef = useRef<{ libName: string; marker: any }[]>([]);
 
   const [libraries, setLibraries] = useState<Library[]>([]);
 
@@ -56,47 +56,74 @@ export default function Maps() {
 
   useEffect(() => {
     if (!mapInstance) return;
-    if (!Array.isArray(libraries) || libraries.length === 0) return;
+    if (!libraries || libraries.length === 0) return;
 
-    const newMarkers: any[] = [];
+    const duplicates = libraries.filter((lib, i, arr) =>
+      arr.some(
+        (other, j) =>
+          i !== j &&
+          lib.coordinates.geoLatitude === other.coordinates.geoLatitude &&
+          lib.coordinates.geoLongitude === other.coordinates.geoLongitude
+      )
+    );
 
-    libraries.forEach((lib) => {
-      const lat = parseFloat(lib.coordinates?.geoLatitude);
-      const lng = parseFloat(lib.coordinates?.geoLongitude);
-      if (isNaN(lat) || isNaN(lng)) return;
+    if (duplicates.length > 0) {
+      console.warn(
+        `⚠️ Found ${duplicates.length} libraries with duplicate coordinates:`,
+        duplicates.map((d) => d.name)
+      );
+    } else {
+      console.log(
+        "✅ No duplicate coordinates found — all markers should be visible."
+      );
+    }
 
-      const marker = new window.google.maps.Marker({
-        position: { lat, lng },
-        map: mapInstance,
-        title: lib.name,
-        icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" },
-      });
 
-      const fullAddress = [
-        lib.address?.block,
-        lib.address?.streetName,
-        lib.address?.buildingName,
-        lib.address?.unit,
-        lib.address?.country,
-        lib.address?.postalCode,
-      ]
-        .filter(Boolean)
-        .join(", ");
 
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `<strong>${lib.name}</strong><br>${fullAddress}`,
-      });
+  const offset = (index: number) => (index % 2 === 0 ? 0.00005 : -0.00005);
 
-      marker.addListener("click", () => {
-        infoWindow.open(mapInstance, marker);
-        setSelectedLocation(lib.name);
-        setLocation(lib.name);
-      });
+  libraries.forEach((lib, index) => {
+    let lat = parseFloat(lib.coordinates?.geoLatitude);
+    let lng = parseFloat(lib.coordinates?.geoLongitude);
+    if (isNaN(lat) || isNaN(lng)) return;
 
-      newMarkers.push({ libName: lib.name, marker });
+    // If multiple libraries share the same coordinate, offset slightly
+    const duplicateCount = libraries.filter(
+      (other) =>
+        other.coordinates.geoLatitude === lib.coordinates.geoLatitude &&
+        other.coordinates.geoLongitude === lib.coordinates.geoLongitude
+    ).length;
+
+    if (duplicateCount > 1) {
+      lat += offset(index);
+      lng += offset(index);
+    }
+
+    const marker = new window.google.maps.Marker({
+      position: { lat, lng },
+      map: mapInstance,
+      title: lib.name,
+      icon: {
+        url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      },
     });
 
-    setMarkers(newMarkers);
+  // Add click handler to toggle color
+  marker.addListener("click", () => {
+    markersRef.current.forEach(({ libName, marker: m }) => {
+      m.setIcon({
+        url:
+          libName === lib.name
+            ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+            : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      });
+    });
+    setSelectedLocation(lib.name);
+    setLocation(lib.name);
+  });
+
+  markersRef.current.push({ libName: lib.name, marker });
+});
   }, [libraries, mapInstance]);
 
 
@@ -159,6 +186,12 @@ useEffect(() => {
 
     // Click listener to get coordinates or reverse-geocode
     map.addListener("click", async (e) => {
+      // 🔵 Reset all library markers to blue when user clicks on the map
+      markersRef.current.forEach(({ marker }) => {
+        marker.setIcon({
+          url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+        });
+      });
       const lat = e.latLng.lat();
       const lng = e.latLng.lng();
 
@@ -304,9 +337,13 @@ useEffect(() => {
                     mapInstance.setCenter({ lat, lng });
                     mapInstance.setZoom(16);
                   }
+                  if (markerRef.current) {
+                    markerRef.current.setMap(null);
+                    markerRef.current = null;
+                  }
 
-                  // Change marker colors
-                  markers.forEach(({ libName, marker }) => {
+                  // Change marker colors using the ref, not state
+                  markersRef.current.forEach(({ libName, marker }) => {
                     marker.setIcon({
                       url:
                         libName === lib.name
