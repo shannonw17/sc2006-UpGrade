@@ -13,7 +13,19 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
   const [group, user] = await Promise.all([
     prisma.group.findUnique({
       where: { id },
-      include: { host: { select: { username: true } } }, // ✅ fetch host username
+      include: { 
+        host: { select: { username: true } },
+        members: {
+          include: {
+            user: {
+              select: {
+                username: true,
+                id: true
+              }
+            }
+          }
+        }
+      },
     }),
     requireUser(),
   ]);
@@ -32,6 +44,18 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
   }
 
   const isHost = user.id === group.hostId;
+  
+  // Get all members including the host
+  const allMembers = [
+    { username: group.host?.username || "Unknown", isHost: true, id: group.hostId },
+    ...group.members
+      .filter(member => member.userId !== group.hostId) // Exclude host from members list since they're already included
+      .map(member => ({
+        username: member.user.username,
+        isHost: false,
+        id: member.userId
+      }))
+  ];
 
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
@@ -83,6 +107,54 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
           {isHost && (
             <div className="mt-6 pt-6 border-t border-gray-200">
               <DeleteButton groupId={group.id} />
+            </div>
+          )}
+        </div>
+
+        {/* Members List Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Group Members ({allMembers.length})</h2>
+          
+          {allMembers.length > 0 ? (
+            <div className="space-y-3">
+              {allMembers.map((member, index) => (
+                <div 
+                  key={member.id} 
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full text-white text-sm font-semibold">
+                      {member.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        {member.username}
+                        {member.isHost && (
+                          <span className="ml-2 bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
+                            Host
+                          </span>
+                        )}
+                      </span>
+                      {member.id === user.id && (
+                        <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                          You
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {member.isHost && (
+                    <span className="text-sm text-gray-500 font-medium">Creator</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p>No members in this group yet</p>
             </div>
           )}
         </div>

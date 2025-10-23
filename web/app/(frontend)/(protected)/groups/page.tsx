@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/requireUser";
 import { normalizeFilters, type RawFilters } from "@/app/(backend)/FilterController/filterUtils";
 import { fetchGroupsWithFilters } from "@/app/(backend)/FilterController/searchAndFilter";
 import FilterBar from "./FilterBar";
-import GroupCard from "./components/GroupCard"; // Import the new component
+import GroupCard from "./components/GroupCard";
 
 export const runtime = "nodejs";
 
@@ -19,23 +19,53 @@ export default async function GroupPage({ searchParams }: PageProps) {
   const CURRENT_USER_ID = user.id;
 
   const sp = await searchParams;
-  const filters = normalizeFilters(sp);
-
-  // keep the redirect rule to maintain a valid tab
-  if (!sp?.tab || (sp.tab !== "all" && sp.tab !== "mine")) {
+  
+  // Handle tab parameter directly without normalizeFilters interference
+  const rawTab = sp?.tab;
+  const validTabs = ["all", "mine", "joined"] as const;
+  type TabType = typeof validTabs[number];
+  
+  let tab: TabType = "all";
+  if (rawTab && validTabs.includes(rawTab as TabType)) {
+    tab = rawTab as TabType;
+  } else {
     redirect("/groups?tab=all");
   }
 
-  const tab: "all" | "mine" = filters.tab;
+  // Use normalizeFilters for other filters but preserve the tab
+  const filters = normalizeFilters(sp);
+  
+  // Override the tab in filters with our directly handled tab
+  const finalFilters = { ...filters, tab };
 
   const {
     allGroups,
     myCreatedGroups,
     joinedGroups: justJoinedNotCreated,
     joinedSet,
-  } = await fetchGroupsWithFilters(CURRENT_USER_ID, filters);
+  } = await fetchGroupsWithFilters(CURRENT_USER_ID, finalFilters);
 
-  // Check if any filters are active - use the filters object
+  // If joinedGroups is empty, fetch them manually
+  let joinedGroups = justJoinedNotCreated;
+  
+  if (tab === 'joined' && joinedGroups.length === 0) {
+    joinedGroups = await prisma.group.findMany({
+      where: {
+        members: {
+          some: {
+            userId: CURRENT_USER_ID
+          }
+        },
+        hostId: { not: CURRENT_USER_ID }
+      },
+      include: {
+        host: { select: { username: true } },
+        members: { select: { userId: true } },
+        _count: { select: { members: true } }
+      }
+    });
+  }
+
   const hasActiveFilters = filters.q || filters.from || filters.to || filters.location || filters.open;
 
   return (
@@ -44,15 +74,12 @@ export default async function GroupPage({ searchParams }: PageProps) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {tab === "all" ? "All groups" : "Created groups"}
+            {tab === "all" ? "All groups" : tab === "mine" ? "Created groups" : "Joined groups"}
           </h1>
         </div>
         
         <div className="flex space-x-4">
-          {/* FilterBar will handle the filter button and dropdown */}
           {tab === "all" && <FilterBar />}
-
-          {/* Search Bar - Only show in All Groups tab */}
           {tab === "all" && (
             <form method="GET" className="relative">
               <input type="hidden" name="tab" value="all" />
@@ -91,10 +118,11 @@ export default async function GroupPage({ searchParams }: PageProps) {
         <div className="flex gap-8 border-b">
           <Tab href="/groups?tab=all" active={tab === "all"}>All groups</Tab>
           <Tab href="/groups?tab=mine" active={tab === "mine"}>Created groups</Tab>
+          <Tab href="/groups?tab=joined" active={tab === "joined"}>Joined groups</Tab>
         </div>
       </nav>
 
-      {/* Groups List - Rectangular Layout */}
+      {/* Groups List */}
       <div className="space-y-4">
         {tab === "all" ? (
           <>
@@ -113,7 +141,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
                   isFull={isFull}
                   count={count}
                   CURRENT_USER_ID={CURRENT_USER_ID}
-                  showEdit={false} // No edit button in All Groups tab
+                  showEdit={false}
                 />
               );
             })}
@@ -127,7 +155,6 @@ export default async function GroupPage({ searchParams }: PageProps) {
                   {hasActiveFilters ? 'Try adjusting your search and filters' : 'Be the first to create a group'}
                 </div>
                 
-                {/* Clear Search & Filters Button - Only show when filters are active */}
                 {hasActiveFilters && (
                   <Link
                     href="/groups?tab=all"
@@ -137,7 +164,6 @@ export default async function GroupPage({ searchParams }: PageProps) {
                   </Link>
                 )}
                 
-                {/* Create Group Link - Only show when no filters and no groups */}
                 {!hasActiveFilters && (
                   <Link 
                     href="/groups/create" 
@@ -149,63 +175,26 @@ export default async function GroupPage({ searchParams }: PageProps) {
               </div>
             )}
           </>
-        ) : (
+        ) : tab === "mine" ? (
           <>
-            {/* Created Groups Section */}
-            {myCreatedGroups.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Groups You Created</h2>
-                <div className="space-y-4">
-                  {myCreatedGroups.map((group) => (
-                    <GroupCard
-                      key={group.id}
-                      group={group}
-                      isHost={true}
-                      isJoined={true}
-                      isFull={group._count.members >= group.capacity}
-                      count={group._count.members}
-                      CURRENT_USER_ID={CURRENT_USER_ID}
-                      showEdit={true} // Show edit button for created groups
-                    />
-                  ))}
-                </div>
+            {myCreatedGroups.length > 0 ? (
+              <div className="space-y-4">
+                {myCreatedGroups.map((group) => (
+                  <GroupCard
+                    key={group.id}
+                    group={group}
+                    isHost={true}
+                    isJoined={true}
+                    isFull={group._count.members >= group.capacity}
+                    count={group._count.members}
+                    CURRENT_USER_ID={CURRENT_USER_ID}
+                    showEdit={true}
+                  />
+                ))}
               </div>
-            )}
-            
-            {/* Joined Groups Section */}
-            {justJoinedNotCreated.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Groups You've Joined</h2>
-                <div className="space-y-4">
-                  {justJoinedNotCreated.map((group) => (
-                    <GroupCard
-                      key={group.id}
-                      group={group}
-                      isHost={false}
-                      isJoined={true}
-                      isFull={group._count.members >= group.capacity}
-                      count={group._count.members}
-                      CURRENT_USER_ID={CURRENT_USER_ID}
-                      showEdit={false} // No edit button for joined groups
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Create Group Button at Bottom */}
-            <div className="flex justify-center mt-8">
-              <Link 
-                href="/groups/create" 
-                className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-full hover:opacity-90 transition text-sm flex items-center"
-              >
-                + Create new group
-              </Link>
-            </div>
-
-            {myCreatedGroups.length === 0 && justJoinedNotCreated.length === 0 && (
+            ) : (
               <div className="text-center py-12 bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-gray-600 text-lg mb-2">No groups found</div>
+                <div className="text-gray-600 text-lg mb-2">No created groups found</div>
                 <Link 
                   href="/groups/create" 
                   className="text-blue-600 hover:text-blue-800 text-sm font-medium"
@@ -215,6 +204,64 @@ export default async function GroupPage({ searchParams }: PageProps) {
               </div>
             )}
           </>
+        ) : (
+          // Joined Groups Tab
+          <>
+            {joinedGroups.length > 0 ? (
+              <div className="space-y-4">
+                {joinedGroups.map((group) => (
+                  <GroupCard
+                    key={group.id}
+                    group={group}
+                    isHost={false}
+                    isJoined={true}
+                    isFull={group._count.members >= group.capacity}
+                    count={group._count.members}
+                    CURRENT_USER_ID={CURRENT_USER_ID}
+                    showEdit={false}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200 p-8">
+                <div className="flex flex-col items-center">
+                  <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">You haven't joined any groups yet</h3>
+                  <p className="text-gray-600 mb-6 text-center max-w-md">
+                    Explore available study groups and join ones that match your interests and schedule.
+                  </p>
+                  <div className="flex gap-4">
+                    <Link 
+                      href="/groups?tab=all" 
+                      className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition text-sm"
+                    >
+                      Browse All Groups
+                    </Link>
+                    <Link 
+                      href="/groups/create" 
+                      className="border border-gray-300 text-gray-700 font-medium px-6 py-3 rounded-lg hover:bg-gray-50 transition text-sm"
+                    >
+                      Create Your Own Group
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Create Group Button - Only show in Created groups tab when there are groups */}
+        {tab === "mine" && myCreatedGroups.length > 0 && (
+          <div className="flex justify-center mt-8">
+            <Link 
+              href="/groups/create" 
+              className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-full hover:opacity-90 transition text-sm flex items-center"
+            >
+              + Create new group
+            </Link>
+          </div>
         )}
       </div>
     </div>
