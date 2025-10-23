@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { viewOtherProfile } from '@/app/(backend)/ProfileController/viewOtherProfile';
+import { sendInvite } from '@/app/(backend)/InvitationController/sendInvite';
+import { getUserGroups } from '@/app/(backend)/GroupController/getUserGroups';
 
 async function handleLogout() {
   try {
@@ -25,10 +27,20 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   
+  // Invite functionality states
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [selectedUserForInvite, setSelectedUserForInvite] = useState<any>(null);
+  const [userGroups, setUserGroups] = useState<any[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  
   const filterPopupRef = useRef<HTMLDivElement>(null);
   const profileModalRef = useRef<HTMLDivElement>(null);
+  const inviteModalRef = useRef<HTMLDivElement>(null);
 
-  // Close filter popup when clicking outside
+  // Close modals when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (filterPopupRef.current && !filterPopupRef.current.contains(event.target as Node)) {
@@ -38,23 +50,18 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
         setShowProfileModal(false);
         setSelectedProfile(null);
       }
+      if (inviteModalRef.current && !inviteModalRef.current.contains(event.target as Node) && showInviteModal) {
+        closeInviteModal();
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showFilterPopup, showProfileModal]);
+  }, [showFilterPopup, showProfileModal, showInviteModal]);
 
-  // useEffect(() => {
-  //   if (messages.length > 0) {
-  //     for (const msg of messages) {
-  //       alert(`[in-website alert] ${msg}`);
-  //     }
-  //   }
-  // }, [messages]);
-
-  // Handle view profile - DIRECT SERVER ACTION CALL
+  // Handle view profile
   const handleViewProfile = async (targetUserId: string) => {
     setLoadingProfileId(targetUserId);
     setError(null);
@@ -76,9 +83,91 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
     }
   };
 
+  // Handle invite button click
+  const handleInviteClick = async (profile: any) => {
+    setSelectedUserForInvite(profile);
+    setLoadingGroups(true);
+    setInviteSuccess(null);
+    setInviteError(null);
+    setError(null);
+    
+    try {
+      const result = await getUserGroups();
+      if (result.success) {
+        setUserGroups(result.groups || []);
+        setShowInviteModal(true);
+      } else {
+        setError('Failed to load your groups');
+      }
+    } catch (error) {
+      console.error('Error loading groups:', error);
+      setError('Failed to load your groups');
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  // Handle sending invite
+  const handleSendInvite = async (groupId: string, groupName: string) => {
+    if (!selectedUserForInvite) return;
+    
+    setInviteLoading(groupId);
+    setInviteSuccess(null);
+    setInviteError(null);
+    setError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('groupId', groupId);
+      formData.append('receiverUsername', selectedUserForInvite.username);
+
+      const result = await sendInvite(formData);
+      
+      if (result.ok) {
+        setInviteSuccess(`Invite sent to ${selectedUserForInvite.username} for group "${groupName}"!`);
+      } else {
+        const errorMessages = {
+          'missing-fields': 'Missing required fields',
+          'group-not-found': 'Group not found',
+          'forbidden': 'You do not have permission to invite to this group',
+          'group-closed': 'This group is closed',
+          'group-full': 'This group is full',
+          'user-not-found': 'User not found',
+          'cannot-invite-self': 'You cannot invite yourself',
+          'already-member': 'User is already a member of this group',
+          'invite-already-sent': 'Invite has already been sent to this user',
+          'internal-error': 'Internal server error'
+        };
+        
+        const errorMessage = errorMessages[result.error] || result.error;
+        
+        // Show "invite already sent" in the popup, others in main error area
+        if (result.error === 'invite-already-sent') {
+          setInviteError(`Failed to send invite: ${errorMessage}`);
+        } else {
+          setError(`Failed to send invite: ${errorMessage}`);
+        }
+      }
+    } catch (error) {
+      console.error('Send invite error:', error);
+      setError('Failed to send invite');
+    } finally {
+      setInviteLoading(null);
+    }
+  };
+
+  // Close modals
   const closeProfileModal = () => {
     setShowProfileModal(false);
     setSelectedProfile(null);
+  };
+
+  const closeInviteModal = () => {
+    setShowInviteModal(false);
+    setSelectedUserForInvite(null);
+    setInviteSuccess(null);
+    setInviteError(null);
+    setUserGroups([]);
   };
 
   const handleSearch = (query: string) => {
@@ -120,7 +209,7 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      {/* Error Message */}
+      {/* Main Error Message */}
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-600 text-center">{error}</p>
@@ -158,11 +247,10 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                  </div>
-                  <h1 className="text-3xl font-bold text-emerald-900 bg-green-100 px-4 py-2 rounded-lg mb-2 inline-block border border-red-200">{selectedProfile.username}
-                  </h1>
-                  <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                  </div>
+                </div>
+                <h1 className="text-3xl font-bold text-emerald-900 bg-green-100 px-4 py-2 rounded-lg mb-2 inline-block border border-red-200">
+                  {selectedProfile.username}
+                </h1>
               </div>
 
               {/* Profile Details Card */}
@@ -199,9 +287,157 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
 
               {/* Action Buttons */}
               <div className="mt-6 flex gap-3">
-                <button className="flex-1 bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition">
+                <button 
+                  onClick={() => handleInviteClick(selectedProfile)}
+                  className="flex-1 bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition"
+                >
                   + Invite to Study
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      {showInviteModal && selectedUserForInvite && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div 
+            ref={inviteModalRef}
+            className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+          >
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Invite {selectedUserForInvite.username}
+                  </h2>
+                  <p className="text-gray-600 text-sm mt-1">
+                    Select a group to invite this user to
+                  </p>
+                </div>
+                <button
+                  onClick={closeInviteModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Success Message */}
+              {inviteSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-600 text-center">{inviteSuccess}</p>
+                </div>
+              )}
+
+              {/* Invite Error Message (shown in popup) */}
+              {inviteError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600 text-center">{inviteError}</p>
+                  <button 
+                    onClick={() => setInviteError(null)}
+                    className="mt-2 text-sm text-red-600 hover:text-red-800"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              {/* Groups List */}
+              <div className="space-y-4">
+                {loadingGroups ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-600 mt-2">Loading your groups...</p>
+                  </div>
+                ) : userGroups.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No groups available</h3>
+                    <p className="text-gray-600 mb-4">
+                      You need to be a host or member of a public group to send invites.
+                    </p>
+                    <a 
+                      href="/groups/create" 
+                      className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Create a group →
+                    </a>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-4">
+                      {userGroups.map((group) => (
+                        <div
+                          key={group.id}
+                          className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-gray-900">{group.name}</h3>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                group.userRole === 'host' 
+                                  ? 'bg-purple-100 text-purple-800' 
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {group.userRole === 'host' ? 'Host' : 'Member'}
+                              </span>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                group.visibility 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-orange-100 text-orange-800'
+                              }`}>
+                                {group.visibility ? 'Public' : 'Private'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>👥 {group.currentSize}/{group.capacity} members</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleSendInvite(group.id, group.name)}
+                            disabled={inviteLoading === group.id}
+                            className="bg-gradient-to-r from-black to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {inviteLoading === group.id ? (
+                              <span className="flex items-center">
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Sending...
+                              </span>
+                            ) : (
+                              'Send Invite'
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Create Group CTA */}
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-blue-900">Want to create a new group?</h4>
+                          <p className="text-blue-700 text-sm mt-1">Create a study group and invite {selectedUserForInvite.username} to join.</p>
+                        </div>
+                        <a 
+                          href="/groups/create" 
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                        >
+                          Create Group
+                        </a>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -372,7 +608,10 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                   )}
                 </button>
 
-                <button className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-2 rounded-full hover:opacity-90 transition text-sm">
+                <button 
+                  onClick={() => handleInviteClick(profile)}
+                  className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-2 rounded-full hover:opacity-90 transition text-sm"
+                >
                   + Invite
                 </button>
               </div>
