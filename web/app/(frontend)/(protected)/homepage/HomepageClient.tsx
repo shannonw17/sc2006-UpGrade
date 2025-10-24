@@ -5,15 +5,6 @@ import { viewOtherProfile } from '@/app/(backend)/ProfileController/viewOtherPro
 import { sendInvite } from '@/app/(backend)/InvitationController/sendInvite';
 import { getUserGroups } from '@/app/(backend)/GroupController/getUserGroups';
 
-async function handleLogout() {
-  try {
-    const response = await fetch('/api/auth/logout', { method: 'POST' });
-    if (response.ok) window.location.href = '/login';
-  } catch (error) {
-    console.error('Logout failed:', error);
-  }
-}
-
 export default function HomepageClient({ user, initialProfiles, messages }) {
   const [profiles, setProfiles] = useState(initialProfiles);
   const [filteredProfiles, setFilteredProfiles] = useState(initialProfiles);
