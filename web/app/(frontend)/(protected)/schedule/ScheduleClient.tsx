@@ -3,7 +3,6 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 type StudyGroup = {
   id: string;
@@ -42,11 +41,13 @@ function getColor(id: string) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGroup[] }) {
+export default function ScheduleClient({ initialStudyGroups }: { initialStudyGroups: StudyGroup[] }) {
   const [viewMode, setViewMode] = useState<"monthly" | "weekly">("monthly");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<StudyGroup | null>(null);
-  const router = useRouter();
+
+  // Use the initial data from server
+  const groups = initialStudyGroups;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -54,7 +55,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
   // Group by date with safe handling
   const groupedByDate = useMemo(() => {
     const map: Record<string, StudyGroup[]> = {};
-    const safeStudyGroups = Array.isArray(studyGroups) ? studyGroups : [];
+    const safeStudyGroups = Array.isArray(groups) ? groups : [];
     
     safeStudyGroups.forEach((g) => {
       if (!g || !g.start) return;
@@ -68,12 +69,12 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
       }
     });
     return map;
-  }, [studyGroups]);
+  }, [groups]);
 
   // Group by date and time for weekly view
   const weeklyGroupedByDate = useMemo(() => {
     const map: Record<string, StudyGroup[]> = {};
-    const safeStudyGroups = Array.isArray(studyGroups) ? studyGroups : [];
+    const safeStudyGroups = Array.isArray(groups) ? groups : [];
     
     safeStudyGroups.forEach((g) => {
       if (!g || !g.start) return;
@@ -93,7 +94,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
     });
     
     return map;
-  }, [studyGroups]);
+  }, [groups]);
 
   // Navigation functions
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
@@ -136,10 +137,10 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
   });
 
   type TimeSlot = {
-  time: Date;
-  label: string;
-  isMidnight: boolean;
-};
+    time: Date;
+    label: string;
+    isMidnight: boolean;
+  };
 
   // Time slots for weekly view (12am to 11pm)
   const timeSlots = useMemo(() => {
@@ -171,7 +172,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
     }
   }, [viewMode, month, year, startOfWeek]);
 
-  // FIXED: Calculate group position and height for weekly view
+  // Calculate group position and height for weekly view
   const getGroupPosition = (group: StudyGroup) => {
     const start = new Date(group.start);
     const end = new Date(group.end);
@@ -181,7 +182,6 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
     let endMinutes = end.getHours() * 60 + end.getMinutes();
     
     // Handle events that end at midnight (12:00 AM)
-    // If end time is 12:00 AM and it's the same day, treat it as end of day
     if (endMinutes === 0 && end.getDate() === start.getDate()) {
       endMinutes = 1440; // End of day (24 hours * 60 minutes)
     }
@@ -237,7 +237,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
   };
 
   // Safely get study groups count
-  const studyGroupsCount = Array.isArray(studyGroups) ? studyGroups.length : 0;
+  const studyGroupsCount = Array.isArray(groups) ? groups.length : 0;
 
   return (
     <main className="p-6 bg-gray-100 min-h-screen overflow-x-auto">
@@ -311,7 +311,11 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
                   key={idx}
                   className="border rounded-lg p-1.5 min-h-[120px] hover:shadow-sm bg-white transition relative overflow-y-auto overflow-x-hidden"
                 >
-                  <div className="absolute top-1 right-1 text-gray-400 text-xs font-semibold">
+                  <div className={`absolute top-1 right-1 text-xs font-semibold ${
+                    date.toDateString() === new Date().toDateString() 
+                      ? "bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center" 
+                      : "text-gray-400"
+                  }`}>
                     {date.getDate()}
                   </div>
 
@@ -358,7 +362,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
             )}
           </div>
         ) : (
-          // Weekly View with Time Sidebar - FIXED POSITIONING
+          // Weekly View with Time Sidebar
           <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
             <div className="flex">
               {/* Time Sidebar */}
@@ -414,7 +418,7 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
                           ></div>
                         ))}
 
-                        {/* Study Groups - FIXED POSITIONING */}
+                        {/* Study Groups */}
                         {weeklyGroupedByDate[date.toDateString()]?.map((group) => {
                           const position = getGroupPosition(group);
                           const startTime = new Date(group.start);
@@ -485,9 +489,19 @@ export default function ScheduleClient({ studyGroups }: { studyGroups: StudyGrou
         )}
 
         {studyGroupsCount === 0 && (
-          <p className="text-center text-gray-500 mt-6 text-sm">
-            You haven't joined any study groups yet.
-          </p>
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No study groups scheduled</h3>
+            <p className="text-gray-600 mb-4">Join some study groups to see them here.</p>
+            <Link 
+              href="/groups" 
+              className="inline-block bg-gradient-to-r from-black to-blue-700 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition"
+            >
+              Browse Groups
+            </Link>
+          </div>
         )}
 
         {/* Floating Today Button */}

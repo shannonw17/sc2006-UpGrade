@@ -123,8 +123,8 @@ async function main() {
       groupID: "GROUP001",
       name: "Math Revision",
       visibility: true,
-      start: new Date("2025-10-15T10:00:00Z"),
-      end: new Date("2025-10-15T12:00:00Z"),
+      start: new Date("2025-12-15T10:00:00Z"),
+      end: new Date("2025-12-15T12:00:00Z"),
       location: "Library Room 101",
       capacity: 5,
       currentSize: 1, // temporary, will sync below
@@ -139,8 +139,8 @@ async function main() {
       groupID: "GROUP002",
       name: "CS2103 Project Team",
       visibility: false,
-      start: new Date("2025-10-18T14:00:00Z"),
-      end: new Date("2025-10-18T16:00:00Z"),
+      start: new Date("2025-12-18T14:00:00Z"),
+      end: new Date("2025-12-18T16:00:00Z"),
       location: "Engineering Block E2",
       capacity: 4,
       currentSize: 1,
@@ -155,8 +155,8 @@ async function main() {
       groupID: "GROUP003",
       name: "Mugger",
       visibility: false,
-      start: new Date("2025-10-15T10:00:00Z"),
-      end: new Date("2025-10-15T12:00:00Z"),
+      start: new Date("2025-12-15T10:00:00Z"),
+      end: new Date("2025-12-15T12:00:00Z"),
       location: "Engineering Block E2",
       capacity: 6,
       currentSize: 1,
@@ -177,7 +177,7 @@ async function main() {
   console.log("  bob   / bob@e.ntu.edu.sg    | password: bob123");
   console.log("  john  / john@e.ntu.edu.sg   | password: john123");
   console.log("  mary  / mary@e.ntu.edu.sg   | password: mary123");
-  console.log("Admins: ");
+  console.log("Admins: "); 
   console.log("  admin1  / admin1@gmail.com   | password: admin123987");
   console.log("  admin2  / admin2@gmail.com   | password: admin543678");
 }

@@ -6,61 +6,203 @@ import { requireUser } from "@/lib/requireUser";
 import { joinNotify } from "../NotificationController/joinNotify";
 import { cancelPending } from "./cancelPending";
 import { checkOverlap } from "../ConflictController/checkOverlap";
-import { resolveConflict } from "../ConflictController/resolveConflict";
 
 export async function acceptInvite(formData: FormData) {
-  const user = await requireUser();
-  const inviteId = String(formData.get("inviteId") || "");
-  if (!inviteId) throw new Error("Missing inviteId");
+  try {
+    const user = await requireUser();
+    const inviteId = String(formData.get("inviteId") || "");
+    
+    if (!inviteId) {
+      return { success: false, message: "Missing invite ID. Please try again." };
+    }
 
-  // load invite + group
-  const invite = await prisma.invitation.findUnique({
-    where: { id: inviteId },
-    include: { group: true },
-  });
+    // Load invitation with group and members
+    const invitation = await prisma.invitation.findUnique({
+      where: { id: inviteId },
+      include: {
+        group: {
+          include: {
+            members: {
+              select: { userId: true }
+            }
+          }
+        },
+        sender: {
+          select: {
+            username: true
+          }
+        }
+      }
+    });
 
-  if (!invite) throw new Error("Invitation not found");
-  if (invite.receiverId !== user.id) throw new Error("Not authorized to accept this invite");
-  
-  const groupId = invite.group.id;
-  const capacity = invite.group.capacity;
+    if (!invitation) {
+      return { success: false, message: "Invitation not found or has expired." };
+    }
 
-  //check for overlap
-  const overlap = await checkOverlap(user.id, groupId); //return conflict: Boolean
+    if (invitation.receiverId !== user.id) {
+      return { success: false, message: "You are not authorized to accept this invitation." };
+    }
 
-  if (overlap.conflict && overlap.conflictingGroup) {
-    //to prompt user on frontend "This group timing overlaps with Group __. Leave Group __ to join this group?" - 2 options (confirm or cancel) 
-    const choice = true; // how to get choice from frontend, assume click confirm sets boolean to true
+    const group = invitation.group;
+    const groupName = group.name;
+    const senderName = invitation.sender.username;
 
-    await resolveConflict(user.id, overlap.conflictingGroup?.id, groupId, false, true);
-    return;
+    // Check if user is already a member
+    const isAlreadyMember = group.members.some(member => member.userId === user.id);
+    if (isAlreadyMember) {
+      // Clean up the invitation since user is already a member
+      await prisma.$transaction([
+        prisma.notification.deleteMany({
+          where: { invitationId: invitation.id },
+        }),
+        prisma.invitation.delete({
+          where: { id: invitation.id },
+        }),
+      ]);
+      
+      revalidatePath("/inbox");
+      return { 
+        success: true, 
+        message: `You are already a member of "${groupName}". The invitation has been removed.` 
+      };
+    }
+
+    // Check if group is full
+    if (group.currentSize >= group.capacity) {
+      return { 
+        success: false, 
+        message: `Unable to accept invite to "${groupName}" as the group is full (${group.currentSize}/${group.capacity} members).` 
+      };
+    }
+
+    // Check if group is closed
+    if (group.isClosed) {
+      return { 
+        success: false, 
+        message: `Unable to accept invite to "${groupName}" as the group is closed to new members.` 
+      };
+    }
+
+    // Check if group has expired (end time is in the past)
+    const now = new Date();
+    if (group.end < now) {
+      const endDate = group.end.toLocaleDateString('en-SG', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      return { 
+        success: false, 
+        message: `Unable to accept invite to "${groupName}" as the group session ended on ${endDate}.` 
+      };
+    }
+
+    // Check if group has already started
+    if (group.start < now) {
+      const startDate = group.start.toLocaleDateString('en-SG', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      return { 
+        success: false, 
+        message: `Unable to accept invite to "${groupName}" as the group session started on ${endDate} and has already begun.` 
+      };
+    }
+
+    // Overlap check with specific group names and times
+    const overlap = await checkOverlap(user.id, group.id);
+    if (overlap.conflict && overlap.conflictingGroup) {
+      const conflictingGroup = overlap.conflictingGroup;
+      const conflictingGroupName = conflictingGroup.name;
+      
+      const conflictingGroupTime = conflictingGroup.start.toLocaleString('en-SG', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      
+      const newGroupTime = group.start.toLocaleString('en-SG', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      
+      return { 
+        success: false, 
+        message: `Unable to accept invite to "${groupName}" (${newGroupTime}) as it overlaps with your existing group "${conflictingGroupName}" (${conflictingGroupTime}). Please leave the conflicting group first to join this one.` 
+      };
+    }
+
+    // Add user to group and clean up invitation
+    await prisma.$transaction(async (tx) => {
+      // Add user to group members
+      await tx.groupMember.create({
+        data: {
+          userId: user.id,
+          groupId: group.id,
+        },
+      });
+
+      // Update group currentSize
+      await tx.group.update({
+        where: { id: group.id },
+        data: {
+          currentSize: {
+            increment: 1,
+          },
+        },
+      });
+
+      // Delete the invitation and related notifications
+      await tx.notification.deleteMany({
+        where: { invitationId: invitation.id },
+      });
+
+      await tx.invitation.delete({
+        where: { id: invitation.id },
+      });
+
+      // Create success notification for the sender
+      await tx.notification.create({
+        data: {
+          userId: invitation.senderId,
+          message: `${user.username} has accepted your invitation to join "${groupName}".`,
+          type: 'INVITATION_ACCEPTED'
+        }
+      });
+    });
+
+    // Notify other group members
+    await joinNotify(group.id, user.id);
+
+    // Cancel pending invites if group is now full
+    await cancelPending(group.id);
+
+    revalidatePath("/inbox");
+    revalidatePath("/groups");
+    revalidatePath(`/groups/${group.id}`);
+    
+    return { 
+      success: true, 
+      message: `Successfully joined "${groupName}"! You can now access the group details and participate in discussions.` 
+    };
+
+  } catch (error) {
+    console.error("Accept invite error:", error);
+    return { 
+      success: false, 
+      message: "An unexpected error occurred while accepting the invitation. Please try again later." 
+    };
   }
-
-  // Transaction: add member, increment group size, remove invitation, remove invitation notification
-  await prisma.$transaction([
-    prisma.groupMember.create({
-      data: {
-        userId: user.id,
-        groupId: invite.groupId,
-      }, //add user to group
-    }),
-    prisma.group.update({
-      where: { id: invite.groupId },
-      data: { currentSize: { increment: 1 } }, 
-    }), //update group capacity
-    prisma.notification.deleteMany({
-      where: { invitationId: invite.id },
-    }), //delete relevant invitation notifications in inbox
-    prisma.invitation.delete({
-      where: { id: invite.id },
-    }), //delete invitation from database -> ensure dont appear in user inbox anymore when user load inbox page
-  ]);
-
-  // notify all existing members that user joined (excluding the user who joined)
-  await joinNotify(invite.group.id, user.id);
-
-  await cancelPending(groupId); //run to delete pending invitation if group capacity becomes full
-
-  revalidatePath("/inbox");
-  return { success: true, message: "Successfully accepted invite and joined group." }; //not sure if message is needed/where it will be displayed
 }

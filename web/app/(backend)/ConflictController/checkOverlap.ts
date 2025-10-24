@@ -2,35 +2,96 @@
 
 // check if time range of grp abt to be joined conflicts with any grps user is currently a member of
 
+// app/(backend)/ConflictController/checkOverlap.ts
+// app/(backend)/ConflictController/checkOverlap.ts
 "use server";
 
 import prisma from "@/lib/db";
 
 export async function checkOverlap(userId: string, newGroupId: string) {
-    const newGrp = await prisma.group.findUnique({
-        where: { id:  newGroupId },
-        select: { id: true, name: true, start: true, end: true },
-    }); //get the details of new grp from database
-
-    if (!newGrp) throw new Error("New group not found");
-
-    const userGrps = await prisma.groupMember.findMany({
-        where: { userId },
-        include: {
-            group: { select: { id: true, name: true, start: true, end: true }}
-        },
+  try {
+    // Get the new group details
+    const newGroup = await prisma.group.findUnique({
+      where: { id: newGroupId },
+      select: {
+        id: true,
+        name: true,
+        start: true,
+        end: true
+      }
     });
 
-    for (const membership of userGrps) { //loop through all groups user has joined
-        const g = membership.group;
-        const overlap = g.start < newGrp.end && g.end > newGrp.start; //boolean
-
-        if (overlap) {
-            return {
-                conflict: true,
-                conflictingGroup: {id: g.id, name: g.name},
-            };
-        }
+    if (!newGroup) {
+      return { conflict: false };
     }
-    return { conflict: false, conflictingGroup: null };
+
+    // Get all groups the user is currently in (as host or member)
+    const userGroups = await prisma.group.findMany({
+      where: {
+        OR: [
+          { hostId: userId },
+          { 
+            members: {
+              some: {
+                userId: userId
+              }
+            }
+          }
+        ]
+      },
+      include: {
+        host: {
+          select: {
+            username: true
+          }
+        },
+        members: {
+          select: {
+            userId: true
+          }
+        }
+      }
+    });
+
+    // Check for overlaps with each existing group
+    for (const existingGroup of userGroups) {
+      // Skip the same group (in case user is re-joining)
+      if (existingGroup.id === newGroupId) {
+        continue;
+      }
+
+      // Check if time periods overlap
+      const newStart = new Date(newGroup.start);
+      const newEnd = new Date(newGroup.end);
+      const existingStart = new Date(existingGroup.start);
+      const existingEnd = new Date(existingGroup.end);
+
+      // Check for overlap: if one group starts before the other ends and ends after the other starts
+      const hasOverlap = newStart < existingEnd && newEnd > existingStart;
+
+      if (hasOverlap) {
+        return {
+          conflict: true,
+          conflictingGroup: {
+            id: existingGroup.id,
+            name: existingGroup.name,
+            start: existingGroup.start,
+            end: existingGroup.end,
+            location: existingGroup.location
+          },
+          newGroup: {
+            id: newGroup.id,
+            name: newGroup.name,
+            start: newGroup.start,
+            end: newGroup.end
+          }
+        };
+      }
+    }
+
+    return { conflict: false };
+  } catch (error) {
+    console.error("Error checking overlap:", error);
+    return { conflict: false };
+  }
 }
