@@ -7,8 +7,10 @@ export default function CreateGroupPage() {
   const [location, setLocation] = useState("");
   const [name, setName] = useState("");
   const [visibility, setVisibility] = useState("public");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [capacity, setCapacity] = useState(4);
 
   const router = useRouter();
@@ -21,8 +23,10 @@ export default function CreateGroupPage() {
       const obj = JSON.parse(savedForm);
       setName(obj.name || "");
       setVisibility(obj.visibility || "public");
-      setStart(obj.start || "");
-      setEnd(obj.end || "");
+      setStartDate(obj.startDate || "");
+      setStartTime(obj.startTime || "");
+      setEndDate(obj.endDate || "");
+      setEndTime(obj.endTime || "");
       setCapacity(Number(obj.capacity) || 4);
       setLocation(obj.location || "");
       sessionStorage.removeItem("createGroupForm");
@@ -41,13 +45,34 @@ export default function CreateGroupPage() {
     const formState = {
       name,
       visibility,
-      start,
-      end,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
       capacity: capacity.toString(),
       location,
     };
     sessionStorage.setItem("createGroupForm", JSON.stringify(formState));
     router.push("/Maps");
+  };
+
+  // Combine date and time for the form submission
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    // Combine date and time into datetime strings
+    const start = `${startDate}T${startTime}`;
+    const end = `${endDate}T${endTime}`;
+    
+    const formData = new FormData(e.currentTarget);
+    formData.set('start', start);
+    formData.set('end', end);
+    
+    try {
+      await createGroup(formData);
+    } catch (error: any) {
+      alert(`Failed to create group: ${error.message}`);
+    }
   };
 
   return (
@@ -61,7 +86,7 @@ export default function CreateGroupPage() {
 
         {/* Form Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <form action={createGroup} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Group Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -94,33 +119,63 @@ export default function CreateGroupPage() {
               </select>
             </div>
 
-            {/* Date & Time */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Start Date & Time */}
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Time
-                </label>
-                <input
-                  name="start"
-                  type="datetime-local"
-                  required
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Start Date & Time</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Date</label>
+                    <input
+                      name="startDate"
+                      type="date"
+                      required
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Time</label>
+                    <input
+                      name="startTime"
+                      type="time"
+                      required
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* End Date & Time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Time
-                </label>
-                <input
-                  name="end"
-                  type="datetime-local"
-                  required
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
+                <h3 className="text-sm font-medium text-gray-700 mb-2">End Date & Time</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Date</label>
+                    <input
+                      name="endDate"
+                      type="date"
+                      required
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Time</label>
+                    <input
+                      name="endTime"
+                      type="time"
+                      required
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

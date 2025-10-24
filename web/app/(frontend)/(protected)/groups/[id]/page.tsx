@@ -2,13 +2,16 @@ import prisma from "@/lib/db";
 import Link from "next/link";
 import { requireUser } from "@/lib/requireUser";
 import { DeleteButton } from "./DeleteButton";
+import { ArrowLeft } from "lucide-react";
 
 interface GroupPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ fromTab?: string }>;
 }
 
-export default async function GroupDetailPage({ params }: GroupPageProps) {
+export default async function GroupDetailPage({ params, searchParams }: GroupPageProps) {
   const { id } = await params;
+  const { fromTab } = await searchParams;
 
   const [group, user] = await Promise.all([
     prisma.group.findUnique({
@@ -44,6 +47,23 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
   }
 
   const isHost = user.id === group.hostId;
+  const isMember = group.members.some((member: any) => member.userId === user.id);
+  
+  // Determine which tab to go back to
+  const getBackTabInfo = () => {
+    // Always respect the fromTab parameter first
+    if (fromTab === 'mine') {
+      return { tab: 'mine', label: 'Created Groups' };
+    } else if (fromTab === 'joined') {
+      return { tab: 'joined', label: 'Joined Groups' };
+    } else {
+      // Default to all groups if no fromTab specified
+      return { tab: 'all', label: 'All Groups' };
+    }
+  };
+
+  const { tab: backTab, label: backLabel } = getBackTabInfo();
+  const backHref = `/groups?tab=${backTab}`;
   
   // Get all members including the host
   const allMembers = [
@@ -60,14 +80,19 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link
-            href="/groups"
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium mb-6"
+        {/* Header with Smart Back Button */}
+        <div className="mb-6">
+          <Link 
+            href={backHref}
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
           >
-            ← Back to all groups
+            <ArrowLeft size={16} className="mr-2" />
+            Back to {backLabel}
           </Link>
+        </div>
+
+        {/* Group Header */}
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{group.name}</h1>
           <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
             <span
@@ -86,6 +111,14 @@ export default async function GroupDetailPage({ params }: GroupPageProps) {
                 <span>•</span>
                 <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
                   You are hosting
+                </span>
+              </>
+            )}
+            {!isHost && isMember && (
+              <>
+                <span>•</span>
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                  You have joined
                 </span>
               </>
             )}

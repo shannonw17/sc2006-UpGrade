@@ -15,6 +15,7 @@ interface GroupCardProps {
   count: number;
   CURRENT_USER_ID: string;
   showEdit: boolean;
+  onEditClick?: (group: any) => void;
 }
 
 export default function GroupCard({ 
@@ -25,8 +26,10 @@ export default function GroupCard({
   count, 
   CURRENT_USER_ID,
   showEdit,
+  onEditClick
 }: GroupCardProps) {
   const [showReportModal, setShowReportModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Determine highlight color based on group status
   const getHighlightColor = () => {
@@ -34,6 +37,113 @@ export default function GroupCard({
     if (isJoined) return "bg-blue-500"; // Joined groups - blue
     if (isFull) return "bg-gray-400"; // Full groups - gray
     return "bg-orange-500"; // Available groups - orange
+  };
+
+  const handleJoinGroup = async () => {
+    if (!confirm(`Are you sure you want to join "${group.name}"?`)) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('groupId', group.id);
+      formData.append('userId', CURRENT_USER_ID);
+      
+      await joinGroup(formData);
+      // The page will revalidate and update automatically
+    } catch (error: any) {
+      alert(`Failed to join group: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!confirm(`Are you sure you want to leave "${group.name}"?`)) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('groupId', group.id);
+      formData.append('userId', CURRENT_USER_ID);
+      
+      await leaveGroup(formData);
+      // The page will revalidate and update automatically
+    } catch (error: any) {
+      alert(`Failed to leave group: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleEditGroup = () => {
+    console.log("handleEditGroup called, onEditClick exists:", !!onEditClick);
+    if (onEditClick) {
+      onEditClick(group);
+    } else {
+      console.error("onEditClick is not defined!");
+    }
+  };
+
+  // SIMPLIFIED: Only use showEdit to determine the tab
+  // showEdit = true means we're in "Created groups" tab
+  // showEdit = false means we're in "All groups" tab (regardless of join status)
+  const getFromTab = () => {
+    return showEdit ? 'mine' : 'all';
+  };
+
+  const getActionButton = () => {
+    // Host's own groups - show Edit button ONLY if showEdit is true (Created groups tab)
+    if (isHost && showEdit) {
+      return (
+        <button 
+          onClick={handleEditGroup}
+          className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-medium px-4 py-2 rounded-full hover:opacity-90 transition text-sm"
+        >
+          Edit group
+        </button>
+      );
+    }
+
+    // Host's own groups in All groups tab - show View Only message
+    if (isHost && !showEdit) {
+      return (
+        <div className="w-full bg-gray-100 text-gray-400 font-medium px-4 py-2 rounded-full text-sm text-center">
+          Your group
+        </div>
+      );
+    }
+
+    // User has joined this group - show Leave button
+    if (isJoined) {
+      return (
+        <button
+          onClick={handleLeaveGroup}
+          disabled={isProcessing}
+          className="w-full bg-gray-500 text-white font-medium px-4 py-2 rounded-full hover:bg-gray-600 transition text-sm disabled:opacity-50"
+        >
+          {isProcessing ? 'Leaving...' : 'Leave'}
+        </button>
+      );
+    }
+
+    // User hasn't joined - show Join button (or Full if capacity reached)
+    return (
+      <button
+        onClick={handleJoinGroup}
+        disabled={isFull || isProcessing}
+        className={`w-full font-medium px-4 py-2 rounded-full transition text-sm ${
+          isFull 
+            ? "bg-gray-300 text-gray-600 cursor-not-allowed" 
+            : "bg-gradient-to-r from-black to-blue-700 text-white hover:opacity-90 disabled:opacity-50"
+        }`}
+      >
+        {isProcessing ? 'Joining...' : isFull ? "Full" : "Join"}
+      </button>
+    );
   };
 
   return (
@@ -65,7 +175,7 @@ export default function GroupCard({
             {/* Center - View Details Button */}
             <div className="flex-1 flex justify-center">
               <Link 
-                href={`/groups/${group.id}`} 
+                href={`/groups/${group.id}?fromTab=${getFromTab()}`}
                 className="text-blue-600 hover:text-blue-800 font-medium text-sm"
               >
                 view details
@@ -81,38 +191,7 @@ export default function GroupCard({
 
               {/* Action Button */}
               <div className="w-32">
-                {showEdit && isHost ? (
-                  <button className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-medium px-4 py-2 rounded-full hover:opacity-90 transition text-sm">
-                    Edit group
-                  </button>
-                ) : isJoined ? (
-                  <form action={leaveGroup} className="w-full">
-                    <input type="hidden" name="groupId" value={group.id} />
-                    <input type="hidden" name="userId" value={CURRENT_USER_ID} />
-                    <button
-                      type="submit"
-                      className="w-full bg-gray-500 text-white font-medium px-4 py-2 rounded-full hover:bg-gray-600 transition text-sm"
-                    >
-                      Joined
-                    </button>
-                  </form>
-                ) : (
-                  <form action={joinGroup} className="w-full">
-                    <input type="hidden" name="groupId" value={group.id} />
-                    <input type="hidden" name="userId" value={CURRENT_USER_ID} />
-                    <button
-                      type="submit"
-                      disabled={isFull}
-                      className={`w-full font-medium px-4 py-2 rounded-full transition text-sm ${
-                        isFull 
-                          ? "bg-gray-300 text-gray-600 cursor-not-allowed" 
-                          : "bg-gradient-to-r from-black to-blue-700 text-white hover:opacity-90"
-                      }`}
-                    >
-                      {isFull ? "Full" : "Join"}
-                    </button>
-                  </form>
-                )}
+                {getActionButton()}
               </div>
 
               {/* Report Button - Red */}

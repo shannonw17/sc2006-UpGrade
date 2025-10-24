@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -6,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
-    google: any; // or install @types/google.maps for proper types
+    google: any;
   }
 }
 
@@ -25,10 +24,11 @@ interface Library {
     geoLongitude: string;
   };
 }
+
 export default function Maps() {
   const mapsAPIKey = "AIzaSyCUQiQ8Ku1c06N3e3CYVRdKKozErIydD9w";
   const mapRef = useRef(null);
-  const markerRef = useRef<any>(null); // Store current marker
+  const markerRef = useRef<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [location, setLocation] = useState("");
@@ -36,13 +36,21 @@ export default function Maps() {
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState("");
   const markersRef = useRef<{ libName: string; marker: any }[]>([]);
-
   const [libraries, setLibraries] = useState<Library[]>([]);
-
   const hasFetched = useRef(false);
 
+  // Detect if we're coming from edit form
   useEffect(() => {
-    if (hasFetched.current) return; // skip if already fetched
+    const editForm = sessionStorage.getItem('editGroupForm');
+    if (editForm) {
+      const formData = JSON.parse(editForm);
+      setSelectedLocation(formData.location || '');
+      setLocation(formData.location || '');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasFetched.current) return;
     hasFetched.current = true;
 
     async function loadLibraries() {
@@ -78,120 +86,119 @@ export default function Maps() {
       );
     }
 
+    const offset = (index: number) => (index % 2 === 0 ? 0.00005 : -0.00005);
 
+    libraries.forEach((lib, index) => {
+      let lat = parseFloat(lib.coordinates?.geoLatitude);
+      let lng = parseFloat(lib.coordinates?.geoLongitude);
+      if (isNaN(lat) || isNaN(lng)) return;
 
-  const offset = (index: number) => (index % 2 === 0 ? 0.00005 : -0.00005);
+      const duplicateCount = libraries.filter(
+        (other) =>
+          other.coordinates.geoLatitude === lib.coordinates.geoLatitude &&
+          other.coordinates.geoLongitude === lib.coordinates.geoLongitude
+      ).length;
 
-  libraries.forEach((lib, index) => {
-    let lat = parseFloat(lib.coordinates?.geoLatitude);
-    let lng = parseFloat(lib.coordinates?.geoLongitude);
-    if (isNaN(lat) || isNaN(lng)) return;
+      if (duplicateCount > 1) {
+        lat += offset(index);
+        lng += offset(index);
+      }
 
-    // If multiple libraries share the same coordinate, offset slightly
-    const duplicateCount = libraries.filter(
-      (other) =>
-        other.coordinates.geoLatitude === lib.coordinates.geoLatitude &&
-        other.coordinates.geoLongitude === lib.coordinates.geoLongitude
-    ).length;
-
-    if (duplicateCount > 1) {
-      lat += offset(index);
-      lng += offset(index);
-    }
-
-    const marker = new window.google.maps.Marker({
-      position: { lat, lng },
-      map: mapInstance,
-      title: lib.name,
-      icon: {
-        url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-      },
-    });
-
-  // Add click handler to toggle color
-  marker.addListener("click", () => {
-    markersRef.current.forEach(({ libName, marker: m }) => {
-      m.setIcon({
-        url:
-          libName === lib.name
-            ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
-            : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      const marker = new window.google.maps.Marker({
+        position: { lat, lng },
+        map: mapInstance,
+        title: lib.name,
+        icon: {
+          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+        },
       });
-    });
-    setSelectedLocation(lib.name);
-    setLocation(lib.name);
-  });
 
-  markersRef.current.push({ libName: lib.name, marker });
-});
+      marker.addListener("click", () => {
+        markersRef.current.forEach(({ libName, marker: m }) => {
+          m.setIcon({
+            url:
+              libName === lib.name
+                ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+          });
+        });
+
+        const countryAndPostal =
+          lib.address?.country && lib.address?.postalCode
+            ? `${lib.address.country} ${lib.address.postalCode}`
+            : lib.address?.country || lib.address?.postalCode || "";
+
+        const fullAddress = [
+          lib.address?.block,
+          lib.address?.streetName,
+          lib.address?.buildingName,
+          countryAndPostal,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        setSelectedLocation(fullAddress);
+        setLocation(fullAddress);
+      });
+
+      markersRef.current.push({ libName: lib.name, marker });
+    });
   }, [libraries, mapInstance]);
 
-
-
-
-  const handleMapClick = (location: string) => {
-    setSelectedLocation(location);
-  };
-  
-
-  const returnLocation = () => {
+  const handleLocationSelect = () => {
     if (!selectedLocation) {
       alert("Please select a location first!");
-      return; 
+      return;
     }
 
-     sessionStorage.setItem("selectedLocation", selectedLocation);
-     router.push("/groups/create");
-
+    const editForm = sessionStorage.getItem('editGroupForm');
+    
+    sessionStorage.setItem('selectedLocation', selectedLocation);
+    
+    if (editForm) {
+      const formData = JSON.parse(editForm);
+      router.push(`/groups?tab=mine&edit=${formData.groupId}`);
+    } else {
+      router.push('/groups/create');
+    }
   };
 
+  useEffect(() => {
+    const existingScript = document.querySelector(
+      'script[src^="https://maps.googleapis.com/maps/api/js"]'
+    );
 
-
-
-
-  // Load Google Maps JS API
-useEffect(() => {
-  const existingScript = document.querySelector(
-    'script[src^="https://maps.googleapis.com/maps/api/js"]'
-  );
-
-  if (!existingScript) {
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsAPIKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setMapLoaded(true);
-    document.head.appendChild(script);
-  } else {
-    // If already loaded, check if window.google is ready
-    if (window.google) {
-      setMapLoaded(true);
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsAPIKey}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => setMapLoaded(true);
+      document.head.appendChild(script);
     } else {
-      existingScript.addEventListener("load", () => setMapLoaded(true));
+      if (window.google) {
+        setMapLoaded(true);
+      } else {
+        existingScript.addEventListener("load", () => setMapLoaded(true));
+      }
     }
-  }
-}, [mapsAPIKey]);
-  
-  
-  
+  }, [mapsAPIKey]);
 
-  // Initialize map after script loads
   useEffect(() => {
     if (!mapLoaded || mapInstance) return;
 
     const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 1.3521, lng: 103.8198 }, // default: Singapore
+      center: { lat: 1.3521, lng: 103.8198 },
       zoom: 12,
     });
 
-    // Click listener to get coordinates or reverse-geocode
     map.addListener("click", async (e) => {
-      // 🔵 Reset all library markers to blue when user clicks on the map
       markersRef.current.forEach(({ marker }) => {
         marker.setIcon({
           url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
         });
       });
+
       const lat = e.latLng.lat();
       const lng = e.latLng.lng();
 
@@ -207,15 +214,12 @@ useEffect(() => {
         setLocation(address);
       }
 
-      // Also update selectedLocation so Return button works
       setSelectedLocation(address);
 
-      // Remove previous marker if it exists
       if (markerRef.current) {
         markerRef.current.setMap(null);
       }
 
-      // Add a new marker at the clicked location
       markerRef.current = new window.google.maps.Marker({
         position: { lat, lng },
         map: map,
@@ -228,7 +232,6 @@ useEffect(() => {
     setMapInstance(map);
   }, [mapLoaded, mapInstance]);
 
-  // Handle search form submit
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query || !mapInstance) return;
@@ -241,12 +244,10 @@ useEffect(() => {
         mapInstance.setCenter(loc);
         mapInstance.setZoom(15);
 
-        // Remove previous marker if it exists
         if (markerRef.current) {
           markerRef.current.setMap(null);
         }
 
-        // Add new marker at search result
         markerRef.current = new window.google.maps.Marker({
           position: loc,
           map: mapInstance,
@@ -262,12 +263,10 @@ useEffect(() => {
 
   return (
     <div style={{ textAlign: "center", marginTop: "20px", color: "#585252ff" }}>
-      {/* Search Bar */}
       <form onSubmit={handleSearch} style={{ marginBottom: "10px" }}>
         <input
           type="text"
           placeholder="Search location"
-          //value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{
             padding: "10px",
@@ -292,7 +291,6 @@ useEffect(() => {
         </button>
       </form>
 
-      {/* Map */}
       <div
         ref={mapRef}
         style={{
@@ -303,7 +301,6 @@ useEffect(() => {
         }}
       />
 
-      {/* Floating Library List */}
       <div
         style={{
           position: "absolute",
@@ -338,7 +335,6 @@ useEffect(() => {
                     mapInstance.setZoom(16);
                   }
 
-                  // Change marker colors using the ref, not state
                   markersRef.current.forEach(({ libName, marker }) => {
                     marker.setIcon({
                       url:
@@ -348,7 +344,6 @@ useEffect(() => {
                     });
                   });
 
- 
                   const countryAndPostal =
                     lib.address?.country && lib.address?.postalCode
                       ? `${lib.address.country} ${lib.address.postalCode}`
@@ -388,7 +383,6 @@ useEffect(() => {
         )}
       </div>
 
-      {/* Selected location */}
       <div
         style={{
           marginTop: "50px",
@@ -412,7 +406,7 @@ useEffect(() => {
               ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
               : "bg-gray-400 text-gray-200 cursor-not-allowed"
           }`}
-          onClick={returnLocation}
+          onClick={handleLocationSelect}
           disabled={!selectedLocation}
         >
           Return Location
@@ -421,4 +415,3 @@ useEffect(() => {
     </div>
   );
 }
-

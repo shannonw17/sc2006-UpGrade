@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/requireUser";
 import { normalizeFilters, type RawFilters } from "@/app/(backend)/FilterController/filterUtils";
 import { fetchGroupsWithFilters } from "@/app/(backend)/FilterController/searchAndFilter";
 import FilterBar from "./FilterBar";
-import GroupCard from "./components/GroupCard";
+import GroupsPageClient from "./GroupsPageClient";
 
 export const runtime = "nodejs";
 
@@ -123,147 +123,15 @@ export default async function GroupPage({ searchParams }: PageProps) {
       </nav>
 
       {/* Groups List */}
-      <div className="space-y-4">
-        {tab === "all" ? (
-          <>
-            {allGroups.map((group) => {
-              const isJoined = joinedSet.has(group.id);
-              const isHost = group.hostId === CURRENT_USER_ID;
-              const count = group._count.members;
-              const isFull = count >= group.capacity;
-
-              return (
-                <GroupCard
-                  key={group.id}
-                  group={group}
-                  isHost={isHost}
-                  isJoined={isJoined}
-                  isFull={isFull}
-                  count={count}
-                  CURRENT_USER_ID={CURRENT_USER_ID}
-                  showEdit={false}
-                />
-              );
-            })}
-            
-            {allGroups.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-gray-600 text-lg mb-2">
-                  {hasActiveFilters ? 'No groups match your filters' : 'No groups found'}
-                </div>
-                <div className="text-gray-500 text-sm mb-4">
-                  {hasActiveFilters ? 'Try adjusting your search and filters' : 'Be the first to create a group'}
-                </div>
-                
-                {hasActiveFilters && (
-                  <Link
-                    href="/groups?tab=all"
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Clear search & filters
-                  </Link>
-                )}
-                
-                {!hasActiveFilters && (
-                  <Link 
-                    href="/groups/create" 
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Create your first group
-                  </Link>
-                )}
-              </div>
-            )}
-          </>
-        ) : tab === "mine" ? (
-          <>
-            {myCreatedGroups.length > 0 ? (
-              <div className="space-y-4">
-                {myCreatedGroups.map((group) => (
-                  <GroupCard
-                    key={group.id}
-                    group={group}
-                    isHost={true}
-                    isJoined={true}
-                    isFull={group._count.members >= group.capacity}
-                    count={group._count.members}
-                    CURRENT_USER_ID={CURRENT_USER_ID}
-                    showEdit={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-gray-600 text-lg mb-2">No created groups found</div>
-                <Link 
-                  href="/groups/create" 
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  Create your first group
-                </Link>
-              </div>
-            )}
-          </>
-        ) : (
-          // Joined Groups Tab
-          <>
-            {joinedGroups.length > 0 ? (
-              <div className="space-y-4">
-                {joinedGroups.map((group) => (
-                  <GroupCard
-                    key={group.id}
-                    group={group}
-                    isHost={false}
-                    isJoined={true}
-                    isFull={group._count.members >= group.capacity}
-                    count={group._count.members}
-                    CURRENT_USER_ID={CURRENT_USER_ID}
-                    showEdit={false}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200 p-8">
-                <div className="flex flex-col items-center">
-                  <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">You haven't joined any groups yet</h3>
-                  <p className="text-gray-600 mb-6 text-center max-w-md">
-                    Explore available study groups and join ones that match your interests and schedule.
-                  </p>
-                  <div className="flex gap-4">
-                    <Link 
-                      href="/groups?tab=all" 
-                      className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition text-sm"
-                    >
-                      Browse All Groups
-                    </Link>
-                    <Link 
-                      href="/groups/create" 
-                      className="border border-gray-300 text-gray-700 font-medium px-6 py-3 rounded-lg hover:bg-gray-50 transition text-sm"
-                    >
-                      Create Your Own Group
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Create Group Button - Only show in Created groups tab when there are groups */}
-        {tab === "mine" && myCreatedGroups.length > 0 && (
-          <div className="flex justify-center mt-8">
-            <Link 
-              href="/groups/create" 
-              className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-full hover:opacity-90 transition text-sm flex items-center"
-            >
-              + Create new group
-            </Link>
-          </div>
-        )}
-      </div>
+      <GroupsPageClient
+        allGroups={allGroups}
+        myCreatedGroups={myCreatedGroups}
+        joinedGroups={joinedGroups}
+        joinedSet={joinedSet}
+        tab={tab}
+        CURRENT_USER_ID={CURRENT_USER_ID}
+        hasActiveFilters={hasActiveFilters}
+      />
     </div>
   );
 }

@@ -62,8 +62,15 @@ export async function createGroup(formData: FormData) {
 
   const name = String(formData.get("name") || "").trim();
   const visibilityStr = String(formData.get("visibility") || "public");
-  const startLocal = String(formData.get("start") || "");  // e.g. "2025-10-18T18:05"
-  const endLocal   = String(formData.get("end") || "");
+  const startDate = String(formData.get("startDate") || "");
+  const startTime = String(formData.get("startTime") || "");
+  const endDate = String(formData.get("endDate") || "");
+  const endTime = String(formData.get("endTime") || "");
+
+  // Combine date and time
+  const startLocal = `${startDate}T${startTime}`;
+  const endLocal = `${endDate}T${endTime}`;
+  
   const location   = String(formData.get("location") || "").trim();
   const capacity   = parseInt(String(formData.get("capacity") || "2"), 10);
 
