@@ -272,13 +272,6 @@ export default function CreateGroupPage() {
             </div>
           </form>
         </div>
-
-        {/* Help Text */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">
-            You cannot host multiple groups at the same time. Please check your existing groups' schedules.
-          </p>
-        </div>
       </div>
     </main>
   );
