@@ -15,7 +15,7 @@ export async function deleteGroup(formData: FormData) {
   // 1) Verify ownership
   const group = await prisma.group.findUnique({
     where: { id: groupId },
-    select: { id: true, hostId: true },
+    select: { id: true, hostId: true, name: true },
   });
   if (!group) throw new Error("Group not found");
   if (group.hostId !== user.id) throw new Error("Unauthorized");
@@ -25,5 +25,8 @@ export async function deleteGroup(formData: FormData) {
 
   // 3) Refresh lists & send host back to their groups
   revalidatePath("/groups");
-  redirect("/groups?tab=mine");
+  revalidatePath("/inbox");
+  
+  // Return success instead of redirecting
+  return { success: true, message: `Group "${group.name}" deleted successfully` };
 }

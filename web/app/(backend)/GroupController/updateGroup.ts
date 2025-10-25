@@ -37,6 +37,49 @@ function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
   return new Date(msUTC);
 }
 
+/**
+ * Check if user already has groups that overlap with the proposed time (excluding current group)
+ */
+async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Date, excludeGroupId: string) {
+  const existingGroups = await prisma.group.findMany({
+    where: {
+      hostId: hostId,
+      isClosed: false,
+      id: { not: excludeGroupId }, // Exclude the current group being edited
+    },
+    select: {
+      id: true,
+      name: true,
+      start: true,
+      end: true,
+      location: true,
+    },
+  });
+
+  for (const group of existingGroups) {
+    const existingStart = new Date(group.start);
+    const existingEnd = new Date(group.end);
+
+    // Check for time overlap
+    const hasOverlap = newStart < existingEnd && newEnd > existingStart;
+
+    if (hasOverlap) {
+      return {
+        conflict: true,
+        conflictingGroup: {
+          id: group.id,
+          name: group.name,
+          start: group.start,
+          end: group.end,
+          location: group.location,
+        },
+      };
+    }
+  }
+
+  return { conflict: false };
+}
+
 export async function updateGroup(formData: FormData) {
   const user = await requireUser();
   
@@ -71,6 +114,18 @@ export async function updateGroup(formData: FormData) {
   if (isNaN(+start)) throw new Error("Invalid start datetime");
   if (isNaN(+end)) throw new Error("Invalid end datetime");
   if (end <= start) throw new Error("End must be after start");
+
+  // Check if host already has other groups at the same time
+  const timeConflict = await checkHostTimeConflict(user.id, start, end, groupId);
+  if (timeConflict.conflict) {
+    const conflictingGroup = timeConflict.conflictingGroup;
+    const conflictStart = new Date(conflictingGroup.start).toLocaleString();
+    const conflictEnd = new Date(conflictingGroup.end).toLocaleString();
+    
+    throw new Error(
+      `You already have a group "${conflictingGroup.name}" at ${conflictingGroup.location} during this time (${conflictStart} - ${conflictEnd}). You cannot host multiple groups at the same time.`
+    );
+  }
 
   // Update group in database
   const updatedGroup = await prisma.group.update({

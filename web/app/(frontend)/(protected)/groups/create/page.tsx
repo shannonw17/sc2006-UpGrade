@@ -12,6 +12,8 @@ export default function CreateGroupPage() {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
   const [capacity, setCapacity] = useState(4);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,22 +58,29 @@ export default function CreateGroupPage() {
     router.push("/Maps");
   };
 
-  // Combine date and time for the form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    // Combine date and time into datetime strings
-    const start = `${startDate}T${startTime}`;
-    const end = `${endDate}T${endTime}`;
-    
-    const formData = new FormData(e.currentTarget);
-    formData.set('start', start);
-    formData.set('end', end);
-    
+    setIsSubmitting(true);
+    setError("");
+
     try {
+      // Combine date and time into datetime strings
+      const start = `${startDate}T${startTime}`;
+      const end = `${endDate}T${endTime}`;
+      
+      const formData = new FormData(e.currentTarget);
+      formData.set('start', start);
+      formData.set('end', end);
+      
       await createGroup(formData);
+      // The redirect in createGroup will handle navigation
     } catch (error: any) {
-      alert(`Failed to create group: ${error.message}`);
+      // Only show error if it's NOT a redirect error
+      if (!error?.digest?.startsWith('NEXT_REDIRECT')) {
+        setError(error.message || "Failed to create group");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -224,19 +233,41 @@ export default function CreateGroupPage() {
               </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">Cannot create group</h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>{error}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-              <a 
-                href="/groups" 
-                className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              <button 
+                type="button"
+                onClick={() => router.push("/groups")}
+                disabled={isSubmitting}
+                className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Cancel
-              </a>
+              </button>
               <button 
                 type="submit" 
-                className="rounded-lg bg-gradient-to-r from-black to-blue-700 px-6 py-3 text-white font-medium hover:opacity-90 transition-opacity shadow-sm"
+                disabled={isSubmitting}
+                className="rounded-lg bg-gradient-to-r from-black to-blue-700 px-6 py-3 text-white font-medium hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
               >
-                Create Group
+                {isSubmitting ? "Creating..." : "Create Group"}
               </button>
             </div>
           </form>
@@ -245,7 +276,7 @@ export default function CreateGroupPage() {
         {/* Help Text */}
         <div className="text-center mt-6">
           <p className="text-sm text-gray-500">
-            Your group will be visible to others based on the visibility settings you choose.
+            You cannot host multiple groups at the same time. Please check your existing groups' schedules.
           </p>
         </div>
       </div>

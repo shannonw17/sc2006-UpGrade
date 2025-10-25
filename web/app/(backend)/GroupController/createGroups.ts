@@ -9,16 +9,9 @@ import { redirect } from "next/navigation";
 /**
  * Convert an HTML <input type="datetime-local"> value (local wall-clock)
  * to a UTC Date, assuming a fixed timezone offset (e.g., SGT = +08:00).
- *
- * Accepts "YYYY-MM-DDTHH:MM" or "YYYY-MM-DDTHH:MM:SS".
  */
 function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
-  // Normalize to include seconds if omitted
-  // e.g., "2025-10-18T18:05" -> "2025-10-18T18:05:00"
   const norm = local.length === 16 ? `${local}:00` : local;
-
-  // Basic parse
-  // norm = YYYY-MM-DDTHH:MM:SS
   const [datePart, timePart] = norm.split("T");
   if (!datePart || !timePart) return new Date(NaN);
 
@@ -26,7 +19,7 @@ function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
   const [hhStr, mmStr, ssStr] = timePart.split(":");
 
   const year = Number(yStr);
-  const month = Number(mStr);   // 1..12
+  const month = Number(mStr);
   const day = Number(dStr);
   const hour = Number(hhStr);
   const minute = Number(mmStr);
@@ -39,10 +32,6 @@ function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
     return new Date(NaN);
   }
 
-  // Treat the components as "local" (SGT) and back out the offset to reach UTC.
-  // UTC ms for the same wall-clock components:
-  //   UTC = Local - offset
-  // Using Date.UTC to avoid host timezone effects.
   const msLocalAsUTC = Date.UTC(year, month - 1, day, hour, minute, second);
   const msUTC = msLocalAsUTC - offsetMinutes * 60_000;
 
@@ -56,50 +45,105 @@ function generateGroupID(length = 9) {
   return out;
 }
 
+/**
+ * Check if user already has groups that overlap with the proposed time
+ */
+async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Date) {
+  const existingGroups = await prisma.group.findMany({
+    where: {
+      hostId: hostId,
+      isClosed: false, // Only check active groups
+    },
+    select: {
+      id: true,
+      name: true,
+      start: true,
+      end: true,
+      location: true,
+    },
+  });
+
+  for (const group of existingGroups) {
+    const existingStart = new Date(group.start);
+    const existingEnd = new Date(group.end);
+
+    // Check for time overlap: if one group starts before the other ends and ends after the other starts
+    const hasOverlap = newStart < existingEnd && newEnd > existingStart;
+
+    if (hasOverlap) {
+      return {
+        conflict: true,
+        conflictingGroup: {
+          id: group.id,
+          name: group.name,
+          start: group.start,
+          end: group.end,
+          location: group.location,
+        },
+      };
+    }
+  }
+
+  return { conflict: false };
+}
+
 export async function createGroup(formData: FormData) {
   const user = await requireUser();
   const hostId = user.id;
 
   const name = String(formData.get("name") || "").trim();
   const visibilityStr = String(formData.get("visibility") || "public");
-  const startDate = String(formData.get("startDate") || "");
-  const startTime = String(formData.get("startTime") || "");
-  const endDate = String(formData.get("endDate") || "");
-  const endTime = String(formData.get("endTime") || "");
+  const startLocal = String(formData.get("start") || "");
+  const endLocal = String(formData.get("end") || "");
+  const location = String(formData.get("location") || "").trim();
+  const capacity = parseInt(String(formData.get("capacity") || "2"), 10);
 
-  // Combine date and time
-  const startLocal = `${startDate}T${startTime}`;
-  const endLocal = `${endDate}T${endTime}`;
-  
-  const location   = String(formData.get("location") || "").trim();
-  const capacity   = parseInt(String(formData.get("capacity") || "2"), 10);
-
-  if (!name || !location) throw new Error("Missing required fields");
+  // Validation
+  if (!name) throw new Error("Group name is required");
+  if (!location) throw new Error("Location is required");
   if (!Number.isFinite(capacity) || capacity < 1) throw new Error("Invalid capacity");
-  if (!startLocal || !endLocal) throw new Error("Start/End required");
+  if (!startLocal) throw new Error("Start time is required");
+  if (!endLocal) throw new Error("End time is required");
 
   // SGT = UTC+8 → offset +480 minutes
   const SGT_OFFSET_MIN = 8 * 60;
 
-  // Convert local wall-clock (SGT) to absolute UTC instants (no libraries)
+  // Convert local wall-clock (SGT) to absolute UTC instants
   const start = localDatetimeToUTC(startLocal, SGT_OFFSET_MIN);
-  const end   = localDatetimeToUTC(endLocal,   SGT_OFFSET_MIN);
+  const end = localDatetimeToUTC(endLocal, SGT_OFFSET_MIN);
 
   if (isNaN(+start)) throw new Error("Invalid start datetime");
-  if (isNaN(+end))   throw new Error("Invalid end datetime");
-  if (end <= start)  throw new Error("End must be after start");
+  if (isNaN(+end)) throw new Error("Invalid end datetime");
+  if (end <= start) throw new Error("End time must be after start time");
 
   // Optional: prevent creating groups in the past
   const nowUtc = new Date();
   if (start < nowUtc) throw new Error("Start time must be in the future");
 
-  // ensure user exists
-  const exists = await prisma.user.findUnique({ where: { id: hostId }, select: { id: true } });
+  // Check if host already has groups at the same time
+  const timeConflict = await checkHostTimeConflict(hostId, start, end);
+  if (timeConflict.conflict) {
+    const conflictingGroup = timeConflict.conflictingGroup;
+    const conflictStart = new Date(conflictingGroup.start).toLocaleString();
+    const conflictEnd = new Date(conflictingGroup.end).toLocaleString();
+    
+    throw new Error(
+      `You already have a group "${conflictingGroup.name}" at ${conflictingGroup.location} during this time (${conflictStart} - ${conflictEnd}). You cannot host multiple groups at the same time.`
+    );
+  }
+
+  // Ensure user exists
+  const exists = await prisma.user.findUnique({ 
+    where: { id: hostId }, 
+    select: { id: true } 
+  });
   if (!exists) throw new Error("Host user not found");
 
-  // unique groupID
+  // Generate unique groupID
   let groupID = generateGroupID();
-  while (await prisma.group.findUnique({ where: { groupID } })) groupID = generateGroupID();
+  while (await prisma.group.findUnique({ where: { groupID } })) {
+    groupID = generateGroupID();
+  }
 
   await prisma.$transaction(async (tx) => {
     const group = await tx.group.create({
@@ -107,17 +151,17 @@ export async function createGroup(formData: FormData) {
         groupID,
         name,
         visibility: visibilityStr === "public",
-        start,      // stored in UTC
-        end,        // stored in UTC
+        start,
+        end,
         location,
         capacity,
-        currentSize: 1,  // host counts
-        hostId,          // FK to User.id
+        currentSize: 1,
+        hostId,
       },
       select: { id: true },
     });
 
-    // Ensure host is also a member so they get reminders
+    // Ensure host is also a member
     await tx.groupMember.create({
       data: { userId: hostId, groupId: group.id },
     });
