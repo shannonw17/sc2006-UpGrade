@@ -4,14 +4,16 @@ import { useState, useRef, useEffect } from 'react';
 import { viewOtherProfile } from '@/app/(backend)/ProfileController/viewOtherProfile';
 import { sendInvite } from '@/app/(backend)/InvitationController/sendInvite';
 import { getUserGroups } from '@/app/(backend)/GroupController/getUserGroups';
+import { useRouter } from 'next/navigation';
 
 export default function HomepageClient({ user, initialProfiles, messages }) {
+  const router = useRouter();
   const [profiles, setProfiles] = useState(initialProfiles);
   const [filteredProfiles, setFilteredProfiles] = useState(initialProfiles);
   const [searchQuery, setSearchQuery] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
-  const [studyDuration, setStudyDuration] = useState(1);
+  const [timingFilter, setTimingFilter] = useState<string[]>([]);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [loadingProfileId, setLoadingProfileId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +175,23 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
     setFilteredProfiles(filtered);
   };
 
+  // Timing options
+  const timingOptions = [
+    { value: 'Morning', label: 'Morning (6am-12pm)' },
+    { value: 'Afternoon', label: 'Afternoon (12pm-6pm)' },
+    { value: 'Evening', label: 'Evening (6pm-12am)' },
+    { value: 'Night', label: 'Night (12am-6am)' }
+  ];
+
+  // Handle timing filter change
+  const handleTimingChange = (timing: string) => {
+    setTimingFilter(prev => 
+      prev.includes(timing) 
+        ? prev.filter(t => t !== timing)
+        : [...prev, timing]
+    );
+  };
+
   const applyFilters = () => {
     let filtered = profiles;
     if (searchQuery) {
@@ -182,20 +201,34 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
     }
     if (yearFilter) filtered = filtered.filter(profile => profile.year === yearFilter);
     if (genderFilter) filtered = filtered.filter(profile => profile.gender === genderFilter);
+    
+    if (timingFilter.length > 0) {
+      filtered = filtered.filter(profile => {
+        if (!profile.preferredTiming) return false;
+        const profileTimings = profile.preferredTiming.split(',').map(t => t.trim());
+        return timingFilter.some(timing => profileTimings.includes(timing));
+      });
+    }
+    
     setFilteredProfiles(filtered);
     setShowFilterPopup(false);
-  };
 
-  const increaseDuration = () => setStudyDuration(prev => prev + 1);
-  const decreaseDuration = () => setStudyDuration(prev => (prev > 1 ? prev - 1 : 1));
+    const params = new URLSearchParams();
+    if (timingFilter.length > 0) {
+      params.set('timing', timingFilter.join(','));
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : '/homepage';
+    window.history.replaceState({}, '', newUrl);
+  };
 
   const clearAllFilters = () => {
     setSearchQuery('');
     setYearFilter('');
     setGenderFilter('');
-    setStudyDuration(1);
+    setTimingFilter([]);
     setFilteredProfiles(profiles);
     setShowFilterPopup(false);
+    window.history.replaceState({}, '', '/homepage');
   };
 
   return (
@@ -487,32 +520,26 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                     </select>
                   </div>
 
-                  {/* Study Duration Filter */}
+                  {/* Preferred Timing Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Study Duration
+                      Preferred Study Timing
                     </label>
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={decreaseDuration}
-                        className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 bg-white"
-                      >
-                        -
-                      </button>
-                      <div className="flex-1 mx-3 text-center">
-                        <span className="text-lg text-gray-700">{studyDuration}</span>
-                        <span className="text-sm text-gray-700 ml-1">
-                          hour{studyDuration !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <button
-                        onClick={increaseDuration}
-                        className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 bg-white"
-                      >
-                        +
-                      </button>
+                    <div className="space-y-2">
+                      {timingOptions.map((option) => (
+                        <label key={option.value} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={timingFilter.includes(option.value)}
+                            onChange={() => handleTimingChange(option.value)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">{option.label}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
+
 
                   {/* Apply & Clear Buttons */}
                   <div className="flex space-x-2 pt-2">
@@ -581,6 +608,13 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                 </div>
                 <div className="text-gray-600 mb-3">({profile.gender})</div>
 
+                {/* Show preferred timing if available */}
+                {profile.preferredTiming && (
+                  <div className="text-gray-500 text-xs mb-3">
+                    Preferred: {profile.preferredTiming}
+                  </div>
+                )}
+
                 <button 
                   onClick={() => handleViewProfile(profile.id)}
                   disabled={loadingProfileId === profile.id}
@@ -616,7 +650,7 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
             <div className="text-gray-500 text-sm">
               {searchQuery && 'Try searching with a different username'}
             </div>
-            {(searchQuery || yearFilter || genderFilter || studyDuration > 1) && (
+            {(searchQuery || yearFilter || genderFilter || timingFilter.length > 0) && (
               <button
                 onClick={clearAllFilters}
                 className="mt-4 text-blue-600 hover:text-blue-800 text-sm font-medium"

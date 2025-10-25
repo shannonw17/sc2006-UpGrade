@@ -1,16 +1,14 @@
 import { requireUser } from "@/lib/requireUser";
-import { requireAdmin } from "@/lib/requireAdmin";
-import { logout } from "@/app/(backend)/AccountController/logout";
 import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";
 import { sendInWebsiteAlert } from "@/app/(backend)/ScheduleController/sendEmailReminder";
 
 
-async function getProfiles(currentUserId: string) {
+async function getProfiles(currentUserId: string, timingFilter?: string[]) {
   try {
     const currentUser = await prisma.user.findUnique({
       where: { id: currentUserId },
-      select: { eduLevel: true }
+      select: { eduLevel: true, preferredTiming: true }
     });
 
     if (!currentUser) {
@@ -25,6 +23,7 @@ async function getProfiles(currentUserId: string) {
         gender: true,
         email: true,
         eduLevel: true,
+        preferredTiming: true,
         status: true,
         createdAt: true,
         receivedInvites: {
@@ -41,8 +40,15 @@ async function getProfiles(currentUserId: string) {
         NOT: {
           id: currentUserId
         },
-        eduLevel: currentUser.eduLevel,  // Same education level
-        //status: "ACTIVE" // Only active users
+        eduLevel: currentUser.eduLevel,
+        // Fix: Remove 'mode' property for SQLite compatibility
+        ...(timingFilter && timingFilter.length > 0 && {
+          OR: timingFilter.map(timing => ({
+            preferredTiming: {
+              contains: timing
+            }
+          }))
+        })
       },
       orderBy: {
         username: 'asc'
@@ -90,6 +96,7 @@ async function getProfiles(currentUserId: string) {
         year: yearDisplay,
         yearColor: getYearColor(yearDisplay),
         gender: genderMap[profile.gender],
+        preferredTiming: profile.preferredTiming,
         hasInvite: profile.receivedInvites.length === 0
       };
     });
@@ -99,9 +106,18 @@ async function getProfiles(currentUserId: string) {
   }
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams
+}: {
+  searchParams?: Promise<{ timing?: string }>
+}) {
   const user = await requireUser();
-  const profiles = await getProfiles(user.id);
+  const sp = await searchParams;
+  
+  // Parse timing filter from URL params
+  const timingFilter = sp?.timing ? sp.timing.split(',') : [];
+  
+  const profiles = await getProfiles(user.id, timingFilter);
   const messages = await sendInWebsiteAlert();
 
   return (
