@@ -38,14 +38,15 @@ export default async function GroupPage({ searchParams }: PageProps) {
   // Override the tab in filters with our directly handled tab
   const finalFilters = { ...filters, tab };
 
+  // Pass user's education level to the filter function
   const {
     allGroups,
     myCreatedGroups,
     joinedGroups: justJoinedNotCreated,
     joinedSet,
-  } = await fetchGroupsWithFilters(CURRENT_USER_ID, finalFilters);
+  } = await fetchGroupsWithFilters(CURRENT_USER_ID, finalFilters, user.eduLevel);
 
-  // If joinedGroups is empty, fetch them manually
+  // If joinedGroups is empty, fetch them manually with education level filter
   let joinedGroups = justJoinedNotCreated;
   
   if (tab === 'joined' && joinedGroups.length === 0) {
@@ -56,10 +57,19 @@ export default async function GroupPage({ searchParams }: PageProps) {
             userId: CURRENT_USER_ID
           }
         },
-        hostId: { not: CURRENT_USER_ID }
+        hostId: { not: CURRENT_USER_ID },
+        // Add education level filter for joined groups too
+        host: {
+          eduLevel: user.eduLevel
+        }
       },
       include: {
-        host: { select: { username: true } },
+        host: { 
+          select: { 
+            username: true,
+            eduLevel: true 
+          } 
+        },
         members: { select: { userId: true } },
         _count: { select: { members: true } }
       }
