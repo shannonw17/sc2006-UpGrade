@@ -267,9 +267,6 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
           }}
         />
 
-        <h1 className="text-2xl mb-2">Messages</h1>
-        <p>Popups will appear automatically...</p>
-
         {/* Add animations for smooth transitions */}
         <style jsx>{`
           .animate-enter {
