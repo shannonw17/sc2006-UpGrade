@@ -1,9 +1,7 @@
-// app/(frontend)/register/page.tsx
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { createProfile } from "@/app/(backend)/ProfileController/createProfile";
-import { verifyCode, sendVerificationCode } from "@/app/(backend)/AccountController/verifyEmail";
 
 type RegisterState = {
   success?: boolean;
@@ -34,12 +32,6 @@ export default function RegisterForm() {
     hasNumber: false,
     hasSpecial: false,
   });
-  const [showVerification, setShowVerification] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verifyError, setVerifyError] = useState("");
-  const [verifySuccess, setVerifySuccess] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendMessage, setResendMessage] = useState("");
 
   const yearOptions = {
     SEC: [
@@ -65,6 +57,18 @@ export default function RegisterForm() {
     ],
   };
 
+  // Redirect to verification page after successful registration
+  useEffect(() => {
+    if (state?.success && state?.userId) {
+      // Get the email from the form
+      const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+      const email = emailInput?.value || '';
+      
+      // Redirect to verification page
+      window.location.href = `/verify-email?userId=${state.userId}&email=${encodeURIComponent(email)}&fromRegistration=true`;
+    }
+  }, [state]);
+
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
@@ -89,163 +93,6 @@ export default function RegisterForm() {
     setPasswordMatch(password === newConfirmPassword);
   };
 
-  // Show verification modal when account is created
-  if (state?.success && state?.userId && !showVerification && !verifySuccess) {
-    setShowVerification(true);
-  }
-
-  const handleVerifyCode = async () => {
-    if (!verificationCode.trim() || !state?.userId) {
-      setVerifyError("Please enter the verification code");
-      return;
-    }
-
-    setVerifyError("");
-    try {
-      const result = await verifyCode(state.userId, verificationCode.trim());
-      if (result) {
-        setVerifySuccess(true);
-        setVerifyError("");
-        // Redirect to login after 2 seconds
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 2000);
-      } else {
-        setVerifyError("Invalid or expired code. Please try again.");
-      }
-    } catch (error) {
-      setVerifyError("Invalid or expired code. Please try again.");
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (!state?.userId) return;
-    
-    setResendLoading(true);
-    setResendMessage("");
-    try {
-      await sendVerificationCode(state.userId);
-      setResendMessage("A new verification code has been sent to your email.");
-      setVerifyError("");
-    } catch (error) {
-      setResendMessage("Failed to resend code. Please try again.");
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
-  // Verification Modal
-  if (showVerification && !verifySuccess) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="w-full max-w-md">
-          <div className="absolute top-6 left-6 flex items-center gap-0.5">
-            <img src="/logo.png" alt="website Logo" className="w-12 h-12" />
-            <span className="text-xl font-bold text-gray-700">UpGrade</span>
-          </div>
-
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h1>
-            <p className="text-gray-600">
-              We've sent a 6-digit verification code to your email address.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border p-8">
-            {state?.message && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-sm text-blue-600 text-center">{state.message}</p>
-              </div>
-            )}
-
-            {verifyError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600 text-center">{verifyError}</p>
-              </div>
-            )}
-
-            {resendMessage && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-sm text-green-600 text-center">{resendMessage}</p>
-              </div>
-            )}
-
-            <div className="mb-6">
-              <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-900 mb-2">
-                Verification Code
-              </label>
-              <input
-                id="verificationCode"
-                type="text"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                maxLength={6}
-                placeholder="Enter 6-digit code"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-300 text-gray-900 text-center text-2xl tracking-widest"
-              />
-            </div>
-
-            <button
-              onClick={handleVerifyCode}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors mb-4"
-            >
-              Verify Account
-            </button>
-
-            <button
-              onClick={handleResendCode}
-              disabled={resendLoading}
-              className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors disabled:opacity-50"
-            >
-              {resendLoading ? "Sending..." : "Resend Code"}
-            </button>
-
-            <div className="text-center mt-6 pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
-                Wrong email?{" "}
-                <button
-                  onClick={() => window.location.reload()}
-                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-                >
-                  Start over
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // Success screen after verification
-  if (verifySuccess) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="w-full max-w-md">
-          <div className="absolute top-6 left-6 flex items-center gap-0.5">
-            <img src="/logo.png" alt="website Logo" className="w-12 h-12" />
-            <span className="text-xl font-bold text-gray-700">UpGrade</span>
-          </div>
-
-          <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Account Activated!</h1>
-            <p className="text-gray-600 mb-4">
-              Your account has been successfully verified and activated.
-            </p>
-            <p className="text-sm text-gray-500">
-              Redirecting to login page...
-            </p>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   // Registration form
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -264,6 +111,14 @@ export default function RegisterForm() {
           {state?.message && !state?.success && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600 text-center" aria-live="polite">{state.message}</p>
+            </div>
+          )}
+
+          {state?.success && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-600 text-center">
+                Account created! Redirecting to verification...
+              </p>
             </div>
           )}
 
@@ -443,7 +298,7 @@ export default function RegisterForm() {
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900 bg-white"
               >
-                {yearOptions[eduLevel].map((opt) => (
+                {yearOptions[eduLevel as keyof typeof yearOptions].map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
@@ -503,7 +358,7 @@ export default function RegisterForm() {
                     value="Morning"
                     className="accent-blue-600 rounded"
                   />
-                  <span className="text-sm text-gray-900">Morning</span>
+                  <span className="text-sm text-gray-900">Morning (6am-12pm)</span>
                 </label>
                 <label className="inline-flex items-center gap-2">
                   <input
@@ -512,7 +367,7 @@ export default function RegisterForm() {
                     value="Afternoon"
                     className="accent-blue-600 rounded"
                   />
-                  <span className="text-sm text-gray-900">Afternoon</span>
+                  <span className="text-sm text-gray-900">Afternoon (12pm-6pm)</span>
                 </label>
                 <label className="inline-flex items-center gap-2">
                   <input
@@ -521,7 +376,16 @@ export default function RegisterForm() {
                     value="Evening"
                     className="accent-blue-600 rounded"
                   />
-                  <span className="text-sm text-gray-900">Evening</span>
+                  <span className="text-sm text-gray-900">Evening (6pm-12am)</span>
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="preferredTiming"
+                    value="Night"
+                    className="accent-blue-600 rounded"
+                  />
+                  <span className="text-sm text-gray-900">Night (12am-6am)</span>
                 </label>
               </div>
               <p className="text-xs text-gray-500 mt-1">Select at least one</p>

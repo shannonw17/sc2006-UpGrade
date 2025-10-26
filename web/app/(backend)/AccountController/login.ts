@@ -9,7 +9,10 @@ import {
   createAdminSession,    // admin cookie: "admin_session"
 } from "@/lib/auth";
 
-export type LoginState = { error?: string };
+export type LoginState = { 
+  error?: string;
+  identifier?: string;
+};
 
 function normalizeIdForSqlite(s: string) {
   return s.toLowerCase();
@@ -46,10 +49,17 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
       ? await prisma.user.findUnique({ where: { email: identifier } })
       : await prisma.user.findUnique({ where: { username: identifier } });
 
-    if (!user) return { error: "Invalid username/email or password." };
+    if (!user) return { error: "Invalid username/email or password.", identifier: raw };
+
+    if (user.status !== "ACTIVE") {
+      return { 
+        error: "Please verify your email before logging in. Check your email for the verification code.",
+        identifier: raw
+      };
+    }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return { error: "Invalid username/email or password." };
+    if (!ok) return { error: "Invalid username/email or password.", identifier: raw };
 
     await createSessionCookie({ userId: user.id, name: user.username });
     redirect("/homepage"); // let it throw; do NOT wrap in try/catch
