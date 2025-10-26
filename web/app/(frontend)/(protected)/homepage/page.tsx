@@ -119,12 +119,18 @@ export default async function Home({
   
   const profiles = await getProfiles(user.id, timingFilter);
   const messages = await sendInWebsiteAlert();
+  const msg: string[] = [];
+
+  for (const n of messages) {
+    if (n.User == user.id)
+      msg.push(n.message)
+  }
 
   return (
     <HomepageClient
       user={user}
       initialProfiles={profiles}
-      messages={messages}
+      messages={msg}
     />
   );
 }

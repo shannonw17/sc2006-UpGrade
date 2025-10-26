@@ -5,6 +5,7 @@ import { viewOtherProfile } from '@/app/(backend)/ProfileController/viewOtherPro
 import { sendInvite } from '@/app/(backend)/InvitationController/sendInvite';
 import { getUserGroups } from '@/app/(backend)/GroupController/getUserGroups';
 import { useRouter } from 'next/navigation';
+import { Toaster, toast } from "react-hot-toast";
 
 export default function HomepageClient({ user, initialProfiles, messages }) {
   const router = useRouter();
@@ -32,6 +33,29 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
   const filterPopupRef = useRef<HTMLDivElement>(null);
   const profileModalRef = useRef<HTMLDivElement>(null);
   const inviteModalRef = useRef<HTMLDivElement>(null);
+
+  //
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // useEffect(() => {
+  //   console.log(messages)
+  //   console.log("Use Effect Notification")
+
+  // Commented out as it is will run twice in dev mode
+  //   messages.forEach((msg, i) => {
+  //     setTimeout(() => {
+  //       toast.custom((t) => (
+  //         <div
+  //           className={`${
+  //             t.visible ? "animate-enter" : "animate-leave"
+  //           } bg-white text-gray-900 shadow-lg rounded-lg p-4 flex flex-col gap-2 w-72 border`}
+  //         >
+  //           <span>{msg}</span>
+  //         </div>
+  //       ));
+  //     }, i * 500); // delay between each toast
+  //   });
+  // }, []);
 
   // Close modals when clicking outside
   useEffect(() => {
@@ -233,11 +257,54 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
+      {/*Notification Popup*/}
+      <div className="p-6">
+        <Toaster
+          position="top-right"
+          containerStyle={{
+            top: "10px",
+            right: "200px",
+          }}
+        />
+
+        <h1 className="text-2xl mb-2">Messages</h1>
+        <p>Popups will appear automatically...</p>
+
+        {/* Add animations for smooth transitions */}
+        <style jsx>{`
+          .animate-enter {
+            animation: fadeIn 0.3s ease-out forwards;
+          }
+          .animate-leave {
+            animation: fadeOut 0.3s ease-in forwards;
+          }
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          @keyframes fadeOut {
+            from {
+              opacity: 1;
+              transform: translateY(0);
+            }
+            to {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+          }
+        `}</style>
+      </div>
       {/* Main Error Message */}
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-600 text-center">{error}</p>
-          <button 
+          <button
             onClick={() => setError(null)}
             className="mt-2 text-sm text-red-600 hover:text-red-800"
           >
@@ -249,7 +316,7 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
       {/* Profile Detail Modal */}
       {showProfileModal && selectedProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div 
+          <div
             ref={profileModalRef}
             className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
           >
@@ -267,8 +334,18 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                     onClick={closeProfileModal}
                     className="text-gray-400 hover:text-gray-600"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -280,38 +357,52 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
               {/* Profile Details Card */}
               <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
                 <div className="grid gap-4">
-                  <DetailItem label="Username" value={selectedProfile.username} />
+                  <DetailItem
+                    label="Username"
+                    value={selectedProfile.username}
+                  />
                   <DetailItem label="Email" value={selectedProfile.email} />
-                  <DetailItem label="Education Level" value={selectedProfile.eduLevel} />
-                  <DetailItem label="Year of Study" value={selectedProfile.yearOfStudy} />
+                  <DetailItem
+                    label="Education Level"
+                    value={selectedProfile.eduLevel}
+                  />
+                  <DetailItem
+                    label="Year of Study"
+                    value={selectedProfile.yearOfStudy}
+                  />
                   <DetailItem label="Gender" value={selectedProfile.gender} />
-                  <DetailItem label="Preferred Timing" value={selectedProfile.preferredTiming} />
-                  <DetailItem 
-                    label="Preferred Locations" 
-                    value={selectedProfile.preferredLocations || 'Not specified'} 
+                  <DetailItem
+                    label="Preferred Timing"
+                    value={selectedProfile.preferredTiming}
                   />
-                  <DetailItem 
-                    label="Current Course" 
-                    value={selectedProfile.currentCourse || 'Not specified'} 
+                  <DetailItem
+                    label="Preferred Locations"
+                    value={
+                      selectedProfile.preferredLocations || "Not specified"
+                    }
                   />
-                  <DetailItem 
-                    label="Relevant Subjects" 
-                    value={selectedProfile.relevantSubjects || 'Not specified'} 
+                  <DetailItem
+                    label="Current Course"
+                    value={selectedProfile.currentCourse || "Not specified"}
                   />
-                  <DetailItem 
-                    label="School" 
-                    value={selectedProfile.school || 'Not specified'} 
+                  <DetailItem
+                    label="Relevant Subjects"
+                    value={selectedProfile.relevantSubjects || "Not specified"}
                   />
-                  <DetailItem 
-                    label="Usual Study Period" 
-                    value={selectedProfile.usualStudyPeriod || 'Not specified'} 
+                  <DetailItem
+                    label="School"
+                    value={selectedProfile.school || "Not specified"}
+                  />
+                  <DetailItem
+                    label="Usual Study Period"
+                    value={selectedProfile.usualStudyPeriod || "Not specified"}
                   />
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="mt-6 flex gap-3">
-                <button 
+                <button
                   onClick={() => handleInviteClick(selectedProfile)}
                   className="flex-1 bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition"
                 >
@@ -326,7 +417,7 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
       {/* Invite Modal */}
       {showInviteModal && selectedUserForInvite && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div 
+          <div
             ref={inviteModalRef}
             className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
           >
@@ -345,8 +436,18 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                   onClick={closeInviteModal}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -354,15 +455,19 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
               {/* Success Message */}
               {inviteSuccess && (
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-600 text-center">{inviteSuccess}</p>
+                  <p className="text-sm text-green-600 text-center">
+                    {inviteSuccess}
+                  </p>
                 </div>
               )}
 
               {/* Invite Error Message (shown in popup) */}
               {inviteError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600 text-center">{inviteError}</p>
-                  <button 
+                  <p className="text-sm text-red-600 text-center">
+                    {inviteError}
+                  </p>
+                  <button
                     onClick={() => setInviteError(null)}
                     className="mt-2 text-sm text-red-600 hover:text-red-800"
                   >
@@ -380,15 +485,28 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                   </div>
                 ) : userGroups.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <svg
+                      className="w-12 h-12 text-gray-400 mx-auto mb-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
                     </svg>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No groups available</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      No groups available
+                    </h3>
                     <p className="text-gray-600 mb-4">
-                      You need to be a host or member of a public group to send invites.
+                      You need to be a host or member of a public group to send
+                      invites.
                     </p>
-                    <a 
-                      href="/groups/create" 
+                    <a
+                      href="/groups/create"
                       className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
                     >
                       Create a group →
@@ -404,56 +522,87 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-gray-900">{group.name}</h3>
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                group.userRole === 'host' 
-                                  ? 'bg-purple-100 text-purple-800' 
-                                  : 'bg-blue-100 text-blue-800'
-                              }`}>
-                                {group.userRole === 'host' ? 'Host' : 'Member'}
+                              <h3 className="font-semibold text-gray-900">
+                                {group.name}
+                              </h3>
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  group.userRole === "host"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
+                                {group.userRole === "host" ? "Host" : "Member"}
                               </span>
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                group.visibility 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-orange-100 text-orange-800'
-                              }`}>
-                                {group.visibility ? 'Public' : 'Private'}
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  group.visibility
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-orange-100 text-orange-800"
+                                }`}
+                              >
+                                {group.visibility ? "Public" : "Private"}
                               </span>
                             </div>
                             <div className="flex items-center gap-4 text-sm text-gray-600">
-                              <span>👥 {group.currentSize}/{group.capacity} members</span>
+                              <span>
+                                👥 {group.currentSize}/{group.capacity} members
+                              </span>
                             </div>
                           </div>
                           <button
-                            onClick={() => handleSendInvite(group.id, group.name)}
+                            onClick={() =>
+                              handleSendInvite(group.id, group.name)
+                            }
                             disabled={inviteLoading === group.id}
                             className="bg-gradient-to-r from-black to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {inviteLoading === group.id ? (
                               <span className="flex items-center">
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                <svg
+                                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
                                 </svg>
                                 Sending...
                               </span>
                             ) : (
-                              'Send Invite'
+                              "Send Invite"
                             )}
                           </button>
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Create Group CTA */}
                     <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className="font-medium text-blue-900">Want to create a new group?</h4>
-                          <p className="text-blue-700 text-sm mt-1">Create a study group and invite {selectedUserForInvite.username} to join.</p>
+                          <h4 className="font-medium text-blue-900">
+                            Want to create a new group?
+                          </h4>
+                          <p className="text-blue-700 text-sm mt-1">
+                            Create a study group and invite{" "}
+                            {selectedUserForInvite.username} to join.
+                          </p>
                         </div>
-                        <a 
-                          href="/groups/create" 
+                        <a
+                          href="/groups/create"
                           className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                         >
                           Create Group
@@ -534,12 +683,13 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                             onChange={() => handleTimingChange(option.value)}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
-                          <span className="ml-2 text-sm text-gray-700">{option.label}</span>
+                          <span className="ml-2 text-sm text-gray-700">
+                            {option.label}
+                          </span>
                         </label>
                       ))}
                     </div>
                   </div>
-
 
                   {/* Apply & Clear Buttons */}
                   <div className="flex space-x-2 pt-2">
@@ -602,7 +752,9 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                   {profile.username}
                 </div>
                 <div className="text-gray-800 mb-1">
-                  <span className={`px-2 py-1 text-sm font-bold ${profile.yearColor}`}>
+                  <span
+                    className={`px-2 py-1 text-sm font-bold ${profile.yearColor}`}
+                  >
                     {profile.year}
                   </span>
                 </div>
@@ -615,25 +767,41 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
                   </div>
                 )}
 
-                <button 
+                <button
                   onClick={() => handleViewProfile(profile.id)}
                   disabled={loadingProfileId === profile.id}
                   className="text-blue-600 hover:text-blue-800 font-medium text-sm mb-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {loadingProfileId === profile.id ? (
                     <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       Loading...
                     </span>
                   ) : (
-                    'view profile'
+                    "view profile"
                   )}
                 </button>
 
-                <button 
+                <button
                   onClick={() => handleInviteClick(profile)}
                   className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-2 rounded-full hover:opacity-90 transition text-sm"
                 >
@@ -645,12 +813,17 @@ export default function HomepageClient({ user, initialProfiles, messages }) {
         ) : (
           <div className="text-center py-12 col-span-3 bg-white rounded-lg border border-gray-200 p-8">
             <div className="text-gray-600 text-lg mb-2">
-              {searchQuery ? `No profiles found for "${searchQuery}"` : 'No profiles found'}
+              {searchQuery
+                ? `No profiles found for "${searchQuery}"`
+                : "No profiles found"}
             </div>
             <div className="text-gray-500 text-sm">
-              {searchQuery && 'Try searching with a different username'}
+              {searchQuery && "Try searching with a different username"}
             </div>
-            {(searchQuery || yearFilter || genderFilter || timingFilter.length > 0) && (
+            {(searchQuery ||
+              yearFilter ||
+              genderFilter ||
+              timingFilter.length > 0) && (
               <button
                 onClick={clearAllFilters}
                 className="mt-4 text-blue-600 hover:text-blue-800 text-sm font-medium"

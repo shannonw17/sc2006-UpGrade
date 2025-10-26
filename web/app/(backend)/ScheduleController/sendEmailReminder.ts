@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/db";
 import { addMinutes, startOfMinute } from "date-fns";
+import { string } from "zod";
 
 type WindowLabel = "24h" | "2h" | "15m";
 const WINDOW_TO_MINUTES: Record<WindowLabel, number> = {
@@ -25,8 +26,10 @@ async function sendEmail({ to, subject, html }: { to: string; subject: string; h
 
 
 
-export async function sendInWebsiteAlert(): Promise<string[]> {
-  const messages: string[] = [];
+export async function sendInWebsiteAlert(): Promise<
+  { [key: string]: string }[]
+> {
+  const messages: { [key: string]: string }[] = [];
 
   const notifications = await prisma.notification.findMany({
     where: {
@@ -42,10 +45,14 @@ export async function sendInWebsiteAlert(): Promise<string[]> {
   });
 
   for (const n of notifications) {
-    messages.push(n.message);
+    messages.push({
+      msgID: n.id,
+      User: n.userId,
+      message: n.message,
+    });
   }
 
-  return messages; // Always return an array
+  return messages;
 }
 
 
