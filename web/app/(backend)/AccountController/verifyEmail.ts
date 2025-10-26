@@ -1,6 +1,3 @@
-//call sendVerifyCode and validateVerifyCode
-//return boolean true?
-
 // app/(backend)/AccountController/verifyEmail.ts
 "use server";
 
@@ -11,18 +8,15 @@ export async function sendVerificationCode(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error("Invalid user id");
 
-  // Generate 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1 hour expiry
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
 
-  // Save code in DB
   await prisma.verificationToken.upsert({
     where: { userId },
     update: { code, expiresAt, createdAt: new Date() },
     create: { userId, code, expiresAt },
   });
 
-  // Send email
   try {
     await sendEmail(
       user.email,
@@ -53,4 +47,83 @@ export async function verifyCode(userId: string, inputCode: string) {
   await prisma.verificationToken.delete({ where: { userId } });
 
   return true;
+}
+
+export type ResendVerificationState = {
+  ok?: boolean;
+  message?: string;
+  presetEmail?: string;
+};
+
+export async function resendVerificationAction(
+  _prev: ResendVerificationState,
+  formData: FormData
+): Promise<ResendVerificationState> {
+  const raw = String(formData.get("email") ?? "").trim().toLowerCase();
+  const userId = String(formData.get("userId") ?? "").trim();
+
+  let user = null as Awaited<ReturnType<typeof prisma.user.findUnique>>;
+
+  if (raw) user = await prisma.user.findUnique({ where: { email: raw } });
+  else if (userId) user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) return { ok: false, message: "No account found for that email/user." };
+
+  // Optional guard to avoid spamming verified accounts:
+  // if (user.status === "ACTIVE") return { ok: false, message: "This account is already verified." };
+
+  try {
+    await sendVerificationCode(user.id);
+    console.log("Resent verification code to", user.email);
+    return { ok: true, message: "Verification code sent. Please check your inbox.", presetEmail: user.email };
+  } catch (e) {
+    return { ok: false, message: (e as Error)?.message || "Failed to send verification email." };
+  }
+}
+
+// --- NEW: Verify code (server action wrapper) ---
+export type VerifyCodeState = {
+  ok?: boolean;
+  message?: string;
+};
+
+export async function verifyCodeAction(
+  _prev: VerifyCodeState,
+  formData: FormData
+): Promise<VerifyCodeState> {
+  const userId = String(formData.get("userId") ?? "").trim();
+  const code = String(formData.get("code") ?? "").trim();
+
+  if (!userId || !code) {
+    return { ok: false, message: "Please provide user and 6-digit code." };
+  }
+
+  const ok = await verifyCode(userId, code);
+  return ok
+    ? { ok: true, message: "Account verified." }
+    : { ok: false, message: "Invalid or expired code." };
+}
+
+// --- NEW: Lookup by email (server action) ---
+export type FindUserByEmailState = {
+  ok?: boolean;
+  message?: string;
+  userId?: string;
+  normalizedEmail?: string;
+};
+
+export async function findUserByEmailAction(
+  _prev: FindUserByEmailState,
+  formData: FormData
+): Promise<FindUserByEmailState> {
+  const raw = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!raw) return { ok: false, message: "Email is required." };
+
+  const user = await prisma.user.findUnique({ where: { email: raw } });
+  if (!user) return { ok: false, message: "No account found for that email." };
+
+  // Optionally restrict to non-ACTIVE accounts:
+  // if (user.status === "ACTIVE") return { ok: false, message: "Account is already verified." };
+
+  return { ok: true, userId: user.id, normalizedEmail: user.email };
 }

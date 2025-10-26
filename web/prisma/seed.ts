@@ -20,20 +20,19 @@ async function syncCurrentSize(groupId: string) {
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // Hash passwords in parallel
   const [aliceHash, bobHash, johnHash, maryHash, admin1Hash, admin2Hash] = await Promise.all([
     bcrypt.hash("alice123", 10),
     bcrypt.hash("bob123", 10),
     bcrypt.hash("john123", 10),
     bcrypt.hash("mary123", 10),
     bcrypt.hash("admin123987", 10),
-    bcrypt.hash("admin543678", 10), //not sure if can directly add admin pwd hash here
+    bcrypt.hash("admin543678", 10),
   ]);
 
-  // Tip: use lowercase names to match case-sensitive lookups
+  // USERS — explicitly set status: "ACTIVE"
   const alice = await prisma.user.upsert({
     where: { email: "alice@e.ntu.edu.sg" },
-    update: {},
+    update: { status: "ACTIVE" },
     create: {
       username: "alice",
       email: "alice@e.ntu.edu.sg",
@@ -44,12 +43,13 @@ async function main() {
       preferredTiming: ["Morning", "Evening"].join(","),
       preferredLocations: ["NTU", "Woodlands"].join(","),
       currentCourse: "Computer Science",
+      status: "ACTIVE", // <-- important
     },
   });
 
   const bob = await prisma.user.upsert({
     where: { email: "bob@e.ntu.edu.sg" },
-    update: {},
+    update: { status: "ACTIVE" },
     create: {
       username: "bob",
       email: "bob@e.ntu.edu.sg",
@@ -61,12 +61,13 @@ async function main() {
       preferredLocations: "Woodlands",
       currentCourse: "Interior Design",
       warning: true,
+      status: "ACTIVE",
     },
   });
 
   const john = await prisma.user.upsert({
     where: { email: "john@e.ntu.edu.sg" },
-    update: {},
+    update: { status: "ACTIVE" },
     create: {
       username: "john",
       email: "john@e.ntu.edu.sg",
@@ -77,12 +78,13 @@ async function main() {
       preferredTiming: "Evening",
       preferredLocations: ["NTU", "Choa Chu Kang"].join(","),
       currentCourse: "Computer Engineering",
+      status: "ACTIVE",
     },
   });
 
   const mary = await prisma.user.upsert({
     where: { email: "mary@e.ntu.edu.sg" },
-    update: {},
+    update: { status: "ACTIVE" },
     create: {
       username: "mary",
       email: "mary@e.ntu.edu.sg",
@@ -93,27 +95,21 @@ async function main() {
       preferredTiming: "Morning",
       preferredLocations: ["Woodlands", "Jurong East"].join(","),
       currentCourse: "Data Science and AI",
+      status: "ACTIVE",
     },
   });
 
+  // ADMINS (unchanged)
   const admin1 = await prisma.admin.upsert({
     where: { email: "admin1@gmail.com" },
     update: {},
-    create: {
-      username: "admin1",
-      email: "admin1@gmail.com",
-      passwordHash: admin1Hash,
-    },
+    create: { username: "admin1", email: "admin1@gmail.com", passwordHash: admin1Hash },
   });
 
   const admin2 = await prisma.admin.upsert({
     where: { email: "admin2@gmail.com" },
     update: {},
-    create: {
-      username: "admin2",
-      email: "admin2@gmail.com",
-      passwordHash: admin2Hash,
-    },
+    create: { username: "admin2", email: "admin2@gmail.com", passwordHash: admin2Hash },
   });
 
   const g1 = await prisma.group.upsert({
@@ -127,7 +123,7 @@ async function main() {
       end: new Date("2025-12-15T12:00:00Z"),
       location: "Library Room 101",
       capacity: 5,
-      currentSize: 1, // temporary, will sync below
+      currentSize: 1,
       hostId: alice.id,
     },
   });
@@ -177,7 +173,7 @@ async function main() {
   console.log("  bob   / bob@e.ntu.edu.sg    | password: bob123");
   console.log("  john  / john@e.ntu.edu.sg   | password: john123");
   console.log("  mary  / mary@e.ntu.edu.sg   | password: mary123");
-  console.log("Admins: "); 
+  console.log("Admins: ");
   console.log("  admin1  / admin1@gmail.com   | password: admin123987");
   console.log("  admin2  / admin2@gmail.com   | password: admin543678");
 }
