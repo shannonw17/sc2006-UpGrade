@@ -217,12 +217,13 @@ model Chat {
   @@unique([user1Id, user2Id])
 }
 
-// UPDATED: Message model now linked to Chat
+// UPDATED: Message model now linked to Chat with read tracking
 model Message {
   id        String   @id @default(cuid())
   chatId    String
   senderId  String
   content   String
+  read      Boolean  @default(false)  // Track if message has been read
   createdAt DateTime @default(now())
   
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)

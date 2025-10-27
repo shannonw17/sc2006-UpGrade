@@ -4,20 +4,30 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Home, Users, Inbox, Calendar, MapPin, User, MessageSquare, Shield } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 
 interface SidebarProps {
   unreadCount: number;
+  unreadMessageCount?: number;
   isAdmin?: boolean;
 }
 
-export default function Sidebar({ unreadCount, isAdmin = false }: SidebarProps) {
+interface NavLink {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  showBadge?: boolean;
+  badgeCount?: number;
+}
+
+export default function Sidebar({ unreadCount, unreadMessageCount = 0, isAdmin = false }: SidebarProps) {
   const pathname = usePathname();
 
   // User links
-  const userLinks = [
+  const userLinks: NavLink[] = [
     { href: "/homepage", icon: Home, label: "Home" },
     { href: "/groups", icon: Users, label: "Study groups" },
-    { href: "/chats", icon: MessageSquare, label: "Chats" },
+    { href: "/chats", icon: MessageSquare, label: "Chats", showBadge: true, badgeCount: unreadMessageCount },
     { href: "/inbox", icon: Inbox, label: "Inbox", showBadge: true, badgeCount: unreadCount },
     { href: "/schedule", icon: Calendar, label: "Schedule" },
     { href: "/Maps", icon: MapPin, label: "Location Map" },
@@ -25,7 +35,7 @@ export default function Sidebar({ unreadCount, isAdmin = false }: SidebarProps) 
   ];
 
   // Admin links
-  const adminLinks = [
+  const adminLinks: NavLink[] = [
     { href: "/admin", icon: Shield, label: "Admin Dashboard" },
     { href: "/reports", icon: Users, label: "Report Management" },
   ];
@@ -60,7 +70,7 @@ export default function Sidebar({ unreadCount, isAdmin = false }: SidebarProps) 
               
               {/* Only show badge if count is 1 or more */}
               {link.showBadge && link.badgeCount !== undefined && link.badgeCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 text-xs font-bold rounded-full px-1 bg-red-500 text-white">
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 text-xs font-bold rounded-full px-1 bg-red-500 text-white shadow-md">
                   {link.badgeCount > 99 ? '99+' : link.badgeCount}
                 </span>
               )}

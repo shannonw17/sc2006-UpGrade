@@ -65,22 +65,38 @@ export async function viewAllChats() {
     },
   });
 
-  // Format chats to show the other user
-  const formattedChats = chats.map((chat) => {
-    const otherUser = chat.user1Id === currentUser.id ? chat.user2 : chat.user1;
-    const lastMessage = chat.messages[0];
+  // Format chats to show the other user and include unread count
+  const formattedChats = await Promise.all(
+    chats.map(async (chat) => {
+      const otherUser = chat.user1Id === currentUser.id ? chat.user2 : chat.user1;
+      const lastMessage = chat.messages[0];
 
-    return {
-      chatId: chat.id,
-      otherUser,
-      lastMessage: lastMessage
-        ? {
-            content: lastMessage.content,
-            createdAt: lastMessage.createdAt,
-          }
-        : null,
-    };
-  });
+      // Count unread messages in this specific chat
+      const unreadCount = await prismaWithChat.message.count({
+        where: {
+          chatId: chat.id,
+          senderId: {
+            not: currentUser.id, // Only count messages from the other person
+          },
+          read: false,
+        },
+      });
+
+      return {
+        chatId: chat.id,
+        otherUser,
+        lastMessage: lastMessage
+          ? {
+              content: lastMessage.content,
+              createdAt: lastMessage.createdAt,
+              senderId: lastMessage.senderId,
+              status: lastMessage.read ? 'read' : 'delivered', // Add status based on read field
+            }
+          : null,
+        unreadCount, // Add unread count for this chat
+      };
+    })
+  );
 
   return formattedChats;
 }
@@ -121,7 +137,10 @@ export async function viewSelectedChat(chatId: string) {
   return {
     chatId: chat.id,
     otherUser,
-    messages: chat.messages,
+    messages: chat.messages.map((msg: any) => ({
+      ...msg,
+      status: msg.read ? 'read' : 'delivered', // Add status based on read field
+    })),
   };
 }
 
@@ -149,11 +168,51 @@ export async function sendMessage(chatId: string, content: string) {
       chatId,
       senderId: currentUser.id,
       content: content.trim(),
+      read: false, // New messages start as unread
     },
   });
 
   revalidatePath("/chats");
   return message;
+}
+
+// Mark all messages in a chat as read for the current user
+export async function markMessagesAsRead(chatId: string) {
+  const currentUser = await requireUser();
+
+  try {
+    // Verify user is part of this chat
+    const chat = await prismaWithChat.chat.findUnique({
+      where: { id: chatId },
+    });
+
+    if (!chat) throw new Error("Chat not found");
+
+    if (chat.user1Id !== currentUser.id && chat.user2Id !== currentUser.id) {
+      throw new Error("Unauthorized");
+    }
+
+    // Update all messages in this chat that were NOT sent by the current user
+    // and are currently unread (read = false)
+    await prismaWithChat.message.updateMany({
+      where: {
+        chatId: chatId,
+        senderId: {
+          not: currentUser.id,
+        },
+        read: false,
+      },
+      data: {
+        read: true,
+      },
+    });
+
+    revalidatePath("/chats");
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking messages as read:", error);
+    throw new Error("Failed to mark messages as read");
+  }
 }
 
 // Delete message (only your own)

@@ -2,7 +2,7 @@
 import { readSession, readAdminSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/db";
-import Sidebar from "./sidebar"; // Import the Sidebar component
+import Sidebar from "./sidebar";
 
 // Function to check for unread notifications
 async function getUnreadNotificationCount(userId: string) {
@@ -16,6 +16,35 @@ async function getUnreadNotificationCount(userId: string) {
     return unreadCount;
   } catch (error) {
     console.error('Error fetching notifications:', error);
+    return 0;
+  }
+}
+
+// Function to get unread message count - only counts OTHER people's messages
+async function getUnreadMessageCount(userId: string) {
+  try {
+    // Count unread messages where:
+    // 1. The user is in the chat (user1 or user2)
+    // 2. The message was NOT sent by the user
+    // 3. The message is unread (read = false)
+    const unreadCount = await prisma.message.count({
+      where: {
+        chat: {
+          OR: [
+            { user1Id: userId },
+            { user2Id: userId }
+          ]
+        },
+        senderId: {
+          not: userId  // Exclude messages sent by the current user
+        },
+        read: false  // Only unread messages
+      }
+    });
+    
+    return unreadCount;
+  } catch (error) {
+    console.error('Error fetching unread messages:', error);
     return 0;
   }
 }
@@ -42,6 +71,7 @@ export default async function ProtectedLayout({
                        (adminSession as any)?.id;
 
   const unreadCount = currentUserId ? await getUnreadNotificationCount(currentUserId) : 0;
+  const unreadMessageCount = currentUserId ? await getUnreadMessageCount(currentUserId) : 0;
 
   async function logout() {
     "use server";
@@ -83,7 +113,11 @@ export default async function ProtectedLayout({
 
       {/* Sidebar + Main Content */}
       <div className="flex">
-        <Sidebar unreadCount={unreadCount} isAdmin={isAdmin}/>
+        <Sidebar 
+          unreadCount={unreadCount} 
+          unreadMessageCount={unreadMessageCount}
+          isAdmin={isAdmin}
+        />
 
         <section className="flex-1 p-6 bg-white">
           {children}
