@@ -85,13 +85,22 @@ export async function updateGroup(formData: FormData) {
   
   const groupId = String(formData.get("groupId") || "");
   const name = String(formData.get("name") || "").trim();
+  const visibilityStr = String(formData.get("visibility") || "public");
   const startLocal = String(formData.get("start") || "");
   const endLocal = String(formData.get("end") || "");
   const location = String(formData.get("location") || "").trim();
   const capacity = parseInt(String(formData.get("capacity") || "2"), 10);
 
   if (!groupId || !name || !location) throw new Error("Missing required fields");
-  if (!Number.isFinite(capacity) || capacity < 1) throw new Error("Invalid capacity");
+  
+  // Updated capacity validation: min 2, max 50
+  if (!Number.isFinite(capacity) || capacity < 2) {
+    throw new Error("Capacity must be at least 2 members");
+  }
+  if (capacity > 50) {
+    throw new Error("Capacity cannot exceed 50 members");
+  }
+  
   if (!startLocal || !endLocal) throw new Error("Start/End required");
 
   // Check if user is the host of this group
@@ -136,6 +145,7 @@ export async function updateGroup(formData: FormData) {
       start,
       end,
       capacity,
+      visibility: visibilityStr === "public", // Add visibility update
     },
   });
 

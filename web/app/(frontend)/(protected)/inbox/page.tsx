@@ -96,10 +96,13 @@ export default async function InboxPage(props: PageProps) {
     "use server";
     const res = await acceptInvite(formData);
     const { redirect } = require("next/navigation");
+    
     if (res?.success) {
-      redirect(`/inbox?accept=ok&msg=${encodeURIComponent("Invitation accepted.")}&tab=${activeTab}`);
+      const encodedMsg = encodeURIComponent(res.message);
+      redirect(`/inbox?accept=ok&msg=${encodedMsg}&tab=${activeTab}`);
     } else {
-      redirect(`/inbox?accept=err&msg=${encodeURIComponent("Unable to accept invite.")}&tab=${activeTab}`);
+      const encodedMsg = encodeURIComponent(res?.message || "Unable to accept invite.");
+      redirect(`/inbox?accept=err&msg=${encodedMsg}&tab=${activeTab}`);
     }
   }
 
@@ -299,8 +302,11 @@ export default async function InboxPage(props: PageProps) {
               ) : (
                 <div className="divide-y divide-gray-100/80">
                   {invitations.map((invite, index) => {
+                    const now = new Date();
                     const full = invite.group.currentSize >= invite.group.capacity;
                     const closed = invite.group.isClosed;
+                    const expired = invite.group.end < now;
+                    const started = invite.group.start < now;
                     
                     return (
                       <div
@@ -329,9 +335,9 @@ export default async function InboxPage(props: PageProps) {
                                 <span className="px-2.5 py-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-medium rounded-full shadow-sm">
                                   Invitation
                                 </span>
-                                {(full || closed) && (
+                                {(full || closed || expired || started) && (
                                   <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                                    {full ? "Group Full" : "Group Closed"}
+                                    {expired ? "Expired" : started ? "Started" : full ? "Full" : "Closed"}
                                   </span>
                                 )}
                               </div>
@@ -360,13 +366,21 @@ export default async function InboxPage(props: PageProps) {
                             <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="text-gray-600">
-                                  📅 {new Date(invite.group.start).toLocaleDateString()}
+                                  📅 {new Date(invite.group.start).toLocaleDateString('en-SG', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                  })}
                                 </div>
                                 <div className="text-gray-600">
                                   📍 {invite.group.location}
                                 </div>
                                 <div className="text-gray-600">
                                   👥 {invite.group.currentSize}/{invite.group.capacity} members
+                                </div>
+                                <div className={`${expired || started ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                                  {expired ? '⚠️ Expired' : started ? '⚠️ Started' : '✓ Available'}
                                 </div>
                               </div>
                             </div>
@@ -377,7 +391,7 @@ export default async function InboxPage(props: PageProps) {
                                 <input type="hidden" name="inviteId" value={invite.id} />
                                 <button
                                   type="submit"
-                                  disabled={full || closed}
+                                  disabled={full || closed || expired || started}
                                   className="px-5 py-2.5 bg-gradient-to-br from-emerald-500 to-green-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 >
                                   Accept Invite
@@ -412,7 +426,7 @@ export default async function InboxPage(props: PageProps) {
             </>
           )}
 
-          {/* Notifications Tab */}
+          {/* Notifications Tab - Keep existing code */}
           {activeTab === 'notifications' && (
             <>
               {notifications.length === 0 ? (
@@ -537,6 +551,3 @@ export default async function InboxPage(props: PageProps) {
     </div>
   );
 }
-
-
-

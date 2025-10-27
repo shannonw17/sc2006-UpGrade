@@ -45,7 +45,6 @@ export async function acceptInvite(formData: FormData) {
 
     const group = invitation.group;
     const groupName = group.name;
-    const senderName = invitation.sender.username;
 
     // Check if user is already a member
     const isAlreadyMember = group.members.some(member => member.userId === user.id);
@@ -71,7 +70,7 @@ export async function acceptInvite(formData: FormData) {
     if (group.currentSize >= group.capacity) {
       return { 
         success: false, 
-        message: `Unable to accept invite to "${groupName}" as the group is full (${group.currentSize}/${group.capacity} members).` 
+        message: `Unable to accept invite. "${groupName}" is full (${group.currentSize}/${group.capacity} members).` 
       };
     }
 
@@ -79,16 +78,15 @@ export async function acceptInvite(formData: FormData) {
     if (group.isClosed) {
       return { 
         success: false, 
-        message: `Unable to accept invite to "${groupName}" as the group is closed to new members.` 
+        message: `Unable to accept invite. "${groupName}" is closed to new members.` 
       };
     }
 
     // Check if group has expired (end time is in the past)
     const now = new Date();
     if (group.end < now) {
-      const endDate = group.end.toLocaleDateString('en-SG', {
+      const endDate = group.end.toLocaleString('en-SG', {
         weekday: 'long',
-        year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: 'numeric',
@@ -96,15 +94,14 @@ export async function acceptInvite(formData: FormData) {
       });
       return { 
         success: false, 
-        message: `Unable to accept invite to "${groupName}" as the group session ended on ${endDate}.` 
+        message: `Unable to accept invite. "${groupName}" has expired (ended on ${endDate}).` 
       };
     }
 
     // Check if group has already started
     if (group.start < now) {
-      const startDate = group.start.toLocaleDateString('en-SG', {
+      const startDate = group.start.toLocaleString('en-SG', {
         weekday: 'long',
-        year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: 'numeric',
@@ -112,7 +109,7 @@ export async function acceptInvite(formData: FormData) {
       });
       return { 
         success: false, 
-        message: `Unable to accept invite to "${groupName}" as the group session started on ${endDate} and has already begun.` 
+        message: `Unable to accept invite. "${groupName}" has already started (began on ${startDate}).` 
       };
     }
 
@@ -122,25 +119,31 @@ export async function acceptInvite(formData: FormData) {
       const conflictingGroup = overlap.conflictingGroup;
       const conflictingGroupName = conflictingGroup.name;
       
-      const conflictingGroupTime = conflictingGroup.start.toLocaleString('en-SG', {
+      const conflictingGroupTime = `${new Date(conflictingGroup.start).toLocaleString('en-SG', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit'
-      });
+      })} - ${new Date(conflictingGroup.end).toLocaleString('en-SG', {
+        hour: 'numeric',
+        minute: '2-digit'
+      })}`;
       
-      const newGroupTime = group.start.toLocaleString('en-SG', {
+      const newGroupTime = `${new Date(group.start).toLocaleString('en-SG', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit'
-      });
+      })} - ${new Date(group.end).toLocaleString('en-SG', {
+        hour: 'numeric',
+        minute: '2-digit'
+      })}`;
       
       return { 
         success: false, 
-        message: `Unable to accept invite to "${groupName}" (${newGroupTime}) as it overlaps with your existing group "${conflictingGroupName}" (${conflictingGroupTime}). Please leave the conflicting group first to join this one.` 
+        message: `Unable to accept invite. "${groupName}" (${newGroupTime}) overlaps with your existing group "${conflictingGroupName}" (${conflictingGroupTime}). Please leave "${conflictingGroupName}" first to join "${groupName}".` 
       };
     }
 
@@ -173,14 +176,8 @@ export async function acceptInvite(formData: FormData) {
         where: { id: invitation.id },
       });
 
-      // Create success notification for the sender
-      await tx.notification.create({
-        data: {
-          userId: invitation.senderId,
-          message: `${user.username} has accepted your invitation to join "${groupName}".`,
-          type: 'INVITATION_ACCEPTED'
-        }
-      });
+      // Note: Removed the INVITATION_ACCEPTED notification as it's not a valid type
+      // The sender will see that the user joined via GROUP_MEMBER_JOINED notification
     });
 
     // Notify other group members

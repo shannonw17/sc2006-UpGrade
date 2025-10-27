@@ -27,6 +27,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [location, setLocation] = useState(group.location);
+  const [visibility, setVisibility] = useState(group.visibility ? "public" : "private");
   const router = useRouter();
 
   // Load location from session storage when component mounts
@@ -43,6 +44,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
     const formState = {
       name: group.name,
       location: location,
+      visibility: visibility,
       start: utcToLocalDatetimeString(new Date(group.start)),
       end: utcToLocalDatetimeString(new Date(group.end)),
       capacity: group.capacity.toString(),
@@ -61,6 +63,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
     try {
       const formData = new FormData(e.currentTarget);
       formData.append('groupId', group.id);
+      formData.append('visibility', visibility);
       
       await updateGroup(formData);
       onUpdate();
@@ -104,6 +107,41 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
                 required
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               />
+            </div>
+
+            {/* Visibility Toggle */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visibility
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visibility-display"
+                    value="public"
+                    checked={visibility === "public"}
+                    onChange={(e) => setVisibility(e.target.value)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    <span className="font-medium">Public</span> - Anyone can join
+                  </span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visibility-display"
+                    value="private"
+                    checked={visibility === "private"}
+                    onChange={(e) => setVisibility(e.target.value)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    <span className="font-medium">Private</span> - Invite only
+                  </span>
+                </label>
+              </div>
             </div>
 
             {/* Location */}
@@ -169,11 +207,12 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
                 name="capacity"
                 defaultValue={group.capacity}
                 min={group.currentSize}
+                max={50}
                 required
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Current members: {group.currentSize}
+                Current members: {group.currentSize} (Min: {group.currentSize}, Max: 50)
               </p>
             </div>
           </div>

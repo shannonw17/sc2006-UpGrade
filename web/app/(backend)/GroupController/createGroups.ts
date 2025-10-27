@@ -101,7 +101,15 @@ export async function createGroup(formData: FormData) {
   // Validation
   if (!name) throw new Error("Group name is required");
   if (!location) throw new Error("Location is required");
-  if (!Number.isFinite(capacity) || capacity < 1) throw new Error("Invalid capacity");
+  
+  // Updated capacity validation: min 2, max 50
+  if (!Number.isFinite(capacity) || capacity < 2) {
+    throw new Error("Capacity must be at least 2 members");
+  }
+  if (capacity > 50) {
+    throw new Error("Capacity cannot exceed 50 members");
+  }
+  
   if (!startLocal) throw new Error("Start time is required");
   if (!endLocal) throw new Error("End time is required");
 

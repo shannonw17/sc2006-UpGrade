@@ -222,14 +222,14 @@ export default function CreateGroupPage() {
                 <input
                   name="capacity"
                   type="number"
-                  min={1}
+                  min={2}
                   max={50}
                   required
                   value={capacity}
                   onChange={(e) => setCapacity(Number(e.target.value))}
                   className="w-32 rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 />
-                <span className="text-gray-500 text-sm">members</span>
+                <span className="text-gray-500 text-sm">members (Min: 2, Max: 50)</span>
               </div>
             </div>
 
