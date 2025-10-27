@@ -48,7 +48,37 @@ export async function sendResetCode(username: string, email: string) {
     `Dear ${user.username},\n\nYour password reset code is: ${code}\n\nThis code will expire in 1 hour.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nUpGrade Team`
   );
 
-  return { userId: user.id };
+  console.log(`Reset code for ${user.email}: ${code}`);
+  
+  return { 
+    userId: user.id,
+    code: code //For testing
+  };
+}
+
+export async function validateResetCode(userId: string, inputCode: string) {
+  if (!userId || !inputCode) {
+    throw new Error("User ID and code are required");
+  }
+
+  const token = await prisma.verificationToken.findUnique({ 
+    where: { userId } 
+  });
+
+  if (!token) {
+    throw new Error("Invalid or expired reset code");
+  }
+
+  if (token.expiresAt < new Date()) {
+    await prisma.verificationToken.delete({ where: { userId } });
+    throw new Error("Reset code has expired. Please request a new one.");
+  }
+
+  if (token.code !== inputCode.trim()) {
+    throw new Error("Invalid reset code");
+  }
+
+  return true; // Code is valid
 }
 
 /**
@@ -73,21 +103,10 @@ export async function resetPassword(
     throw new Error(pwCheck.message || "Invalid password");
   }
 
-  const token = await prisma.verificationToken.findUnique({ where: { userId } });
+  // First validate the code again (for security)
+  await validateResetCode(userId, code);
 
-  if (!token) {
-    throw new Error("Invalid or expired reset code");
-  }
-
-  if (token.expiresAt < new Date()) {
-    await prisma.verificationToken.delete({ where: { userId } });
-    throw new Error("Reset code has expired. Please request a new one.");
-  }
-
-  if (token.code !== code.trim()) {
-    throw new Error("Invalid reset code");
-  }
-
+  // If we get here, the code is valid - proceed with password reset
   const passwordHash = await bcrypt.hash(newPassword, 10);
 
   await prisma.user.update({

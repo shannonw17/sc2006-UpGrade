@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { sendResetCode, resetPassword } from "@/app/(backend)/AccountController/forgotPassword";
+import { sendResetCode, resetPassword, validateResetCode } from "@/app/(backend)/AccountController/forgotPassword";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -25,6 +25,7 @@ export default function ForgotPasswordPage() {
       const result = await sendResetCode(username, email);
       setUserId(result.userId);
       setStep("verify");
+      console.log("Reset code sent to email:", result.code);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -32,15 +33,30 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  // Step 2 — Proceed to enter code (verification check occurs later)
-  const handleVerifyCode = (e: FormEvent) => {
+  // Step 2 — Validate reset code before proceeding
+  const handleVerifyCode = async (e: FormEvent) => {
     e.preventDefault();
+    setError("");
+    
     if (!resetCode.trim()) {
       setError("Please enter your reset code");
       return;
     }
-    setError("");
-    setStep("reset");
+
+    setLoading(true);
+    try {
+      // Validate the code before proceeding to password reset
+      const isValid = await validateResetCode(userId, resetCode.trim());
+      if (isValid) {
+        setStep("reset");
+      } else {
+        setError("Invalid or expired reset code. Please try again.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Invalid reset code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 3 — Reset password
@@ -72,7 +88,7 @@ export default function ForgotPasswordPage() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Enter Reset Code</h1>
-            <p className="text-gray-600">We’ve sent a 6-digit code to {email}</p>
+            <p className="text-gray-600">We've sent a 6-digit code to {email}</p>
           </div>
 
           <form onSubmit={handleVerifyCode} className="bg-white rounded-lg shadow-sm border p-8">
@@ -94,10 +110,21 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700"
+              disabled={loading}
+              className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
             >
-              Continue
+              {loading ? "Verifying..." : "Verify Code"}
             </button>
+
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => setStep("email")}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Back to email entry
+              </button>
+            </div>
           </form>
         </div>
       </main>
@@ -159,6 +186,16 @@ export default function ForgotPasswordPage() {
             >
               {loading ? "Resetting Password..." : "Reset Password"}
             </button>
+
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => setStep("verify")}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Back to code entry
+              </button>
+            </div>
           </form>
         </div>
       </main>
