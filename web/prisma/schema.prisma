@@ -86,10 +86,8 @@ model User {
   reports Report[] 
   verificationToken VerificationToken?
   
-  // Chat relations
-  chatsAsUser1  Chat[]    @relation("User1Chats")
-  chatsAsUser2  Chat[]    @relation("User2Chats")
-  sentMessages  Message[] @relation("SentMessages")
+  sentMessages     Message[]   @relation("SentMessages")
+  receivedMessages Message[]   @relation("ReceivedMessages")
 }
 
 model VerificationToken { //assign token to each user, delete when expires
@@ -202,30 +200,13 @@ model Report {
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// NEW: Chat model for organizing conversations
-model Chat {
-  id        String   @id @default(cuid())
-  user1Id   String
-  user2Id   String
-  createdAt DateTime @default(now())
-  
-  user1     User     @relation("User1Chats", fields: [user1Id], references: [id], onDelete: Cascade)
-  user2     User     @relation("User2Chats", fields: [user2Id], references: [id], onDelete: Cascade)
-  
-  messages  Message[]
-  
-  @@unique([user1Id, user2Id])
-}
-
-// UPDATED: Message model now linked to Chat with read tracking
 model Message {
-  id        String   @id @default(cuid())
-  chatId    String
-  senderId  String
-  content   String
-  read      Boolean  @default(false)  // Track if message has been read
-  createdAt DateTime @default(now())
-  
-  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  senderId    String
+  receiverId  String
+  message     String
+  createdAt   DateTime @default(now())
+
+ sender       User     @relation("SentMessages", fields: [senderId], references: [id])
+ receiver     User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
