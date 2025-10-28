@@ -296,7 +296,7 @@ export default function Maps() {
           position: loc,
           map: mapInstance,
           icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
           },
         });
 
@@ -440,7 +440,7 @@ export default function Maps() {
                       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                       </svg>
-                      {searchLocation ? 'Nearby Libraries' : 'Singapore Libraries'}
+                      {searchLocation ? 'Nearby Libraries' : 'Libraries'}
                     </h3>
                     <p className="text-blue-100 text-sm mt-1">
                       {searchLocation 
