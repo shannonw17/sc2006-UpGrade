@@ -1,129 +1,88 @@
+// app/homepage/page.tsx
 import { requireUser } from "@/lib/requireUser";
 import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";
 import { sendInWebsiteAlert } from "@/app/(backend)/ScheduleController/sendEmailReminder";
 
+// Shape matching HomepageClient's UserCard (no need to export)
+type UserCard = {
+  id: string;
+  email: string;
+  username: string;
+  gender: string;
+  yearOfStudy: string;
+  eduLevel: string;
+  preferredTiming: string;
+  preferredLocations: string;
+  currentCourse: string | null;
+  relevantSubjects: string | null;
+  school: string | null;
+  usualStudyPeriod: string | null;
+};
 
-async function getProfiles(currentUserId: string, timingFilter?: string[]) {
-  try {
-    const currentUser = await prisma.user.findUnique({
-      where: { id: currentUserId },
-      select: { eduLevel: true, preferredTiming: true }
-    });
+async function getProfiles(currentUserId: string, timingFilter?: string[]): Promise<UserCard[]> {
+  const currentUser = await prisma.user.findUnique({
+    where: { id: currentUserId },
+    select: { eduLevel: true },
+  });
+  if (!currentUser) return [];
 
-    if (!currentUser) {
-      throw new Error("Current user not found");
-    }
-
-    const profiles = await prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        yearOfStudy: true,
-        gender: true,
-        email: true,
-        eduLevel: true,
-        preferredTiming: true,
-        status: true,
-        createdAt: true,
-        receivedInvites: {
-          where: {
-            senderId: currentUserId,
-          },
-          select: {
-            id: true,
-            groupId: true,
-          }
+  // Build CSV "whole token" matching for SQLite String column
+  // (simple contains is ok if you control the tokens: Morning/Afternoon/Evening/Night)
+  const timingOR =
+    timingFilter && timingFilter.length > 0
+      ? {
+          OR: timingFilter.map((t) => ({
+            preferredTiming: { contains: t }, // no mode: "insensitive" on SQLite
+          })),
         }
-      },
-      where: {
-        NOT: {
-          id: currentUserId
-        },
-        eduLevel: currentUser.eduLevel,
-        // Fix: Remove 'mode' property for SQLite compatibility
-        ...(timingFilter && timingFilter.length > 0 && {
-          OR: timingFilter.map(timing => ({
-            preferredTiming: {
-              contains: timing
-            }
-          }))
-        })
-      },
-      orderBy: {
-        username: 'asc'
-      }
-    });
+      : {};
 
-    const yearMap: Record<string, string> = {
-      S1: "Sec 1", S2: "Sec 2", S3: "Sec 3", S4: "Sec 4", S5: "Sec 5",
-      J1: "JC 1", J2: "JC 2",
-      P1: "Poly 1", P2: "Poly 2", P3: "Poly 3",
-      U1: "Year 1", U2: "Year 2", U3: "Year 3", U4: "Year 4",
-    };
-    
-    const getYearColor = (year: string): string => {
-      const colorMap: Record<string, string> = {
-        'Sec 1': 'text-red-600',
-        'Sec 2': 'text-orange-600',
-        'Sec 3': 'text-amber-600',
-        'Sec 4': 'text-yellow-600',
-        'Sec 5': 'text-lime-600',
-        'JC 1': 'text-green-600',
-        'JC 2': 'text-emerald-600',
-        'Poly 1': 'text-cyan-600',
-        'Poly 2': 'text-blue-600',
-        'Poly 3': 'text-indigo-700',
-        'Year 1': 'text-red-600',
-        'Year 2': 'text-yellow-700',
-        'Year 3': 'text-blue-600',
-        'Year 4': 'text-green-600',
-      };
-      return colorMap[year];
-    };
+  const rows = await prisma.user.findMany({
+    where: {
+      NOT: { id: currentUserId },
+      eduLevel: currentUser.eduLevel,
+      ...timingOR,
+    },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      gender: true,
+      yearOfStudy: true,
+      eduLevel: true,
+      preferredTiming: true,
+      preferredLocations: true,
+      currentCourse: true,
+      relevantSubjects: true,
+      school: true,
+      usualStudyPeriod: true,
+    },
+    orderBy: { username: "asc" },
+  });
 
-    const genderMap: Record<string, string> = {
-      MALE: "Male",
-      FEMALE: "Female", 
-      OTHER: "Other",
-    };
-
-    return profiles.map(profile => {
-      const yearDisplay = yearMap[profile.yearOfStudy];
-      return {
-        id: profile.id,
-        username: profile.username,
-        year: yearDisplay,
-        yearColor: getYearColor(yearDisplay),
-        gender: genderMap[profile.gender],
-        preferredTiming: profile.preferredTiming,
-        hasInvite: profile.receivedInvites.length === 0
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching profiles:', error);
-    return [];
-  }
+  // No mapping needed—already matches UserCard
+  return rows as UserCard[];
 }
 
 export default async function Home({
-  searchParams
+  searchParams,
 }: {
-  searchParams?: Promise<{ timing?: string }>
+  // In App Router, searchParams is a plain object
+  searchParams?: { timing?: string };
 }) {
   const user = await requireUser();
-  const sp = await searchParams;
-  
-  // Parse timing filter from URL params
-  const timingFilter = sp?.timing ? sp.timing.split(',') : [];
-  
+
+  const timingFilter = searchParams?.timing
+    ? searchParams.timing.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
   const profiles = await getProfiles(user.id, timingFilter);
+
   const messages = await sendInWebsiteAlert();
   const msg: string[] = [];
-
   for (const n of messages) {
-    if (n.User == user.id)
-      msg.push(n.message)
+    if ((n as any).User === user.id) msg.push((n as any).message);
   }
 
   return (
@@ -131,6 +90,13 @@ export default async function Home({
       user={user}
       initialProfiles={profiles}
       messages={msg}
+      initialTotal={profiles.length}
+      initialFilters={{
+        searchQuery: "",
+        yearFilter: "",
+        genderFilter: "",
+        timingFilter: timingFilter.join(","),
+      }}
     />
   );
 }
