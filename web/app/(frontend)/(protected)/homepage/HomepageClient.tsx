@@ -457,7 +457,107 @@ export default function HomepageClient({
         </div>
       )}
 
-      {/* Invite Modal - Keep your existing invite modal code */}
+      {/* Invite Modal*/}
+      {showInviteModal && selectedUserForInvite && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div ref={inviteModalRef} className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Invite {selectedUserForInvite.username}</h2>
+                  <p className="text-gray-600 text-sm mt-1">Select a group to invite this user to</p>
+                </div>
+                <button onClick={closeInviteModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              {inviteSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-600 text-center">{inviteSuccess}</p>
+                </div>
+              )}
+
+              {inviteError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600 text-center">{inviteError}</p>
+                  <button onClick={() => setInviteError(null)} className="mt-2 text-sm text-red-600 hover:text-red-800">Dismiss</button>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {loadingGroups ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
+                    <p className="text-gray-600 mt-2">Loading your groups...</p>
+                  </div>
+                ) : userGroups.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No groups available</h3>
+                    <p className="text-gray-600 mb-4">You need to be a host or member of a public group to send invites.</p>
+                    <a href="/groups/create" className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">Create a group →</a>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-4">
+                      {userGroups.map((group) => (
+                        <div key={group.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-gray-900">{group.name}</h3>
+                              <span className={`px-2 py-1 text-xs rounded-full ${group.userRole === "host" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
+                                {group.userRole === "host" ? "Host" : "Member"}
+                              </span>
+                              <span className={`px-2 py-1 text-xs rounded-full ${group.visibility ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}`}>
+                                {group.visibility ? "Public" : "Private"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>👥 {group.currentSize}/{group.capacity} members</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleSendInvite(group.id, group.name)}
+                            disabled={inviteLoading === group.id}
+                            className="bg-gradient-to-r from-black to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {inviteLoading === group.id ? (
+                              <span className="flex items-center">
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Sending...
+                              </span>
+                            ) : ("Send Invite")}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-blue-900">Want to create a new group?</h4>
+                          <p className="text-blue-700 text-sm mt-1">Create a study group and invite {selectedUserForInvite.username} to join.</p>
+                        </div>
+                        <a href="/groups/create" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                          Create Group
+                        </a>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
