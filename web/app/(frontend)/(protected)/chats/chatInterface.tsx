@@ -423,23 +423,23 @@ export default function ChatInterface({
   };
 
   return (
-    <div className="flex h-full bg-white shadow-xl rounded-lg overflow-hidden border border-gray-300">
+    <div className="flex h-screen bg-white border border-gray-300">
       {/* Delete Message Confirmation Modal */}
       {messageToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+          <div className="bg-white p-6 max-w-sm w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete this message?</h3>
             <p className="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setMessageToDelete(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteMessage(messageToDelete)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
               >
                 Confirm
               </button>
@@ -463,7 +463,7 @@ export default function ChatInterface({
                 setIsSearching(true);
               }}
               onFocus={() => setIsSearching(true)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500 text-sm"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:outline-none focus:border-blue-500 text-sm"
             />
           </div>
         </div>
@@ -480,7 +480,7 @@ export default function ChatInterface({
                     onClick={() => handleSelectUser(user)}
                     className="w-full p-3 hover:bg-gray-100 transition-colors flex items-center gap-3 border-b border-gray-200"
                   >
-                    <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 text-left">
@@ -510,11 +510,11 @@ export default function ChatInterface({
                     }`}
                   >
                     <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                      <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white font-medium">
                         {chat.otherUser.username.charAt(0).toUpperCase()}
                       </div>
                       {chat.otherUser.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white"></div>
                       )}
                     </div>
                     
@@ -542,7 +542,7 @@ export default function ChatInterface({
                           
                           {/* Unread count badge - only show if count > 0 */}
                           {(chat.unreadCount || 0) > 0 && (
-                            <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold rounded-full px-1.5 bg-red-500 text-white flex-shrink-0">
+                            <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold px-1.5 bg-red-500 text-white flex-shrink-0">
                               {chat.unreadCount! > 99 ? '99+' : chat.unreadCount}
                             </span>
                           )}
@@ -571,11 +571,11 @@ export default function ChatInterface({
             <div className="p-3 border-b border-gray-300 bg-gray-50 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                  <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
                     {selectedUser.username.charAt(0).toUpperCase()}
                   </div>
                   {selectedUser.isOnline && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white"></div>
                   )}
                 </div>
                 <div>
@@ -587,7 +587,7 @@ export default function ChatInterface({
               </div>
               <button
                 onClick={handleDeleteChat}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-200 rounded-full transition-colors"
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-200 transition-colors"
                 title="Delete chat"
               >
                 <Trash2 size={18} />
@@ -614,7 +614,7 @@ export default function ChatInterface({
                         className={`flex gap-2 ${isOwn ? "justify-end" : "justify-start"}`}
                       >
                         {!isOwn && showAvatar && (
-                          <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0 self-end mb-0.5">
+                          <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0 self-end mb-0.5">
                             {message.sender.username.charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -631,10 +631,10 @@ export default function ChatInterface({
                           )}
                           <div
                             onDoubleClick={() => isOwn && setMessageToDelete(message.id)}
-                            className={`px-4 py-2 rounded-2xl max-w-full ${
+                            className={`px-4 py-2 max-w-full ${
                               isOwn
-                                ? "bg-blue-500 text-white rounded-br-md cursor-pointer"
-                                : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
+                                ? "bg-blue-500 text-white cursor-pointer"
+                                : "bg-white text-gray-800 border border-gray-200"
                             }`}
                           >
                             <p className="text-sm leading-relaxed break-words">{message.content}</p>
@@ -674,13 +674,13 @@ export default function ChatInterface({
                     onChange={(e) => setMessageInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Type a message..."
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500 text-sm"
+                    className="w-full px-4 py-2.5 border border-gray-300 focus:outline-none focus:border-blue-500 text-sm"
                   />
                 </div>
                 <button
                   onClick={handleSendMessage}
                   disabled={!messageInput.trim()}
-                  className="px-5 py-2.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm font-medium"
+                  className="px-5 py-2.5 bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm font-medium"
                 >
                   <Send size={16} />
                   <span>Send</span>

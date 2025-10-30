@@ -41,6 +41,63 @@ type FilterSuccess = {
 type FilterError = { success: false; error: string };
 type FilterResp = FilterSuccess | FilterError;
 
+// Helper function to get year display text
+const getYearDisplay = (yearOfStudy: string): string => {
+  const yearMap: Record<string, string> = {
+    S1: "Sec 1", S2: "Sec 2", S3: "Sec 3", S4: "Sec 4", S5: "Sec 5",
+    J1: "JC 1", J2: "JC 2",
+    P1: "Poly 1", P2: "Poly 2", P3: "Poly 3",
+    U1: "Year 1", U2: "Year 2", U3: "Year 3", U4: "Year 4",
+  };
+  return yearMap[yearOfStudy] || yearOfStudy;
+};
+
+// Helper function to get year color class
+const getYearColor = (yearOfStudy: string): string => {
+  const yearDisplay = getYearDisplay(yearOfStudy);
+  const colorMap: Record<string, string> = {
+    'Sec 1': 'bg-red-100 text-red-800',
+    'Sec 2': 'bg-orange-100 text-orange-800',
+    'Sec 3': 'bg-amber-100 text-amber-800',
+    'Sec 4': 'bg-yellow-100 text-yellow-800',
+    'Sec 5': 'bg-lime-100 text-lime-800',
+    'JC 1': 'bg-green-100 text-green-800',
+    'JC 2': 'bg-emerald-100 text-emerald-800',
+    'Poly 1': 'bg-cyan-100 text-cyan-800',
+    'Poly 2': 'bg-blue-100 text-blue-800',
+    'Poly 3': 'bg-indigo-100 text-indigo-800',
+    'Year 1': 'bg-red-100 text-red-800',
+    'Year 2': 'bg-yellow-100 text-yellow-800',
+    'Year 3': 'bg-blue-100 text-blue-800',
+    'Year 4': 'bg-green-100 text-green-800',
+  };
+  return colorMap[yearDisplay] || 'bg-gray-100 text-gray-800';
+};
+
+// Helper function to format gender for display
+const formatGender = (gender: string): string => {
+  const genderMap: Record<string, string> = {
+    MALE: "Male",
+    FEMALE: "Female", 
+    OTHER: "Other",
+  };
+  return genderMap[gender] || gender;
+};
+
+// Helper function to format preferred timing for display
+const formatPreferredTiming = (preferredTiming: string): string => {
+  if (!preferredTiming) return "Not specified";
+  
+  // Split by comma and format each timing
+  const timings = preferredTiming.split(',').map(timing => {
+    const trimmed = timing.trim();
+    // Capitalize first letter of each timing
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+  });
+  
+  return timings.join(', ');
+};
+
 export default function HomepageClient({
   user,
   initialProfiles,
@@ -57,8 +114,20 @@ export default function HomepageClient({
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Format initial profiles on client side
+  const formatProfiles = (profiles: UserCard[]) => {
+    return profiles.map(profile => ({
+      ...profile,
+      // Format for display but keep original for filtering
+      displayYear: getYearDisplay(profile.yearOfStudy),
+      displayGender: formatGender(profile.gender),
+      displayTiming: formatPreferredTiming(profile.preferredTiming),
+      yearColor: getYearColor(profile.yearOfStudy),
+    }));
+  };
+
   // ⬇️ fix: this is an array of UserCard, not a single UserCard
-  const [profiles, setProfiles] = useState<UserCard[]>(initialProfiles);
+  const [profiles, setProfiles] = useState<UserCard[]>(formatProfiles(initialProfiles));
   const [total, setTotal] = useState(initialTotal);
 
   const [searchQuery, setSearchQuery] = useState(initialFilters.searchQuery || "");
@@ -260,7 +329,9 @@ export default function HomepageClient({
     const res = (await filterProfilesAction(form)) as FilterResp;
 
     if (res.success) {
-      setProfiles(res.profiles);
+      // Format the profiles from backend before setting state
+      const formattedProfiles = formatProfiles(res.profiles);
+      setProfiles(formattedProfiles);
       setTotal(res.total ?? 0);
 
       if (opts?.pushUrl) {
@@ -327,15 +398,14 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       {/* Notifications */}
-      <div className="p-6">
-        <Toaster position="top-right" containerStyle={{ top: "10px", right: "200px" }} />
-        <style jsx>{`
-          .animate-enter { animation: fadeIn 0.3s ease-out forwards; }
-          .animate-leave { animation: fadeOut 0.3s ease-in forwards; }
-          @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: translateY(0);} }
-          @keyframes fadeOut { from { opacity: 1; transform: translateY(0);} to { opacity: 0; transform: translateY(-10px);} }
-        `}</style>
-      </div>
+      <Toaster position="top-right" containerStyle={{ top: "10px", right: "200px" }} />
+      <style jsx>{`
+        .animate-enter { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-leave { animation: fadeOut 0.3s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: translateY(0);} }
+        @keyframes fadeOut { from { opacity: 1; transform: translateY(0);} to { opacity: 0; transform: translateY(-10px);} }
+      `}</style>
+     
 
       {/* Main Error */}
       {error && (
@@ -611,16 +681,26 @@ useEffect(() => {
             <p className="text-gray-600 mt-2">Loading...</p>
           </div>
         ) : profiles.length > 0 ? (
-          profiles.map((profile: UserCard) => (
+          profiles.map((profile: any) => (
             <div key={profile.id} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
               <div className="flex flex-col items-center text-center">
-                <div className="font-semibold text-gray-900 text-lg mb-1">{profile.username}</div>
-                <div className="text-gray-800 mb-1">
-                  <span className="px-2 py-1 text-sm font-bold">
-                    {profile.yearOfStudy /* server returns the field we actually store */}
+                {/* Username */}
+                <div className="font-semibold text-gray-900 text-lg mb-2">{profile.username}</div>
+                
+                {/* Year with colored badge */}
+                <div className="mb-2">
+                  <span className={`px-3 py-1 text-sm font-bold rounded-full ${profile.yearColor}`}>
+                    {profile.displayYear}
                   </span>
                 </div>
 
+                {/* Gender and Preferred Timing */}
+                <div className="text-sm text-gray-600 mb-3">
+                  <div className="mb-4">({profile.displayGender})</div>
+                  <div>Preferred timings: {profile.displayTiming}</div>
+                </div>
+
+                {/* View Profile Button */}
                 <button
                   onClick={() => handleViewProfile(profile.id)}
                   disabled={loadingProfileId === profile.id}
@@ -637,7 +717,11 @@ useEffect(() => {
                   ) : ("view profile")}
                 </button>
 
-                <button onClick={() => handleInviteClick(profile)} className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-2 rounded-full hover:opacity-90 transition text-sm">
+                {/* Invite Button */}
+                <button 
+                  onClick={() => handleInviteClick(profile)} 
+                  className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-2 rounded-full hover:opacity-90 transition text-sm"
+                >
                   + Invite
                 </button>
               </div>
