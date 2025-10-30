@@ -6,6 +6,7 @@
 
 import prisma from "@/lib/db";
 import { requireUser } from "@/lib/requireUser";
+import { UserType } from "@prisma/client";
 
 export async function viewOtherProfile(targetUserId: string) {
   try {
@@ -34,6 +35,7 @@ export async function viewOtherProfile(targetUserId: string) {
         school: true,
         academicGrades: true,
         usualStudyPeriod: true,
+        status: true,
       },
     });
 
@@ -41,9 +43,14 @@ export async function viewOtherProfile(targetUserId: string) {
       throw new Error("User not found");
     }
 
-    // Check: Same education level (per your requirements)
+    // Check if same education level
     if (viewerData?.eduLevel !== targetUser.eduLevel) {
       throw new Error("Can only view profiles from same education level");
+    }
+    // Check if 
+    const theStatus = targetUser.status;
+    if (theStatus != UserType.ACTIVE) {
+      throw new Error("Can only view profiles of activated accounts")
     }
 
     // Map enums to readable strings
@@ -79,7 +86,7 @@ export async function viewOtherProfile(targetUserId: string) {
     return {
       success: true,
       profile: {
-        id: targetUser.id, // ✅ ADDED THIS LINE!
+        id: targetUser.id,
         username: targetUser.username,
         email: targetUser.email,
         eduLevel: eduLevelMap[targetUser.eduLevel] || targetUser.eduLevel,
