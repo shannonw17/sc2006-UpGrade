@@ -4,6 +4,14 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+function getRandomTagColor(): string {
+  const colors = [
+    "#EF4444", "#F59E0B", "#10B981", "#3B82F6", 
+    "#6366F1", "#8B5CF6", "#EC4899", "#F97316"
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
 async function ensureMembership(userId: string, groupId: string) {
   await prisma.groupMember.upsert({
     where: { userId_groupId: { userId, groupId } },
@@ -29,7 +37,7 @@ async function main() {
     bcrypt.hash("admin543678", 10),
   ]);
 
-  // USERS — explicitly set status: "ACTIVE"
+  // USERS
   const alice = await prisma.user.upsert({
     where: { email: "alice@e.ntu.edu.sg" },
     update: { status: "ACTIVE" },
@@ -43,7 +51,7 @@ async function main() {
       preferredTiming: ["Morning", "Evening"].join(","),
       preferredLocations: ["NTU", "Woodlands"].join(","),
       currentCourse: "Computer Science",
-      status: "ACTIVE", // <-- important
+      status: "ACTIVE",
     },
   });
 
@@ -99,7 +107,7 @@ async function main() {
     },
   });
 
-  // ADMINS (unchanged)
+  // ADMINS
   const admin1 = await prisma.admin.upsert({
     where: { email: "admin1@gmail.com" },
     update: {},
@@ -128,6 +136,15 @@ async function main() {
     },
   });
 
+  // Tags for Math Revision
+  await prisma.tag.createMany({
+    data: [
+      { name: "Mathematics", color: getRandomTagColor(), groupId: g1.id },
+      { name: "Calculus", color: getRandomTagColor(), groupId: g1.id },
+      { name: "Let's grind", color: getRandomTagColor(), groupId: g1.id },
+    ],
+  });
+
   const g2 = await prisma.group.upsert({
     where: { groupID: "GROUP002" },
     update: { hostId: bob.id, name: "CS2103 Project Team" },
@@ -144,6 +161,15 @@ async function main() {
     },
   });
 
+  // Tags for CS2103 Project Team
+  await prisma.tag.createMany({
+    data: [
+      { name: "Software Engineering", color: getRandomTagColor(), groupId: g2.id },
+      { name: "Java", color: getRandomTagColor(), groupId: g2.id },
+      { name: "Project work", color: getRandomTagColor(), groupId: g2.id },
+    ],
+  });
+
   const g3 = await prisma.group.upsert({
     where: { groupID: "GROUP003" },
     update: { hostId: mary.id, name: "Mugger" },
@@ -158,6 +184,15 @@ async function main() {
       currentSize: 1,
       hostId: mary.id,
     },
+  });
+
+  // Tags for Mugger
+  await prisma.tag.createMany({
+    data: [
+      { name: "Intensive study", color: getRandomTagColor(), groupId: g3.id },
+      { name: "Exam prep", color: getRandomTagColor(), groupId: g3.id },
+      { name: "Focus session", color: getRandomTagColor(), groupId: g3.id },
+    ],
   });
 
   await ensureMembership(alice.id, g1.id);
