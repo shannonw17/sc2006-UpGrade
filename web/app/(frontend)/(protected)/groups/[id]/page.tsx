@@ -7,6 +7,26 @@ import { ArrowLeft } from "lucide-react";
 import { MessageHostButton } from "./MessageHostButton";
 import { MessageMemberButton } from "./MessageMemberButton";
 
+function getTagColor(tagName: string): string {
+  const colors = [
+    "bg-red-100 text-red-800",
+    "bg-yellow-100 text-yellow-800", 
+    "bg-green-100 text-green-800",
+    "bg-blue-100 text-blue-800",
+    "bg-indigo-100 text-indigo-800",
+    "bg-purple-100 text-purple-800",
+    "bg-pink-100 text-pink-800",
+    "bg-orange-100 text-orange-800",
+  ];
+  
+  let hash = 0;
+  for (let i = 0; i < tagName.length; i++) {
+    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  return colors[Math.abs(hash) % colors.length];
+}
+
 interface GroupPageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ fromTab?: string }>;
@@ -30,7 +50,8 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
               }
             }
           }
-        }
+        },
+        tags: true // This should work after updating Prisma schema
       },
     }),
     requireUser(),
@@ -54,13 +75,11 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
   
   // Determine which tab to go back to
   const getBackTabInfo = () => {
-    // Always respect the fromTab parameter first
     if (fromTab === 'mine') {
       return { tab: 'mine', label: 'Created Groups' };
     } else if (fromTab === 'joined') {
       return { tab: 'joined', label: 'Joined Groups' };
     } else {
-      // Default to all groups if no fromTab specified
       return { tab: 'all', label: 'All Groups' };
     }
   };
@@ -72,7 +91,7 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
   const allMembers = [
     { username: group.host?.username || "Unknown", isHost: true, id: group.hostId },
     ...group.members
-      .filter(member => member.userId !== group.hostId) // Exclude host from members list since they're already included
+      .filter(member => member.userId !== group.hostId)
       .map(member => ({
         username: member.user.username,
         isHost: false,
@@ -128,7 +147,7 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
           </div>
         </div>
 
-        {/* NEW: Message Host Button - Requirement 1.1.2 (for non-hosts viewing public groups) */}
+        {/* Message Host Button */}
         {!isHost && group.visibility && (
           <div className="mb-6 flex justify-center">
             <MessageHostButton hostId={group.hostId} />
@@ -144,6 +163,26 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
             <DetailItem label="Location" value={group.location} />
             <DetailItem label="Capacity" value={`${group.currentSize}/${group.capacity}`} />
             <DetailItem label="Host" value={group.host?.username || "Unknown"} />
+
+            {/* Tags Display - UPDATED WITH RANDOM COLORS */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-sm font-medium text-gray-500 mb-1 sm:mb-0">Tags</span>
+              <div className="flex flex-wrap gap-2">
+                {group.tags && group.tags.length > 0 ? (
+                  group.tags.map((tag: any) => (
+                    <span
+                      key={tag.id}
+                      className={`${getTagColor(tag.name)} text-sm font-medium px-2 py-1 rounded-full`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No tags</span>
+                )}
+              </div>
+            </div>
+
             <DetailItem label="Created At" value={new Date(group.createdAt).toLocaleString()} />
           </div>
 
@@ -191,7 +230,7 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
                       <span className="text-sm text-gray-500 font-medium">Creator</span>
                     )}
                     
-                    {/* NEW: Message Member Button - Requirement 1.2.1 (for hosts) */}
+                    {/* Message Member Button */}
                     {isHost && !member.isHost && member.id !== user.id && (
                       <MessageMemberButton memberId={member.id} memberName={member.username} />
                     )}

@@ -99,6 +99,17 @@ model VerificationToken { //assign token to each user, delete when expires
   createdAt DateTime @default(now())
 }
 
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([name, groupId])
+}
+
 model Group {
   id          String   @id @default(cuid())
   groupID     String   @unique   
@@ -114,6 +125,7 @@ model Group {
   host        User     @relation("GroupHost", fields: [hostId], references: [id], onDelete: Cascade)
   isClosed    Boolean  @default(false)
   createdAt   DateTime @default(now())
+  tags Tag[]
 
   members GroupMember[]
   invitations Invitation[]

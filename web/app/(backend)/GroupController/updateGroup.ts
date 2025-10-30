@@ -4,6 +4,7 @@
 import prisma from "@/lib/db";
 import { requireUser } from "@/lib/requireUser";
 import { revalidatePath } from "next/cache";
+import { getRandomTagColor } from "@/lib/tagColors";
 
 /**
  * Convert an HTML <input type="datetime-local"> value (local wall-clock) to a UTC Date, 
@@ -91,6 +92,9 @@ export async function updateGroup(formData: FormData) {
   const location = String(formData.get("location") || "").trim();
   const capacity = parseInt(String(formData.get("capacity") || "2"), 10);
 
+  const tagsInput = String(formData.get("tags") || "").trim();
+  const tags = tagsInput.split(',').map(tag => tag.trim()).filter(Boolean);
+
   if (!groupId || !name || !location) throw new Error("Missing required fields");
   
   // Updated capacity validation: min 2, max 50
@@ -102,6 +106,25 @@ export async function updateGroup(formData: FormData) {
   }
   
   if (!startLocal || !endLocal) throw new Error("Start/End required");
+
+  // Tag validation
+  if (tags.length === 0) {
+    throw new Error("At least one tag is required");
+  }
+  if (tags.length > 5) {
+    throw new Error("Maximum 5 tags allowed");
+  }
+  for (const tag of tags) {
+    if (tag.length > 25) {
+      throw new Error(`Tag "${tag}" exceeds 25 character limit`);
+    }
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(tag)) {
+      throw new Error(`Tag "${tag}" can only contain letters, numbers, spaces, hyphens, and underscores`);
+    }
+  }
+
+  if (!groupId || !name || !location) throw new Error("Missing required fields");
+  if (name.length > 30) throw new Error("Group name cannot exceed 30 characters");
 
   // Check if user is the host of this group
   const group = await prisma.group.findUnique({
@@ -126,7 +149,7 @@ export async function updateGroup(formData: FormData) {
 
   // Check if host already has other groups at the same time
   const timeConflict = await checkHostTimeConflict(user.id, start, end, groupId);
-  if (timeConflict.conflict) {
+  if (timeConflict.conflict && timeConflict.conflictingGroup) {
     const conflictingGroup = timeConflict.conflictingGroup;
     const conflictStart = new Date(conflictingGroup.start).toLocaleString();
     const conflictEnd = new Date(conflictingGroup.end).toLocaleString();
@@ -137,16 +160,34 @@ export async function updateGroup(formData: FormData) {
   }
 
   // Update group in database
-  const updatedGroup = await prisma.group.update({
-    where: { id: groupId },
-    data: {
-      name,
-      location,
-      start,
-      end,
-      capacity,
-      visibility: visibilityStr === "public", // Add visibility update
-    },
+  const updatedGroup = await prisma.$transaction(async (tx) => {
+    const group = await tx.group.update({
+        where: { id: groupId },
+        data: {
+            name,
+            location,
+            start,
+            end,
+            capacity,
+            visibility: visibilityStr === "public",
+        },
+    });
+
+    await tx.tag.deleteMany({
+      where: { groupId }
+    });
+
+    if (tags.length > 0) {
+      await tx.tag.createMany({
+        data: tags.map(tagName => ({
+          name: tagName,
+          color: getRandomTagColor(),
+          groupId: group.id,
+        })),
+      });
+    }
+
+    return group;
   });
 
   revalidatePath("/groups");

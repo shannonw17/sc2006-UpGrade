@@ -12,6 +12,9 @@ export default function CreateGroupPage() {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
   const [capacity, setCapacity] = useState(4);
+  const [mainTag, setMainTag] = useState(""); // Compulsory main tag
+  const [additionalTags, setAdditionalTags] = useState<string[]>([]); // Optional additional tags
+  const [currentAdditionalTag, setCurrentAdditionalTag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,6 +34,8 @@ export default function CreateGroupPage() {
       setEndTime(obj.endTime || "");
       setCapacity(Number(obj.capacity) || 4);
       setLocation(obj.location || "");
+      setMainTag(obj.mainTag || "");
+      setAdditionalTags(obj.additionalTags || []);
       sessionStorage.removeItem("createGroupForm");
     }
 
@@ -53,13 +58,58 @@ export default function CreateGroupPage() {
       endTime,
       capacity: capacity.toString(),
       location,
+      mainTag,
+      additionalTags,
     };
     sessionStorage.setItem("createGroupForm", JSON.stringify(formState));
     router.push("/Maps");
   };
 
+  const addAdditionalTag = () => {
+    const trimmedTag = currentAdditionalTag.trim();
+    if (trimmedTag && !additionalTags.includes(trimmedTag) && additionalTags.length < 4) { // Max 4 additional tags
+      if (trimmedTag.length > 20) {
+        setError("Tag cannot exceed 20 characters");
+        return;
+      }
+      if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmedTag)) {
+        setError("Tag can only contain letters, numbers, spaces, hyphens, and underscores");
+        return;
+      }
+      setAdditionalTags([...additionalTags, trimmedTag]);
+      setCurrentAdditionalTag("");
+      setError("");
+    }
+  };
+
+  const removeAdditionalTag = (tagToRemove: string) => {
+    setAdditionalTags(additionalTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleAdditionalTagKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addAdditionalTag();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validate main tag
+    if (!mainTag.trim()) {
+      setError("Main tag is required");
+      return;
+    }
+    if (mainTag.length > 20) {
+      setError("Main tag cannot exceed 20 characters");
+      return;
+    }
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(mainTag)) {
+      setError("Main tag can only contain letters, numbers, spaces, hyphens, and underscores");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
@@ -71,6 +121,10 @@ export default function CreateGroupPage() {
       const formData = new FormData(e.currentTarget);
       formData.set('start', start);
       formData.set('end', end);
+      
+      // Combine main tag and additional tags
+      const allTags = [mainTag, ...additionalTags];
+      formData.set('tags', allTags.join(','));
       
       await createGroup(formData);
       // The redirect in createGroup will handle navigation
@@ -99,17 +153,21 @@ export default function CreateGroupPage() {
             {/* Group Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Group Name
+                Group Name <span className="text-red-500">*</span>
               </label>
               <input
                 name="name"
                 type="text"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter group name"
+                onChange={(e) => setName(e.target.value.slice(0, 30))} // Limit to 30 characters
+                placeholder="Enter group name (max 30 characters)"
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                maxLength={30}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {30 - name.length} characters remaining
+              </p>
             </div>
 
             {/* Visibility */}
@@ -128,6 +186,93 @@ export default function CreateGroupPage() {
               </select>
             </div>
 
+            {/* Main Compulsory Tag */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Main Tag <span className="text-red-500">*</span>
+                {mainTag.length > 0 && <span className="text-gray-500 text-xs ml-2">({mainTag.length}/20)</span>}
+              </label>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={mainTag}
+                  onChange={(e) => setMainTag(e.target.value.slice(0, 20))}
+                  placeholder="Enter main tag (e.g., Mathematics, Programming, Biology)"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  maxLength={20}
+                />
+                
+                {/* Main Tag Display */}
+                {mainTag && (
+                  <div className="flex flex-wrap gap-2">
+                    <div className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium border-2 border-blue-300">
+                      {mainTag}
+                      <span className="text-blue-600 text-xs ml-1">(Main)</span>
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-xs text-gray-500">
+                  This is the primary tag that describes your group. It will be prominently displayed.
+                </p>
+              </div>
+            </div>
+
+            {/* Additional Tags */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Additional Tags {additionalTags.length > 0 && <span className="text-gray-500 text-xs">({additionalTags.length}/4)</span>}
+              </label>
+              <div className="space-y-3">
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={currentAdditionalTag}
+                    onChange={(e) => setCurrentAdditionalTag(e.target.value)}
+                    onKeyPress={handleAdditionalTagKeyPress}
+                    placeholder="Add additional tag (max 20 characters)"
+                    className="flex-1 rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    maxLength={20}
+                  />
+                  <button
+                    type="button"
+                    onClick={addAdditionalTag}
+                    disabled={!currentAdditionalTag.trim() || additionalTags.length >= 4}
+                    className="rounded-lg bg-gray-600 text-white px-4 py-3 hover:bg-gray-700 transition-colors font-medium whitespace-nowrap disabled:opacity-50"
+                  >
+                    Add Tag
+                  </button>
+                </div>
+                
+                {/* Additional Tags Display */}
+                {additionalTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {additionalTags.map((tag, index) => (
+                      <div
+                        key={index}
+                        className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalTag(tag)}
+                          className="text-gray-600 hover:text-gray-800 ml-1"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p className="text-xs text-gray-500">
+                  Add up to 4 additional tags to help others find your group. These are optional.
+                </p>
+              </div>
+            </div>
+
+            {/* ... rest of the form (Start/End Time, Location, Capacity) remains the same ... */}
+            
             {/* Start Date & Time */}
             <div className="space-y-4">
               <div>
@@ -264,7 +409,7 @@ export default function CreateGroupPage() {
               </button>
               <button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || !mainTag.trim()}
                 className="rounded-lg bg-gradient-to-r from-black to-blue-700 px-6 py-3 text-white font-medium hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
               >
                 {isSubmitting ? "Creating..." : "Create Group"}

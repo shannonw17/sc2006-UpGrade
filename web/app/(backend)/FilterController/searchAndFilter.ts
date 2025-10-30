@@ -43,7 +43,8 @@ export async function fetchGroupsWithFilters(
             username: true,
             eduLevel: true
           }
-        }
+        },
+        tags: true
       },
     }),
     prisma.groupMember.findMany({
@@ -61,7 +62,8 @@ export async function fetchGroupsWithFilters(
             username: true,
             eduLevel: true
           }
-        }
+        },
+        tags: true
       },
     }),
   ]);
@@ -88,7 +90,8 @@ export async function fetchGroupsWithFilters(
           username: true,
           eduLevel: true
         }
-      }
+      },
+      tags: true
     },
   });
 

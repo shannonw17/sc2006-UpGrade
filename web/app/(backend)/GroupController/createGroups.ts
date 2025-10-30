@@ -5,6 +5,7 @@ import prisma from "@/lib/db";
 import { requireUser } from "@/lib/requireUser";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getRandomTagColor } from "@/lib/tagColors";
 
 /**
  * Convert an HTML <input type="datetime-local"> value (local wall-clock)
@@ -98,11 +99,14 @@ export async function createGroup(formData: FormData) {
   const location = String(formData.get("location") || "").trim();
   const capacity = parseInt(String(formData.get("capacity") || "2"), 10);
 
+  const tagsInput = String(formData.get("tags") || "").trim();
+  const tags = tagsInput.split(',').map(tag => tag.trim()).filter(Boolean);
+
   // Validation
   if (!name) throw new Error("Group name is required");
   if (!location) throw new Error("Location is required");
   
-  // Updated capacity validation: min 2, max 50
+  // Capacity validation
   if (!Number.isFinite(capacity) || capacity < 2) {
     throw new Error("Capacity must be at least 2 members");
   }
@@ -112,6 +116,26 @@ export async function createGroup(formData: FormData) {
   
   if (!startLocal) throw new Error("Start time is required");
   if (!endLocal) throw new Error("End time is required");
+
+  // Tag validation
+  if (tags.length === 0) {
+    throw new Error("At least one tag is required");
+  }
+  if (tags.length > 5) {
+    throw new Error("Maximum 5 tags allowed");
+  }
+  for (const tag of tags) {
+    if (tag.length > 25) {
+      throw new Error(`Tag "${tag}" exceeds 25 character limit`);
+    }
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(tag)) {
+      throw new Error(`Tag "${tag}" can only contain letters, numbers, spaces, hyphens, and underscores`);
+    }
+  }
+
+  if (!name) throw new Error("Group name is required");
+  if (name.length > 30) throw new Error("Group name cannot exceed 30 characters"); // Add this line
+  if (!location) throw new Error("Location is required");
 
   // SGT = UTC+8 → offset +480 minutes
   const SGT_OFFSET_MIN = 8 * 60;
@@ -132,12 +156,16 @@ export async function createGroup(formData: FormData) {
   const timeConflict = await checkHostTimeConflict(hostId, start, end);
   if (timeConflict.conflict) {
     const conflictingGroup = timeConflict.conflictingGroup;
-    const conflictStart = new Date(conflictingGroup.start).toLocaleString();
-    const conflictEnd = new Date(conflictingGroup.end).toLocaleString();
-    
-    throw new Error(
-      `You already have a group "${conflictingGroup.name}" at ${conflictingGroup.location} during this time (${conflictStart} - ${conflictEnd}). You cannot host multiple groups at the same time.`
-    );
+    if (conflictingGroup) {
+      const conflictStart = new Date(conflictingGroup.start).toLocaleString();
+      const conflictEnd = new Date(conflictingGroup.end).toLocaleString();
+      
+      throw new Error(
+        `You already have a group "${conflictingGroup.name}" at ${conflictingGroup.location} during this time (${conflictStart} - ${conflictEnd}). You cannot host multiple groups at the same time.`
+      );
+    } else {
+      throw new Error("You already have a conflicting group at this time. You cannot host multiple groups at the same time.");
+    }
   }
 
   // Ensure user exists
@@ -168,6 +196,17 @@ export async function createGroup(formData: FormData) {
       },
       select: { id: true },
     });
+
+    // Create tags
+    if (tags.length > 0) {
+      await tx.tag.createMany({
+        data: tags.map(tagName => ({
+          name: tagName,
+          color: getRandomTagColor(),
+          groupId: group.id,
+        })),
+      });
+    }
 
     // Ensure host is also a member
     await tx.groupMember.create({

@@ -69,7 +69,8 @@ export default async function GroupPage({ searchParams }: PageProps) {
           } 
         },
         members: { select: { userId: true } },
-        _count: { select: { members: true } }
+        _count: { select: { members: true } },
+        tags: true
       }
     });
   }

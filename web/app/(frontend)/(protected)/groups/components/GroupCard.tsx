@@ -8,6 +8,27 @@ import { joinGroup } from '@/app/(backend)/GroupController/joinGroup';
 import { leaveGroup } from '@/app/(backend)/GroupController/leaveGroup';
 import ReportGroup from './reportGroup';
 
+function getTagColor(tagName: string): string {
+  const colors = [
+    "bg-red-100 text-red-800",
+    "bg-yellow-100 text-yellow-800", 
+    "bg-green-100 text-green-800",
+    "bg-blue-100 text-blue-800",
+    "bg-indigo-100 text-indigo-800",
+    "bg-purple-100 text-purple-800",
+    "bg-pink-100 text-pink-800",
+    "bg-orange-100 text-orange-800",
+  ];
+  
+  // Hash function to get consistent colors for same tag names
+  let hash = 0;
+  for (let i = 0; i < tagName.length; i++) {
+    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  return colors[Math.abs(hash) % colors.length];
+}
+
 interface GroupCardProps {
   group: any;
   isHost: boolean;
@@ -90,9 +111,6 @@ export default function GroupCard({
     }
   };
 
-  // SIMPLIFIED: Only use showEdit to determine the tab
-  // showEdit = true means we're in "Created groups" tab
-  // showEdit = false means we're in "All groups" tab (regardless of join status)
   const getFromTab = () => {
     return showEdit ? 'mine' : 'all';
   };
@@ -159,19 +177,34 @@ export default function GroupCard({
           <div className="flex items-center justify-between">
             {/* Left side - Group Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="font-semibold text-gray-900 text-lg">
-                  {group.name}
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="font-semibold text-gray-900 text-lg">
+                        {group.name}
+                    </div>
+
+                    {isHost && (
+                        <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
+                            Host
+                        </span>
+                    )}
+                
+                    {/* Tags Display */}
+                    {group.tags && group.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                            {/* Main Tag */}
+                            {group.tags[0] && (
+                            <span
+                                className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
+                                #{group.tags[0].name}
+                            </span>
+                            )}
+                        </div>
+                    )}
                 </div>
-                {isHost && (
-                  <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
-                    Host
-                  </span>
-                )}
-              </div>
-              <div className="text-gray-600 text-sm">
-                {new Date(group.start).toLocaleString()} • {group.location}
-              </div>
+            
+                <div className="text-gray-600 text-sm">
+                    {new Date(group.start).toLocaleString()} • {group.location}
+                </div>
             </div>
 
             {/* Right side - View Details, Members Count and Actions */}

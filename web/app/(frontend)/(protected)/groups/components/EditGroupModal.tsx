@@ -29,6 +29,12 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
   const [location, setLocation] = useState(group.location);
   const [visibility, setVisibility] = useState(group.visibility ? "public" : "private");
   const router = useRouter();
+  
+  // New state for main tag and additional tags
+  const [mainTag, setMainTag] = useState(group.tags?.[0]?.name || "");
+  const [additionalTags, setAdditionalTags] = useState<string[]>(group.tags?.slice(1).map((tag: any) => tag.name) || []);
+  const [currentAdditionalTag, setCurrentAdditionalTag] = useState("");
+  const [nameLength, setNameLength] = useState(group.name.length);
 
   // Load location from session storage when component mounts
   useEffect(() => {
@@ -48,6 +54,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
       start: utcToLocalDatetimeString(new Date(group.start)),
       end: utcToLocalDatetimeString(new Date(group.end)),
       capacity: group.capacity.toString(),
+      tags: [mainTag, ...additionalTags],
       isEdit: true,
       groupId: group.id
     };
@@ -55,8 +62,50 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
     router.push('/Maps');
   };
 
+  const addAdditionalTag = () => {
+    const trimmedTag = currentAdditionalTag.trim();
+    if (trimmedTag && !additionalTags.includes(trimmedTag) && additionalTags.length < 4) {
+      if (trimmedTag.length > 25) {
+        setError("Tag cannot exceed 25 characters");
+        return;
+      }
+      if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmedTag)) {
+        setError("Tag can only contain letters, numbers, spaces, hyphens, and underscores");
+        return;
+      }
+      setAdditionalTags([...additionalTags, trimmedTag]);
+      setCurrentAdditionalTag("");
+      setError("");
+    }
+  };
+
+  const removeAdditionalTag = (tagToRemove: string) => {
+    setAdditionalTags(additionalTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleAdditionalTagKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addAdditionalTag();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validate main tag
+    if (!mainTag.trim()) {
+      setError("Main tag is required");
+      return;
+    }
+
+    // Validate tags length
+    const allTags = [mainTag, ...additionalTags];
+    if (allTags.length === 0) {
+      setError("At least one tag is required");
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
@@ -64,6 +113,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
       const formData = new FormData(e.currentTarget);
       formData.append('groupId', group.id);
       formData.append('visibility', visibility);
+      formData.append('tags', allTags.join(','));
       
       await updateGroup(formData);
       onUpdate();
@@ -75,10 +125,14 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
     }
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNameLength(e.target.value.length);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       {/* Modal Container */}
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-md mx-auto">
+      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-md mx-auto max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Edit Group</h2>
@@ -94,18 +148,21 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
 
         {/* Form Content */}
         <form onSubmit={handleSubmit} className="p-6">
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto">
             {/* Group Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Group Name
+                Group Name <span className="text-red-500">*</span>
+                {nameLength > 0 && <span className="text-gray-500 text-xs ml-2">({nameLength}/30)</span>}
               </label>
               <input
                 type="text"
                 name="name"
                 defaultValue={group.name}
+                onChange={handleNameChange}
                 required
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                maxLength={30}
               />
             </div>
 
@@ -144,10 +201,82 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
               </div>
             </div>
 
+            {/* Main Tag */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Main Tag <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={mainTag}
+                onChange={(e) => setMainTag(e.target.value)}
+                placeholder="Enter main tag (required)"
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                maxLength={25}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This is the primary tag that describes your group
+              </p>
+            </div>
+
+            {/* Additional Tags */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Additional Tags {additionalTags.length > 0 && <span className="text-gray-500 text-xs">({additionalTags.length}/4)</span>}
+              </label>
+              <div className="space-y-3">
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={currentAdditionalTag}
+                    onChange={(e) => setCurrentAdditionalTag(e.target.value)}
+                    onKeyPress={handleAdditionalTagKeyPress}
+                    placeholder="Add additional tag (optional)"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    maxLength={25}
+                  />
+                  <button
+                    type="button"
+                    onClick={addAdditionalTag}
+                    disabled={!currentAdditionalTag.trim() || additionalTags.length >= 4}
+                    className="rounded-lg bg-gray-600 text-white px-3 py-2 hover:bg-gray-700 transition-colors font-medium whitespace-nowrap text-sm disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+                
+                {/* Additional Tags Display */}
+                {additionalTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {additionalTags.map((tag, index) => (
+                      <div
+                        key={index}
+                        className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalTag(tag)}
+                          className="text-green-600 hover:text-green-800 ml-1"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p className="text-xs text-gray-500">
+                  Add up to 4 additional tags to describe your group. Total tags: {1 + additionalTags.length}/5
+                </p>
+              </div>
+            </div>
+
             {/* Location */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
+                Location <span className="text-red-500">*</span>
               </label>
               <div className="flex space-x-3">
                 <input
@@ -172,7 +301,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
             {/* Start Time */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Start Time
+                Start Time <span className="text-red-500">*</span>
               </label>
               <input
                 type="datetime-local"
@@ -186,7 +315,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
             {/* End Time */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                End Time
+                End Time <span className="text-red-500">*</span>
               </label>
               <input
                 type="datetime-local"
@@ -200,7 +329,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
             {/* Capacity */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Capacity
+                Capacity <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -235,7 +364,7 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !mainTag.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               {isSubmitting ? 'Updating...' : 'Update Group'}
