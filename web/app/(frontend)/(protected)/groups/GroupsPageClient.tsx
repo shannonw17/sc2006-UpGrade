@@ -104,7 +104,7 @@ export default function GroupsPageClient({
           <Link 
             href="/groups/create" 
             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-          >
+            >
             Create your first group
           </Link>
         </div>
@@ -156,49 +156,52 @@ export default function GroupsPageClient({
             const isFull = count >= group.capacity;
 
             return (
-              <GroupCard
-                key={group.id}
-                group={group}
-                isHost={isHost}
-                isJoined={isJoined}
-                isFull={isFull}
-                count={count}
-                CURRENT_USER_ID={CURRENT_USER_ID}
-                showEdit={false}
-              />
+              <div key={group.id} className="group hover:scale-[1.02] transition-all duration-300">
+                <GroupCard
+                  group={group}
+                  isHost={isHost}
+                  isJoined={isJoined}
+                  isFull={isFull}
+                  count={count}
+                  CURRENT_USER_ID={CURRENT_USER_ID}
+                  showEdit={false}
+                />
+              </div>
             );
           })}
         </>
       ) : tab === "mine" ? (
         <>
           {myCreatedGroups.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              isHost={true}
-              isJoined={true}
-              isFull={group._count.members >= group.capacity}
-              count={group._count.members}
-              CURRENT_USER_ID={CURRENT_USER_ID}
-              showEdit={true}
-              onEditClick={handleEditClick}
-            />
+            <div key={group.id} className="group hover:scale-[1.02] transition-all duration-300">
+              <GroupCard
+                group={group}
+                isHost={true}
+                isJoined={true}
+                isFull={group._count.members >= group.capacity}
+                count={group._count.members}
+                CURRENT_USER_ID={CURRENT_USER_ID}
+                showEdit={true}
+                onEditClick={handleEditClick}
+              />
+            </div>
           ))}
         </>
       ) : (
         // Joined Groups Tab
         <>
           {joinedGroups.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              isHost={false}
-              isJoined={true}
-              isFull={group._count.members >= group.capacity}
-              count={group._count.members}
-              CURRENT_USER_ID={CURRENT_USER_ID}
-              showEdit={false}
-            />
+            <div key={group.id} className="group hover:scale-[1.02] transition-all duration-300">
+              <GroupCard
+                group={group}
+                isHost={false}
+                isJoined={true}
+                isFull={group._count.members >= group.capacity}
+                count={group._count.members}
+                CURRENT_USER_ID={CURRENT_USER_ID}
+                showEdit={false}
+              />
+            </div>
           ))}
         </>
       )}

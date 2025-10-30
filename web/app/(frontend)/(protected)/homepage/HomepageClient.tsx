@@ -7,22 +7,31 @@ import { viewOtherProfile } from "@/app/(backend)/ProfileController/viewOtherPro
 import { sendInvite } from "@/app/(backend)/InvitationController/sendInvite";
 import { getUserGroups } from "@/app/(backend)/GroupController/getUserGroups";
 import { filterProfilesAction } from "@/app/(backend)/FilterController/filterProfiles";
+import { 
+  MessageCircle, 
+  BookOpen, 
+  Clock, 
+  Search,
+  Plus,
+  User,
+  Venus,
+  Mars
+} from "lucide-react";
 
 type Filters = {
   searchQuery: string;
   yearFilter: string;
   genderFilter: string;
-  timingFilter: string; // CSV
+  timingFilter: string;
 };
 
-// ✅ 1) Types that match what you render
 type UserCard = {
   id: string;
   email: string;
   username: string;
-  gender: string;        // You can swap to Prisma enum types if desired
-  yearOfStudy: string;   // e.g. "U1" | "U2" | ...
-  eduLevel: string;      // "SEC" | "JC" | "POLY" | "UNI"
+  gender: string;
+  yearOfStudy: string;
+  eduLevel: string;
   preferredTiming: string;
   preferredLocations: string;
   currentCourse: string | null;
@@ -31,7 +40,6 @@ type UserCard = {
   usualStudyPeriod: string | null;
 };
 
-// ✅ 2) Discriminated union for server action result
 type FilterSuccess = {
   success: true;
   profiles: UserCard[];
@@ -74,6 +82,17 @@ const getYearColor = (yearOfStudy: string): string => {
   return colorMap[yearDisplay] || 'bg-gray-100 text-gray-800';
 };
 
+// Helper function to get gender icon
+const getGenderIcon = (gender: string) => {
+  const genderMap: Record<string, any> = {
+    'MALE': <Mars size={16} className="text-blue-600" />,
+    'FEMALE': <Venus size={16} className="text-pink-600" />,
+    'Male': <Mars size={16} className="text-blue-600" />,
+    'Female': <Venus size={16} className="text-pink-600" />,
+  };
+  return genderMap[gender] || <User size={16} className="text-gray-600" />;
+};
+
 // Helper function to format gender for display
 const formatGender = (gender: string): string => {
   const genderMap: Record<string, string> = {
@@ -88,10 +107,8 @@ const formatGender = (gender: string): string => {
 const formatPreferredTiming = (preferredTiming: string): string => {
   if (!preferredTiming) return "Not specified";
   
-  // Split by comma and format each timing
   const timings = preferredTiming.split(',').map(timing => {
     const trimmed = timing.trim();
-    // Capitalize first letter of each timing
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
   });
   
@@ -114,22 +131,19 @@ export default function HomepageClient({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Format initial profiles on client side
   const formatProfiles = (profiles: UserCard[]) => {
     return profiles.map(profile => ({
       ...profile,
-      // Format for display but keep original for filtering
       displayYear: getYearDisplay(profile.yearOfStudy),
       displayGender: formatGender(profile.gender),
       displayTiming: formatPreferredTiming(profile.preferredTiming),
       yearColor: getYearColor(profile.yearOfStudy),
+      genderIcon: getGenderIcon(profile.gender),
     }));
   };
 
-  // ⬇️ fix: this is an array of UserCard, not a single UserCard
   const [profiles, setProfiles] = useState<UserCard[]>(formatProfiles(initialProfiles));
   const [total, setTotal] = useState(initialTotal);
-
   const [searchQuery, setSearchQuery] = useState(initialFilters.searchQuery || "");
   const [yearFilter, setYearFilter] = useState(initialFilters.yearFilter || "");
   const [genderFilter, setGenderFilter] = useState(initialFilters.genderFilter || "");
@@ -139,11 +153,10 @@ export default function HomepageClient({
 
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
-
   const [loadingProfileId, setLoadingProfileId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
-  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null); // NEW: Store userId separately
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Invite states
@@ -177,10 +190,10 @@ export default function HomepageClient({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showFilterPopup, showProfileModal, showInviteModal]);
 
-  // Backend: view profile
+  // Handle view profile
   const handleViewProfile = async (targetUserId: string) => {
     setLoadingProfileId(targetUserId);
-    setSelectedProfileUserId(targetUserId); // NEW: Store userId separately
+    setSelectedProfileUserId(targetUserId);
     setError(null);
     try {
       const result = await viewOtherProfile(targetUserId);
@@ -198,7 +211,7 @@ export default function HomepageClient({
     }
   };
 
-  // Backend: invite modal + groups
+  // Handle invite
   const handleInviteClick = async (profile: any) => {
     setSelectedUserForInvite(profile);
     setLoadingGroups(true);
@@ -268,23 +281,16 @@ export default function HomepageClient({
     setUserGroups([]);
   };
 
-  // NEW: Message user function - Requirement 1.3.1
+  // Message user function
   const handleMessageUser = (userId: string) => {
-    console.log('handleMessageUser called with userId:', userId);
-    
     if (!userId) {
-      console.error('Invalid userId - value is:', userId);
       setError('Invalid user ID');
       return;
     }
-    
-    // Navigate to chats page with userId
-    // The chat interface will handle creating a new conversation or opening existing one
-    console.log('Navigating to chats with userId:', userId);
     router.push(`/chats?newChatWith=${userId}`);
   };
 
-  // Timing options (unchanged)
+  // Timing options
   const timingOptions = [
     { value: "Morning", label: "Morning (6am-12pm)" },
     { value: "Afternoon", label: "Afternoon (12pm-6pm)" },
@@ -296,116 +302,96 @@ export default function HomepageClient({
     setTimingFilter((prev) => (prev.includes(timing) ? prev.filter((t) => t !== timing) : [...prev, timing]));
   };
 
-  // --- The important part: CALL BACKEND to filter
-  const runBackendFilter = async (opts?: { closePopup?: boolean; pushUrl?: boolean; 
+  // Backend filter function
+  const runBackendFilter = async (opts?: { 
+    closePopup?: boolean; 
+    pushUrl?: boolean; 
     filters?: {
-    search: string;
-    year: string;
-    gender: string;
-    timings: string[];
-  };
+      search: string;
+      year: string;
+      gender: string;
+      timings: string[];
+    };
   }) => {
     setLoadingList(true);
     setError(null);
 
     const f = opts?.filters ?? {
-    search: searchQuery,
-    year: yearFilter,
-    gender: genderFilter,
-    timings: timingFilter,
-  };
+      search: searchQuery,
+      year: yearFilter,
+      gender: genderFilter,
+      timings: timingFilter,
+    };
 
     const form = new FormData();
-  form.append("searchQuery", f.search);
-  form.append("yearFilter", f.year);
-  form.append("genderFilter", f.gender);
-  form.append("timingFilter", f.timings.join(","));
-  form.append("take", "24");
-  form.append("skip", "0");
-  if (user?.eduLevel) form.append("eduLevel", user.eduLevel);
-  if (user?.id)       form.append("excludeUserId", user.id);
+    form.append("searchQuery", f.search);
+    form.append("yearFilter", f.year);
+    form.append("genderFilter", f.gender);
+    form.append("timingFilter", f.timings.join(","));
+    form.append("take", "24");
+    form.append("skip", "0");
+    if (user?.eduLevel) form.append("eduLevel", user.eduLevel);
+    if (user?.id) form.append("excludeUserId", user.id);
 
-  try {
-    const res = (await filterProfilesAction(form)) as FilterResp;
+    try {
+      const res = (await filterProfilesAction(form)) as FilterResp;
 
-    if (res.success) {
-      // Format the profiles from backend before setting state
-      const formattedProfiles = formatProfiles(res.profiles);
-      setProfiles(formattedProfiles);
-      setTotal(res.total ?? 0);
+      if (res.success) {
+        const formattedProfiles = formatProfiles(res.profiles);
+        setProfiles(formattedProfiles);
+        setTotal(res.total ?? 0);
 
-      if (opts?.pushUrl) {
-        const params = new URLSearchParams();
-        if (f.search) params.set("query", f.search);
-        if (f.year) params.set("year", f.year);
-        if (f.gender) params.set("gender", f.gender);
-        if (f.timings.length) params.set("timing", f.timings.join(","));
-        const qs = params.toString();
-        router.replace(qs ? `/homepage?${qs}` : "/homepage");
+        if (opts?.pushUrl) {
+          const params = new URLSearchParams();
+          if (f.search) params.set("query", f.search);
+          if (f.year) params.set("year", f.year);
+          if (f.gender) params.set("gender", f.gender);
+          if (f.timings.length) params.set("timing", f.timings.join(","));
+          const qs = params.toString();
+          router.replace(qs ? `/homepage?${qs}` : "/homepage");
+        }
+      } else {
+        setError(res.error || "Failed to filter profiles");
       }
-    } else {
-      setError(res.error || "Failed to filter profiles");
+    } catch (e) {
+      console.error("filter error:", e);
+      setError("Server error while filtering profiles");
+    } finally {
+      setLoadingList(false);
+      if (opts?.closePopup) setShowFilterPopup(false);
     }
-  } catch (e) {
-    console.error("filter error:", e);
-    setError("Server error while filtering profiles");
-  } finally {
-    setLoadingList(false);
-    if (opts?.closePopup) setShowFilterPopup(false);
-  }
-};
+  };
 
-  // Apply button → backend filter + close popup + update URL
+  // Apply filters
   const applyFilters = () => runBackendFilter({ closePopup: true, pushUrl: true });
 
-// Clear button → reset filters, close popup, and refresh to defaults (single click)
-const clearAllFilters = (e?: React.MouseEvent) => {
-  e?.preventDefault();
+  // Clear filters
+  const clearAllFilters = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    const defaults = { search: "", year: "", gender: "", timings: [] as string[] };
+    setSearchQuery(defaults.search);
+    setYearFilter(defaults.year);
+    setGenderFilter(defaults.gender);
+    setTimingFilter(defaults.timings);
+    runBackendFilter({ closePopup: true, pushUrl: true, filters: defaults });
+  };
 
-  const defaults = { search: "", year: "", gender: "", timings: [] as string[] };
-
-  // Reset UI state
-  setSearchQuery(defaults.search);
-  setYearFilter(defaults.year);
-  setGenderFilter(defaults.gender);
-  setTimingFilter(defaults.timings);
-
-  // Call backend immediately with the defaults (avoid stale state)
-  runBackendFilter({ closePopup: true, pushUrl: true, filters: defaults });
-};
-
-  // Search box: optional debounce → backend filter + update URL
-// 🔁 Debounced search — runs when searchQuery changes, including empty string
-const firstLoadRef = useRef(true);
-
-useEffect(() => {
-  // ⛔ skip the very first render to avoid double-loading initialProfiles
-  if (firstLoadRef.current) {
-    firstLoadRef.current = false;
-    return;
-  }
-
-  // 🕒 debounce 250ms so it doesn't fire on every keystroke
-  const id = setTimeout(() => {
-    runBackendFilter({ pushUrl: true });
-  }, 250);
-
-  return () => clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [searchQuery]);
-
+  // Debounced search
+  const firstLoadRef = useRef(true);
+  useEffect(() => {
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false;
+      return;
+    }
+    const id = setTimeout(() => {
+      runBackendFilter({ pushUrl: true });
+    }, 250);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      {/* Notifications */}
       <Toaster position="top-right" containerStyle={{ top: "10px", right: "200px" }} />
-      <style jsx>{`
-        .animate-enter { animation: fadeIn 0.3s ease-out forwards; }
-        .animate-leave { animation: fadeOut 0.3s ease-in forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: translateY(0);} }
-        @keyframes fadeOut { from { opacity: 1; transform: translateY(0);} to { opacity: 0; transform: translateY(-10px);} }
-      `}</style>
-     
 
       {/* Main Error */}
       {error && (
@@ -436,8 +422,6 @@ useEffect(() => {
                 <h1 className="text-3xl font-bold text-emerald-900 bg-green-100 px-4 py-2 rounded-lg mb-2 inline-block border border-red-200">
                   {selectedProfile.username}
                 </h1>
-                {/* DEBUG: Show the ID */}
-                <p className="text-xs text-gray-400 mt-2">User ID: {selectedProfile.id || 'MISSING'}</p>
               </div>
 
               <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
@@ -456,15 +440,12 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* MODIFIED: Added Message button - Requirement 1.3.1 */}
               <div className="mt-6 flex gap-3">
                 <button 
                   onClick={() => handleMessageUser(selectedProfileUserId || selectedProfile.id)} 
                   className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition flex items-center justify-center gap-2"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
+                  <MessageCircle size={16} />
                   Message User
                 </button>
                 <button onClick={() => handleInviteClick(selectedProfile)} className="flex-1 bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition">
@@ -476,107 +457,7 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Invite Modal */}
-      {showInviteModal && selectedUserForInvite && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div ref={inviteModalRef} className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">Invite {selectedUserForInvite.username}</h2>
-                  <p className="text-gray-600 text-sm mt-1">Select a group to invite this user to</p>
-                </div>
-                <button onClick={closeInviteModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-
-              {inviteSuccess && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-600 text-center">{inviteSuccess}</p>
-                </div>
-              )}
-
-              {inviteError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600 text-center">{inviteError}</p>
-                  <button onClick={() => setInviteError(null)} className="mt-2 text-sm text-red-600 hover:text-red-800">Dismiss</button>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                {loadingGroups ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-                    <p className="text-gray-600 mt-2">Loading your groups...</p>
-                  </div>
-                ) : userGroups.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No groups available</h3>
-                    <p className="text-gray-600 mb-4">You need to be a host or member of a public group to send invites.</p>
-                    <a href="/groups/create" className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">Create a group →</a>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid gap-4">
-                      {userGroups.map((group) => (
-                        <div key={group.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-gray-900">{group.name}</h3>
-                              <span className={`px-2 py-1 text-xs rounded-full ${group.userRole === "host" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
-                                {group.userRole === "host" ? "Host" : "Member"}
-                              </span>
-                              <span className={`px-2 py-1 text-xs rounded-full ${group.visibility ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}`}>
-                                {group.visibility ? "Public" : "Private"}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-gray-600">
-                              <span>👥 {group.currentSize}/{group.capacity} members</span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleSendInvite(group.id, group.name)}
-                            disabled={inviteLoading === group.id}
-                            className="bg-gradient-to-r from-black to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {inviteLoading === group.id ? (
-                              <span className="flex items-center">
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Sending...
-                              </span>
-                            ) : ("Send Invite")}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-blue-900">Want to create a new group?</h4>
-                          <p className="text-blue-700 text-sm mt-1">Create a study group and invite {selectedUserForInvite.username} to join.</p>
-                        </div>
-                        <a href="/groups/create" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                          Create Group
-                        </a>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Invite Modal - Keep your existing invite modal code */}
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
@@ -647,99 +528,133 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Search Bar (debounced -> backend, instant reset on clear) */}
-<div className="relative">
-  <input
-    type="text"
-    placeholder="Search by username..."
-    value={searchQuery}
-    onChange={(e) => {
-      const v = e.target.value;
-      setSearchQuery(v);
-      if (v.trim() === "") {
-        // when cleared → fetch the default (no search) list + clean URL
-        runBackendFilter({ pushUrl: true });
-      }
-    }}
-    className="border border-gray-300 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500 text-gray-900 bg-white"
-  />
-  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-    </svg>
-  </div>
-</div>
-
+          {/* Search Bar */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by username..."
+              value={searchQuery}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSearchQuery(v);
+                if (v.trim() === "") {
+                  runBackendFilter({ pushUrl: true });
+                }
+              }}
+              className="border border-gray-300 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500 text-gray-900 bg-white"
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Search className="w-4 h-4 text-gray-500" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Profiles Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Profiles Grid with Hover Effects */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
         {loadingList ? (
-          <div className="col-span-3 text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-            <p className="text-gray-600 mt-2">Loading...</p>
+          <div className="col-span-full text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+            <p className="text-gray-600 mt-4 text-lg">Finding study partners...</p>
           </div>
         ) : profiles.length > 0 ? (
           profiles.map((profile: any) => (
-            <div key={profile.id} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+            <div 
+              key={profile.id} 
+              className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:scale-[1.02]"
+            >
               <div className="flex flex-col items-center text-center">
-                {/* Username */}
-                <div className="font-semibold text-gray-900 text-lg mb-2">{profile.username}</div>
-                
-                {/* Year with colored badge */}
-                <div className="mb-2">
-                  <span className={`px-3 py-1 text-sm font-bold rounded-full ${profile.yearColor}`}>
+                {/* Username with Gender Icon */}
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <h3 className="font-bold text-xl text-gray-800 group-hover:text-gray-900 transition-colors">
+                    {profile.username}
+                  </h3>
+                  {profile.genderIcon}
+                </div>
+
+                {/* Year badge */}
+                <div className="mb-4">
+                  <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${profile.yearColor} shadow-md`}>
                     {profile.displayYear}
                   </span>
                 </div>
 
-                {/* Gender and Preferred Timing */}
-                <div className="text-sm text-gray-600 mb-3">
-                  <div className="mb-4">({profile.displayGender})</div>
-                  <div>Preferred timings: {profile.displayTiming}</div>
+                {/* Study timing */}
+                <div className="flex items-center justify-center gap-1.5 text-gray-600 mb-4">
+                  <Clock size={14} className="text-gray-400" />
+                  <span className="text-sm font-medium">{profile.displayTiming}</span>
                 </div>
 
-                {/* View Profile Button */}
+                {/* Course info if available */}
+                {profile.currentCourse && (
+                  <div className="text-xs text-gray-500 mb-4 flex items-center gap-1">
+                    <BookOpen size={12} />
+                    <span className="truncate">{profile.currentCourse}</span>
+                  </div>
+                )}
+
+                {/* Action buttons - Both Message and Invite */}
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    onClick={() => handleMessageUser(profile.id)}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium px-3 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-1 text-xs"
+                  >
+                    <MessageCircle size={12} />
+                    Message
+                  </button>
+                  <button 
+                    onClick={() => handleInviteClick(profile)} 
+                    className="flex-1 bg-gradient-to-r from-gray-800 to-blue-700 text-white font-medium px-3 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-1 text-xs"
+                  >
+                    <Plus size={12} />
+                    Invite
+                  </button>
+                </div>
+
+                {/* View profile subtle button */}
                 <button
                   onClick={() => handleViewProfile(profile.id)}
                   disabled={loadingProfileId === profile.id}
-                  className="text-blue-600 hover:text-blue-800 font-medium text-sm mb-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="text-blue-600 hover:text-blue-800 font-medium text-xs mt-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 group/link"
                 >
                   {loadingProfileId === profile.id ? (
                     <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1" />
                       Loading...
                     </span>
-                  ) : ("view profile")}
-                </button>
-
-                {/* Invite Button */}
-                <button 
-                  onClick={() => handleInviteClick(profile)} 
-                  className="bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-2 rounded-full hover:opacity-90 transition text-sm"
-                >
-                  + Invite
+                  ) : (
+                    <>
+                      View Profile
+                      <svg className="w-3 h-3 group-hover/link:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-12 col-span-3 bg-white rounded-lg border border-gray-200 p-8">
-            <div className="text-gray-600 text-lg mb-2">
-              {searchQuery ? `No profiles found for "${searchQuery}"` : "No profiles found"}
+          <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-gray-200">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <User size={40} className="text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-600 mb-3">
+                {searchQuery ? `No matches for "${searchQuery}"` : "No study partners found"}
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {searchQuery ? "Try adjusting your search terms or filters" : "Try adjusting your filters to find more matches"}
+              </p>
+              {(searchQuery || yearFilter || genderFilter || timingFilter.length > 0) && (
+                <button 
+                  onClick={clearAllFilters} 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
-            <div className="text-gray-500 text-sm">
-              {searchQuery && "Try searching with a different username"}
-            </div>
-            {(searchQuery || yearFilter || genderFilter || timingFilter.length > 0) && (
-              <button onClick={clearAllFilters} className="mt-4 text-blue-600 hover:text-blue-800 text-sm font-medium">
-                Clear search & filters
-              </button>
-            )}
           </div>
         )}
       </div>

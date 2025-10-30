@@ -99,6 +99,7 @@ async function getProfiles(currentUserId: string, timingFilter?: string[]): Prom
     where: {
       NOT: { id: currentUserId },
       eduLevel: currentUser.eduLevel,
+      status:'ACTIVE',
       ...timingOR,
     },
     select: {
