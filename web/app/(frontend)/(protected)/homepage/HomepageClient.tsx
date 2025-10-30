@@ -172,6 +172,29 @@ export default function HomepageClient({
   const profileModalRef = useRef<HTMLDivElement>(null);
   const inviteModalRef = useRef<HTMLDivElement>(null);
 
+  //
+  // const [currentIndex, setCurrentIndex] = useState(0);
+
+  // useEffect(() => {
+  //   console.log(messages)
+  //   console.log("Use Effect Notification")
+
+  // Commented out as it is will run twice in dev mode
+  //   messages.forEach((msg, i) => {
+  //     setTimeout(() => {
+  //       toast.custom((t) => (
+  //         <div
+  //           className={`${
+  //             t.visible ? "animate-enter" : "animate-leave"
+  //           } bg-white text-gray-900 shadow-lg rounded-lg p-4 flex flex-col gap-2 w-72 border`}
+  //         >
+  //           <span>{msg}</span>
+  //         </div>
+  //       ));
+  //     }, i * 500); // delay between each toast
+  //   });
+  // }, []);
+
   // Close modals when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
