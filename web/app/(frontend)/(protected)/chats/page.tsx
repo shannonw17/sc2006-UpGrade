@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/requireUser";
 import ChatInterface from "./chatInterface";
-import { viewAllChats, getAllChatsUsers } from "@/app/(backend)/ChatController/chatActions";
+import { viewAllChats, getAllChatsUsers } from "./chatHelpers"; // ← Changed import
 
 export default async function ChatsPage() {
   const user = await requireUser();

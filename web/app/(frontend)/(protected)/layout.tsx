@@ -1,4 +1,3 @@
-// app/(frontend)/(protected)/layout.tsx
 import { readSession, readAdminSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/db";
@@ -20,25 +19,14 @@ async function getUnreadNotificationCount(userId: string) {
   }
 }
 
-// Function to get unread message count - only counts OTHER people's messages
+// Function to get unread message count - counts UNREAD messages sent TO the user
 async function getUnreadMessageCount(userId: string) {
   try {
-    // Count unread messages where:
-    // 1. The user is in the chat (user1 or user2)
-    // 2. The message was NOT sent by the user
-    // 3. The message is unread (read = false)
+    // Count messages where the current user is the receiver AND isRead is false
     const unreadCount = await prisma.message.count({
       where: {
-        chat: {
-          OR: [
-            { user1Id: userId },
-            { user2Id: userId }
-          ]
-        },
-        senderId: {
-          not: userId  // Exclude messages sent by the current user
-        },
-        read: false  // Only unread messages
+        receiverId: userId,
+        isRead: false,  // Only count unread messages
       }
     });
     

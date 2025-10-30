@@ -8,7 +8,7 @@ interface User {
   id: string;
   username: string;
   email: string;
-  isOnline?: boolean; // Add online status to user interface
+  isOnline?: boolean;
 }
 
 interface Message {
@@ -16,7 +16,7 @@ interface Message {
   content: string;
   senderId: string;
   createdAt: Date;
-  status?: 'sent' | 'delivered' | 'read'; // Add message status
+  status?: 'sent' | 'delivered' | 'read';
   sender: {
     id: string;
     username: string;
@@ -29,10 +29,10 @@ interface Chat {
   lastMessage: {
     content: string;
     createdAt: Date;
-    senderId?: string; // Add senderId to determine if it's your message
-    status?: 'sent' | 'delivered' | 'read'; // Add status for last message
+    senderId?: string;
+    status?: 'sent' | 'delivered' | 'read';
   } | null;
-  unreadCount?: number; // Add unread count for each chat
+  unreadCount?: number;
 }
 
 interface ChatInterfaceProps {
@@ -56,7 +56,39 @@ export default function ChatInterface({
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Reload chats when component mounts to get fresh unread counts
+  useEffect(() => {
+    const loadFreshChats = async () => {
+      try {
+        const { viewAllChats } = await import("./chatHelpers");
+        const freshChats = await viewAllChats();
+        setChats(freshChats);
+      } catch (error) {
+        console.error("Error loading chats:", error);
+      }
+    };
+    
+    loadFreshChats();
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Update chats when initialChats prop changes (e.g., after navigation)
+  useEffect(() => {
+    setChats(initialChats || []);
+  }, [initialChats]);
+
+  // Function to reload chat list with updated counts
+  const reloadChats = async () => {
+    try {
+      const { viewAllChats } = await import("./chatHelpers");
+      const updatedChats = await viewAllChats();
+      setChats(updatedChats);
+    } catch (error) {
+      console.error("Error reloading chats:", error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,17 +110,31 @@ export default function ChatInterface({
     const chat = chats.find((c) => c.chatId === chatId);
     if (chat) {
       setSelectedUser(chat.otherUser);
+      
+      // Immediately clear the unread count in local state
+      setChats(prevChats => 
+        prevChats.map(c => 
+          c.chatId === chatId 
+            ? { ...c, unreadCount: undefined }
+            : c
+        )
+      );
     }
 
     try {
-      const { viewSelectedChat, markMessagesAsRead } = await import("@/app/(backend)/ChatController/chatActions");
+      const { viewSelectedChat, markMessagesAsRead } = await import("./chatHelpers");
+      
+      // Load messages
       const chatData = await viewSelectedChat(chatId);
       setMessages(chatData.messages);
       
-      // Mark all messages in this chat as read
+      // Mark messages as read in database
       await markMessagesAsRead(chatId);
       
-      // Refresh to update the badge count instantly
+      // Reload chat list to get updated unread counts
+      await reloadChats();
+      
+      // Refresh the page data from server (this updates sidebar counts)
       router.refresh();
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -107,12 +153,20 @@ export default function ChatInterface({
     }
 
     try {
-      const { createOrGetChat } = await import("@/app/(backend)/ChatController/chatActions");
+      const { createOrGetChat } = await import("./chatHelpers");
       const chatId = await createOrGetChat(user.id);
+      
+      const newChat: Chat = {
+        chatId: chatId,
+        otherUser: user,
+        lastMessage: null,
+        unreadCount: 0,
+      };
+      
+      setChats([newChat, ...chats]);
       setSelectedChatId(chatId);
       setSelectedUser(user);
       setMessages([]);
-      window.location.reload();
     } catch (error) {
       console.error("Error creating chat:", error);
       alert("Failed to create chat");
@@ -129,18 +183,16 @@ export default function ChatInterface({
       content: messageContent,
       senderId: currentUserId,
       createdAt: new Date(),
-      status: 'sent', // Initially set to sent
+      status: 'sent',
       sender: {
         id: currentUserId,
         username: currentUsername,
       },
     };
 
-    // Add message optimistically to UI
     setMessages([...messages, newMessage]);
     setMessageInput("");
 
-    // Update chat list with new last message
     setChats(prevChats => 
       prevChats.map(chat => 
         chat.chatId === selectedChatId
@@ -158,10 +210,9 @@ export default function ChatInterface({
     );
 
     try {
-      const { sendMessage } = await import("@/app/(backend)/ChatController/chatActions");
+      const { sendMessage } = await import("./chatHelpers");
       await sendMessage(selectedChatId, messageContent);
       
-      // After successful send, update the message status to delivered
       setMessages(prevMessages => 
         prevMessages.map(msg => 
           msg.id === tempMessageId 
@@ -170,7 +221,6 @@ export default function ChatInterface({
         )
       );
 
-      // Update chat list status to delivered
       setChats(prevChats => 
         prevChats.map(chat => 
           chat.chatId === selectedChatId && chat.lastMessage
@@ -187,10 +237,8 @@ export default function ChatInterface({
     } catch (error) {
       console.error("Error sending message:", error);
       alert("Failed to send message");
-      // Remove the failed message from UI
       setMessages(prevMessages => prevMessages.filter(msg => msg.id !== tempMessageId));
       
-      // Revert chat list update
       setChats(prevChats => 
         prevChats.map(chat => 
           chat.chatId === selectedChatId
@@ -201,13 +249,44 @@ export default function ChatInterface({
                       content: messages[messages.length - 1].content,
                       createdAt: messages[messages.length - 1].createdAt,
                       senderId: messages[messages.length - 1].senderId,
-                      status: (messages[messages.length - 1] as Message).status,
+                      status: messages[messages.length - 1].status,
                     }
                   : null
               }
             : chat
         )
       );
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const { deleteMessage } = await import("./chatHelpers");
+      await deleteMessage(messageId);
+      setMessages(messages.filter((msg) => msg.id !== messageId));
+      setMessageToDelete(null);
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      alert("Failed to delete message");
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!selectedChatId) return;
+    if (!confirm("Are you sure you want to delete this entire chat? This action cannot be undone.")) return;
+
+    try {
+      const { deleteChat } = await import("./chatHelpers");
+      await deleteChat(selectedChatId);
+      setChats(chats.filter((c) => c.chatId !== selectedChatId));
+      setSelectedChatId(null);
+      setMessages([]);
+      setSelectedUser(null);
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      alert("Failed to delete chat");
     }
   };
 
@@ -218,204 +297,185 @@ export default function ChatInterface({
     }
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm("Delete this message?")) return;
-
-    try {
-      const { deleteMessage } = await import("@/app/(backend)/ChatController/chatActions");
-      await deleteMessage(messageId);
-      setMessages(messages.filter((m) => m.id !== messageId));
-    } catch (error) {
-      console.error("Error deleting message:", error);
-      alert("Failed to delete message");
-    }
-  };
-
-  const handleDeleteChat = async () => {
-    if (!selectedChatId || !confirm("Delete this entire chat?")) return;
-
-    try {
-      const { deleteChat } = await import("@/app/(backend)/ChatController/chatActions");
-      await deleteChat(selectedChatId);
-      setSelectedChatId(null);
-      setSelectedUser(null);
-      setMessages([]);
-      setChats(chats.filter((c) => c.chatId !== selectedChatId));
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      alert("Failed to delete chat");
-    }
-  };
-
   const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString([], {
+    return new Date(date).toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
   const formatLastMessageTime = (date: Date) => {
-    const messageDate = new Date(date);
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - messageDate.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) {
-      return "now";
-    } else if (diffInMinutes < 60) {
-      return `${diffInMinutes}m`;
-    } else if (diffInMinutes < 1440) { // Less than 24 hours
-      const hours = Math.floor(diffInMinutes / 60);
-      return `${hours}h`;
+    const messageDate = new Date(date);
+    const diffInHours = Math.floor((now.getTime() - messageDate.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 24) {
+      return formatTime(date);
+    } else if (diffInHours < 48) {
+      return "Yesterday";
     } else {
-      const days = Math.floor(diffInMinutes / 1440);
-      return `${days}d`;
+      return messageDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
     }
   };
 
-  // Check if timestamp should be shown (5-minute interval or different sender)
-  // Show timestamp if: next message is from different sender OR 5+ minutes gap OR it's the last message
-  const shouldShowTimestamp = (currentMessage: Message, nextMessage: Message | null, previousMessage: Message | null): boolean => {
-    // Always show if it's the last message
+  const shouldShowTimestamp = (
+    currentMessage: Message,
+    nextMessage: Message | null,
+    previousMessage: Message | null
+  ) => {
     if (!nextMessage) return true;
     
-    // Show if next message is from different sender
     if (currentMessage.senderId !== nextMessage.senderId) return true;
     
-    // Show if 5+ minutes until next message
-    const currentTime = new Date(currentMessage.createdAt).getTime();
-    const nextTime = new Date(nextMessage.createdAt).getTime();
-    const diffInMinutes = (nextTime - currentTime) / (1000 * 60);
+    const timeDiff = new Date(nextMessage.createdAt).getTime() - new Date(currentMessage.createdAt).getTime();
+    const fiveMinutes = 5 * 60 * 1000;
     
-    return diffInMinutes >= 5;
+    return timeDiff > fiveMinutes;
   };
 
-  // Render message status indicator
   const renderMessageStatus = (status?: 'sent' | 'delivered' | 'read') => {
-    if (!status) return null;
-
-    if (status === 'sent') {
-      return <Check size={14} className="text-gray-400" />;
-    }
-    
-    if (status === 'delivered') {
-      return <CheckCheck size={14} className="text-gray-400" />;
-    }
-    
-    if (status === 'read') {
-      return <CheckCheck size={14} className="text-blue-500" />;
+    switch (status) {
+      case 'sent':
+        return <Check size={14} className="text-gray-400" />;
+      case 'delivered':
+        return <CheckCheck size={14} className="text-gray-400" />;
+      case 'read':
+        return <CheckCheck size={14} className="text-blue-500" />;
+      default:
+        return null;
     }
   };
 
   return (
-    <div className="flex h-full bg-white border border-gray-300">
-      {/* Sidebar */}
-      <div className="w-80 bg-gray-50 border-r border-gray-300 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-300 bg-gray-100">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-lg font-semibold text-gray-800">Messages</h1>
+    <div className="flex h-full bg-white shadow-xl rounded-lg overflow-hidden border border-gray-300">
+      {/* Delete Message Confirmation Modal */}
+      {messageToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete this message?</h3>
+            <p className="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setMessageToDelete(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteMessage(messageToDelete)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Sidebar */}
+      <div className="w-80 border-r border-gray-300 flex flex-col bg-gray-50">
+        {/* Search Bar */}
+        <div className="p-3 border-b border-gray-300 bg-white">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setIsSearching(true);
               }}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 bg-white text-sm focus:outline-none focus:border-blue-500"
+              onFocus={() => setIsSearching(true)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500 text-sm"
             />
           </div>
         </div>
 
-        {/* Chat List */}
+        {/* Chat/User List */}
         <div className="flex-1 overflow-y-auto">
           {isSearching && searchQuery ? (
             <div className="p-2">
-              <div className="text-xs font-medium text-gray-500 px-2 py-1">USERS</div>
+              <div className="text-xs font-semibold text-gray-500 px-3 py-2">SEARCH RESULTS</div>
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <button
                     key={user.id}
                     onClick={() => handleSelectUser(user)}
-                    className="w-full p-3 hover:bg-gray-200 text-left transition-colors flex items-center gap-3"
+                    className="w-full p-3 hover:bg-gray-100 transition-colors flex items-center gap-3 border-b border-gray-200"
                   >
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-800 text-sm truncate">
-                        {user.username}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-gray-800 text-sm">{user.username}</div>
+                      <div className="text-xs text-gray-500">{user.email}</div>
                     </div>
                   </button>
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                  <User size={32} className="mb-2 opacity-50" />
-                  <p className="text-sm">No users found</p>
+                <div className="p-4 text-center text-gray-400 text-sm">
+                  No users found
                 </div>
               )}
             </div>
           ) : (
-            <div className="p-0">
+            <div className="p-2">
+              <div className="text-xs font-semibold text-gray-500 px-3 py-2">MESSAGES</div>
               {chats.length > 0 ? (
                 chats.map((chat) => (
                   <button
                     key={chat.chatId}
                     onClick={() => handleSelectChat(chat.chatId)}
-                    className={`w-full p-3 text-left transition-colors flex items-center gap-3 border-b border-gray-200 relative ${
+                    className={`relative w-full p-3 transition-colors flex items-start gap-3 border-b border-gray-200 ${
                       selectedChatId === chat.chatId
-                        ? "bg-blue-50 border-r-2 border-blue-500"
-                        : "hover:bg-gray-200"
+                        ? "bg-blue-50 border-l-4 border-l-blue-500"
+                        : "hover:bg-gray-100"
                     }`}
                   >
-                    <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
                         {chat.otherUser.username.charAt(0).toUpperCase()}
                       </div>
-                      {/* Online status indicator - only show if user is actually online */}
                       {chat.otherUser.isOnline && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                       )}
                     </div>
+                    
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="font-medium text-gray-800 text-sm truncate">
+                      {/* First row: Name and Time on same line */}
+                      <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <span className="font-medium text-gray-800 text-sm truncate">
                           {chat.otherUser.username}
-                        </div>
+                        </span>
                         {chat.lastMessage && (
-                          <div className="text-xs text-gray-400 flex items-center gap-1">
-                            {/* Show status indicator if it's your message, otherwise show time */}
-                            {chat.lastMessage.senderId === currentUserId ? (
-                              <>
-                                {renderMessageStatus(chat.lastMessage.status)}
-                                <span className="ml-1">{formatLastMessageTime(chat.lastMessage.createdAt)}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock size={10} />
-                                {formatLastMessageTime(chat.lastMessage.createdAt)}
-                              </>
-                            )}
+                          <div className="flex items-center gap-1 text-xs text-gray-400 flex-shrink-0 whitespace-nowrap">
+                            {/* Show status checks if the last message was sent by current user */}
+                            {chat.lastMessage.senderId === currentUserId && renderMessageStatus(chat.lastMessage.status)}
+                            <span>{formatLastMessageTime(chat.lastMessage.createdAt)}</span>
                           </div>
                         )}
                       </div>
+                      
+                      {/* Second row: Message preview and Badge on same line */}
                       {chat.lastMessage && (
-                        <div className="text-xs text-gray-500 truncate">
-                          {chat.lastMessage.content}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-gray-500 truncate">
+                            {chat.lastMessage.content}
+                          </span>
+                          
+                          {/* Unread count badge - only show if count > 0 */}
+                          {(chat.unreadCount || 0) > 0 && (
+                            <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold rounded-full px-1.5 bg-red-500 text-white flex-shrink-0">
+                              {chat.unreadCount! > 99 ? '99+' : chat.unreadCount}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
-                    {/* Unread count badge for this specific chat */}
-                    {chat.unreadCount && chat.unreadCount > 0 && (
-                      <div className="absolute top-2 right-2 flex items-center justify-center min-w-5 h-5 text-xs font-bold rounded-full px-1.5 bg-red-500 text-white shadow-md">
-                        {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-                      </div>
-                    )}
                   </button>
                 ))
               ) : (
@@ -441,14 +501,12 @@ export default function ChatInterface({
                   <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
                     {selectedUser.username.charAt(0).toUpperCase()}
                   </div>
-                  {/* Online status indicator in header */}
                   {selectedUser.isOnline && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                   )}
                 </div>
                 <div>
                   <h2 className="font-semibold text-gray-800 text-sm">{selectedUser.username}</h2>
-                  {/* Only show online status if user is actually online */}
                   {selectedUser.isOnline && (
                     <p className="text-xs text-green-600">online</p>
                   )}
@@ -499,31 +557,21 @@ export default function ChatInterface({
                             </div>
                           )}
                           <div
+                            onDoubleClick={() => isOwn && setMessageToDelete(message.id)}
                             className={`px-4 py-2 rounded-2xl max-w-full ${
                               isOwn
-                                ? "bg-blue-500 text-white rounded-br-md"
+                                ? "bg-blue-500 text-white rounded-br-md cursor-pointer"
                                 : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
                             }`}
                           >
                             <p className="text-sm leading-relaxed break-words">{message.content}</p>
                           </div>
-                          {/* Only show timestamp/status if it's the last in a group or 5 minutes gap */}
                           {showTimestamp && (
                             <div className="flex items-center gap-2 mt-0.5 px-2">
                               <span className="text-xs text-gray-500">
                                 {formatTime(message.createdAt)}
                               </span>
-                              {isOwn && (
-                                <>
-                                  {renderMessageStatus(message.status)}
-                                  <button
-                                    onClick={() => handleDeleteMessage(message.id)}
-                                    className="text-xs text-gray-400 hover:text-red-600 transition-colors ml-1"
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )}
+                              {isOwn && renderMessageStatus(message.status)}
                             </div>
                           )}
                         </div>
