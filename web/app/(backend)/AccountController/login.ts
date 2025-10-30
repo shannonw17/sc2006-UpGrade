@@ -51,6 +51,10 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
     if (!user) return { error: "Invalid username/email or password.", identifier: raw };
 
+    if (user.status === "BANNED") {
+      redirect("/banned");
+    }
+
     if (user.status !== "ACTIVE") {
       return { 
         error: "Please verify your email before logging in. Check your email for the verification code.",
