@@ -1,8 +1,11 @@
+// app/(frontend)/(protected)/groups/[id]/page.tsx
 import prisma from "@/lib/db";
 import Link from "next/link";
 import { requireUser } from "@/lib/requireUser";
 import { DeleteButton } from "./DeleteButton";
 import { ArrowLeft } from "lucide-react";
+import { MessageHostButton } from "./MessageHostButton";
+import { MessageMemberButton } from "./MessageMemberButton";
 
 interface GroupPageProps {
   params: Promise<{ id: string }>;
@@ -17,7 +20,7 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
     prisma.group.findUnique({
       where: { id },
       include: { 
-        host: { select: { username: true } },
+        host: { select: { username: true, id: true } },
         members: {
           include: {
             user: {
@@ -125,6 +128,13 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
           </div>
         </div>
 
+        {/* NEW: Message Host Button - Requirement 1.1.2 (for non-hosts viewing public groups) */}
+        {!isHost && group.visibility && (
+          <div className="mb-6 flex justify-center">
+            <MessageHostButton hostId={group.hostId} />
+          </div>
+        )}
+
         {/* Group Details Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="grid gap-4">
@@ -176,9 +186,16 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
                     </div>
                   </div>
                   
-                  {member.isHost && (
-                    <span className="text-sm text-gray-500 font-medium">Creator</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {member.isHost && !isHost && (
+                      <span className="text-sm text-gray-500 font-medium">Creator</span>
+                    )}
+                    
+                    {/* NEW: Message Member Button - Requirement 1.2.1 (for hosts) */}
+                    {isHost && !member.isHost && member.id !== user.id && (
+                      <MessageMemberButton memberId={member.id} memberName={member.username} />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

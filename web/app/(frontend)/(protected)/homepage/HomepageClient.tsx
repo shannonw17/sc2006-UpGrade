@@ -74,6 +74,7 @@ export default function HomepageClient({
   const [loadingProfileId, setLoadingProfileId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null); // NEW: Store userId separately
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Invite states
@@ -110,6 +111,7 @@ export default function HomepageClient({
   // Backend: view profile
   const handleViewProfile = async (targetUserId: string) => {
     setLoadingProfileId(targetUserId);
+    setSelectedProfileUserId(targetUserId); // NEW: Store userId separately
     setError(null);
     try {
       const result = await viewOtherProfile(targetUserId);
@@ -195,6 +197,22 @@ export default function HomepageClient({
     setInviteSuccess(null);
     setInviteError(null);
     setUserGroups([]);
+  };
+
+  // NEW: Message user function - Requirement 1.3.1
+  const handleMessageUser = (userId: string) => {
+    console.log('handleMessageUser called with userId:', userId);
+    
+    if (!userId) {
+      console.error('Invalid userId - value is:', userId);
+      setError('Invalid user ID');
+      return;
+    }
+    
+    // Navigate to chats page with userId
+    // The chat interface will handle creating a new conversation or opening existing one
+    console.log('Navigating to chats with userId:', userId);
+    router.push(`/chats?newChatWith=${userId}`);
   };
 
   // Timing options (unchanged)
@@ -296,7 +314,7 @@ useEffect(() => {
     return;
   }
 
-  // 🕒 debounce 250ms so it doesn’t fire on every keystroke
+  // 🕒 debounce 250ms so it doesn't fire on every keystroke
   const id = setTimeout(() => {
     runBackendFilter({ pushUrl: true });
   }, 250);
@@ -348,6 +366,8 @@ useEffect(() => {
                 <h1 className="text-3xl font-bold text-emerald-900 bg-green-100 px-4 py-2 rounded-lg mb-2 inline-block border border-red-200">
                   {selectedProfile.username}
                 </h1>
+                {/* DEBUG: Show the ID */}
+                <p className="text-xs text-gray-400 mt-2">User ID: {selectedProfile.id || 'MISSING'}</p>
               </div>
 
               <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
@@ -366,7 +386,17 @@ useEffect(() => {
                 </div>
               </div>
 
+              {/* MODIFIED: Added Message button - Requirement 1.3.1 */}
               <div className="mt-6 flex gap-3">
+                <button 
+                  onClick={() => handleMessageUser(selectedProfileUserId || selectedProfile.id)} 
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition flex items-center justify-center gap-2"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Message User
+                </button>
                 <button onClick={() => handleInviteClick(selectedProfile)} className="flex-1 bg-gradient-to-r from-black to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:opacity-90 transition">
                   + Invite to Study
                 </button>
@@ -590,13 +620,6 @@ useEffect(() => {
                     {profile.yearOfStudy /* server returns the field we actually store */}
                   </span>
                 </div>
-                {/* <div className="text-gray-600 mb-3">({profile.gender})</div> */}
-
-                {/* {profile.preferredTiming && (
-                  <div className="text-gray-500 text-xs mb-3">
-                    Preferred: {Array.isArray(profile.preferredTiming) ? profile.preferredTiming.join(", ") : profile.preferredTiming}
-                  </div>
-                )} */}
 
                 <button
                   onClick={() => handleViewProfile(profile.id)}

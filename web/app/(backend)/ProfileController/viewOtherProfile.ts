@@ -79,6 +79,7 @@ export async function viewOtherProfile(targetUserId: string) {
     return {
       success: true,
       profile: {
+        id: targetUser.id, // ✅ ADDED THIS LINE!
         username: targetUser.username,
         email: targetUser.email,
         eduLevel: eduLevelMap[targetUser.eduLevel] || targetUser.eduLevel,
@@ -101,5 +102,3 @@ export async function viewOtherProfile(targetUserId: string) {
     };
   }
 }
-
- 

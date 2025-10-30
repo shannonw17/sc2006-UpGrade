@@ -20,23 +20,21 @@ export default async function GroupPage({ searchParams }: PageProps) {
 
   const sp = await searchParams;
   
-  // Handle tab parameter directly without normalizeFilters interference
-  const rawTab = sp?.tab;
-  const validTabs = ["all", "mine", "joined"] as const;
-  type TabType = typeof validTabs[number];
+  // Handle tab parameter directly
+  const rawTab = sp?.tab as string | undefined;
   
-  let tab: TabType = "all";
-  if (rawTab && validTabs.includes(rawTab as TabType)) {
-    tab = rawTab as TabType;
+  let tab: "all" | "mine" | "joined" = "all";
+  if (rawTab === "all" || rawTab === "mine" || rawTab === "joined") {
+    tab = rawTab;
   } else {
     redirect("/groups?tab=all");
   }
 
-  // Use normalizeFilters for other filters but preserve the tab
+  // Use normalizeFilters for other filters
   const filters = normalizeFilters(sp);
   
-  // Override the tab in filters with our directly handled tab
-  const finalFilters = { ...filters, tab };
+  // Don't add tab to filters - pass it separately
+  // const finalFilters = { ...filters, tab }; // REMOVED
 
   // Pass user's education level to the filter function
   const {
@@ -44,7 +42,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
     myCreatedGroups,
     joinedGroups: justJoinedNotCreated,
     joinedSet,
-  } = await fetchGroupsWithFilters(CURRENT_USER_ID, finalFilters, user.eduLevel);
+  } = await fetchGroupsWithFilters(CURRENT_USER_ID, filters, user.eduLevel);
 
   // If joinedGroups is empty, fetch them manually with education level filter
   let joinedGroups = justJoinedNotCreated;
@@ -76,7 +74,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
     });
   }
 
-  const hasActiveFilters = filters.q || filters.from || filters.to || filters.location || filters.open;
+  const hasActiveFilters = !!(filters.q || (filters as any).from || (filters as any).to || (filters as any).location || (filters as any).open);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">

@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/requireUser";
 import { acceptInvite } from "@/app/(backend)/InvitationController/acceptInvite";
 import { rejectInvite } from "@/app/(backend)/InvitationController/rejectInvite";
 import Link from "next/link";
+import { MessageHostLink } from "./MessageHostLink";
 
 type PageProps = {
   searchParams?: Promise<{ 
@@ -130,7 +131,8 @@ export default async function InboxPage(props: PageProps) {
             location: true, 
             capacity: true, 
             currentSize: true, 
-            isClosed: true 
+            isClosed: true,
+            hostId: true  // Added to get host ID for messaging
           } 
         },
         sender: { select: { id: true, username: true } },
@@ -415,6 +417,8 @@ export default async function InboxPage(props: PageProps) {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                               </Link>
+                              {/* NEW: Message Host Button - Requirement 1.1.1 */}
+                              <MessageHostLink hostId={invite.group.hostId} />
                             </div>
                           </div>
                         </div>

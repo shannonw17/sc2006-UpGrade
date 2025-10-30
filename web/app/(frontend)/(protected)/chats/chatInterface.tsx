@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Send, Trash2, Clock, User, MessageSquare, Check, CheckCheck } from "lucide-react";
 
 interface User {
@@ -40,6 +40,8 @@ interface ChatInterfaceProps {
   currentUsername?: string;
   existingChats?: Chat[];
   availableUsers?: User[];
+  initialChatToOpen?: string; // chatId to automatically open
+  initialUserToChat?: string; // userId to start new chat with
 }
 
 export default function ChatInterface({
@@ -47,8 +49,11 @@ export default function ChatInterface({
   currentUsername = "Demo User",
   existingChats: initialChats = [],
   availableUsers = [],
+  initialChatToOpen, // NEW
+  initialUserToChat, // NEW - userId to start chat with
 }: ChatInterfaceProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [chats, setChats] = useState<Chat[]>(initialChats || []);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -58,6 +63,74 @@ export default function ChatInterface({
   const [isSearching, setIsSearching] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasAutoOpenedRef = useRef(false); // NEW: prevent multiple auto-opens
+  const hasAutoStartedRef = useRef(false); // NEW: prevent multiple auto-starts
+
+  // NEW: Auto-open chat when initialChatToOpen is provided
+  useEffect(() => {
+    const autoOpenChat = async () => {
+      // Only run once
+      if (hasAutoOpenedRef.current || !initialChatToOpen) return;
+      hasAutoOpenedRef.current = true;
+
+      try {
+        // The chatId is already created by the button click, just open it
+        await handleSelectChat(initialChatToOpen);
+
+        // Clear the URL parameter
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('openChat');
+        const newUrl = params.toString() ? `/chats?${params.toString()}` : '/chats';
+        router.replace(newUrl);
+      } catch (error) {
+        console.error("Error auto-opening chat:", error);
+        hasAutoOpenedRef.current = false; // Allow retry on error
+      }
+    };
+
+    autoOpenChat();
+  }, [initialChatToOpen]); // Only depend on initialChatToOpen
+
+  // NEW: Auto-start chat with user when initialUserToChat is provided
+  useEffect(() => {
+    const autoStartChat = async () => {
+      // Only run once
+      if (hasAutoStartedRef.current || !initialUserToChat) return;
+      
+      // Mark as started immediately to prevent re-runs
+      hasAutoStartedRef.current = true;
+
+      try {
+        // FIRST: Check if chat already exists with this user
+        const existingChat = chats.find((c) => c.otherUser.id === initialUserToChat);
+        
+        if (existingChat) {
+          // Open the existing chat instead of creating new one
+          console.log('Found existing chat, opening it:', existingChat.chatId);
+          await handleSelectChat(existingChat.chatId);
+        } else {
+          // No existing chat, find user and create new one
+          const targetUser = availableUsers.find(u => u.id === initialUserToChat);
+          
+          if (targetUser) {
+            console.log('No existing chat, creating new one with:', targetUser.username);
+            await handleSelectUser(targetUser);
+          }
+        }
+
+        // Clear the URL parameter
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('newChatWith');
+        const newUrl = params.toString() ? `/chats?${params.toString()}` : '/chats';
+        router.replace(newUrl);
+      } catch (error) {
+        console.error("Error starting new chat:", error);
+        hasAutoStartedRef.current = false; // Allow retry on error
+      }
+    };
+
+    autoStartChat();
+  }, [initialUserToChat]); // Only depend on initialUserToChat - don't depend on chats!
 
   // Reload chats when component mounts to get fresh unread counts
   useEffect(() => {

@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { joinGroup } from '@/app/(backend)/GroupController/joinGroup';
 import { leaveGroup } from '@/app/(backend)/GroupController/leaveGroup';
 import ReportGroup from './reportGroup';
@@ -28,6 +29,7 @@ export default function GroupCard({
   showEdit,
   onEditClick
 }: GroupCardProps) {
+  const router = useRouter();
   const [showReportModal, setShowReportModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -156,7 +158,7 @@ export default function GroupCard({
         <div className="flex-1 p-6">
           <div className="flex items-center justify-between">
             {/* Left side - Group Info */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
                 <div className="font-semibold text-gray-900 text-lg">
                   {group.name}
@@ -172,37 +174,37 @@ export default function GroupCard({
               </div>
             </div>
 
-            {/* Center - View Details Button */}
-            <div className="flex-1 flex justify-center">
+            {/* Right side - View Details, Members Count and Actions */}
+            <div className="flex items-center gap-4">
+              {/* View Details Link */}
               <Link 
                 href={`/groups/${group.id}?fromTab=${getFromTab()}`}
-                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                className="text-blue-600 hover:text-blue-800 font-medium text-sm whitespace-nowrap"
               >
                 view details
               </Link>
-            </div>
 
-            {/* Right side - Members Count and Actions */}
-            <div className="flex items-center space-x-4">
-              {/* Members Count - Right in front of Join button */}
-              <div className="text-gray-800 font-medium text-right min-w-20">
+              {/* Members Count */}
+              <div className="text-gray-800 font-medium text-sm whitespace-nowrap min-w-[100px] text-right">
                 {count}/{group.capacity} members
               </div>
 
-              {/* Action Button */}
+              {/* Action Button - fixed width container */}
               <div className="w-32">
                 {getActionButton()}
               </div>
 
-              {/* Report Button - Red */}
-              {!isHost && ( // Don't allow hosts to report their own groups
-                <button 
-                  onClick={() => setShowReportModal(true)}
-                  className="text-red-600 hover:text-red-800 text-sm font-medium"
-                >
-                  report
-                </button>
-              )}
+              {/* Report Button - or spacer if host */}
+              <div className="w-16 text-right">
+                {!isHost && (
+                  <button 
+                    onClick={() => setShowReportModal(true)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium whitespace-nowrap"
+                  >
+                    report
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
