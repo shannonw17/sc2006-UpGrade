@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 export type RawFilters = {
-  tab?: "all" | "mine";
+  tab?: "all" | "mine" | "joined";
   q?: string;
   from?: string;
   to?: string;
@@ -10,7 +10,7 @@ export type RawFilters = {
 };
 
 export type NormalizedFilters = {
-  tab: "all" | "mine";
+  tab: "all" | "mine" | "joined";
   q: string;
   loc: string;
   fromISO?: Date;
@@ -19,10 +19,10 @@ export type NormalizedFilters = {
 };
 
 export function normalizeFilters(sp?: RawFilters): NormalizedFilters {
-  const tab = sp?.tab === "mine" ? "mine" : "all";
+  const allowed = new Set<NormalizedFilters["tab"]>(["all", "mine", "joined"]);
+  const tab = allowed.has(sp?.tab as any) ? (sp!.tab as any) : "all";
   const q = (sp?.q ?? "").trim();
   const loc = (sp?.loc ?? "").trim();
-
   const fromISO = sp?.from ? new Date(sp.from) : undefined;
   const toISO   = sp?.to   ? new Date(sp.to)   : undefined;
 

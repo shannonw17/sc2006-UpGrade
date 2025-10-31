@@ -148,6 +148,17 @@ export async function createGroup(formData: FormData) {
   if (isNaN(+end)) throw new Error("Invalid end datetime");
   if (end <= start) throw new Error("End time must be after start time");
 
+  const MIN_MS = 30 * 60 * 1000;      // 30 minutes
+  const MAX_MS = 24 * 60 * 60 * 1000;  // 24 hours
+
+  const durationMs = end.getTime() - start.getTime();
+  if (durationMs < MIN_MS) {
+    throw new Error("Group duration must be at least 30 minutes");
+  }
+  if (durationMs > MAX_MS) {
+    throw new Error("Group duration cannot exceed 24 hours");
+  
+  }
   // Optional: prevent creating groups in the past
   const nowUtc = new Date();
   if (start < nowUtc) throw new Error("Start time must be in the future");

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import GroupCard from "./components/GroupCard";
 import EditGroupModal from "./components/EditGroupModal";
 import Link from "next/link";
@@ -230,5 +230,74 @@ export default function GroupsPageClient({
         />
       )}
     </>
+  );
+}
+
+/* ====== 🔎 Named export: Client SearchBox you can use in page.tsx ====== */
+export function SearchBox({
+  tab,
+  initialQ = "",
+  preserved = {},
+}: {
+  tab: "all" | "mine" | "joined";
+  initialQ?: string;
+  preserved?: { from?: string; to?: string; loc?: string; open?: string };
+}) {
+  const router = useRouter();
+  const [q, setQ] = useState(initialQ);
+
+  const buildUrl = (withQ: string | null) => {
+    const p = new URLSearchParams();
+    p.set("tab", tab);
+    if (withQ && withQ.trim()) p.set("q", withQ.trim());
+
+    if (preserved.from) p.set("from", preserved.from);
+    if (preserved.to)   p.set("to", preserved.to);
+    if (preserved.loc)  p.set("loc", preserved.loc);
+    if (preserved.open) p.set("open", preserved.open);
+
+    return `/groups?${p.toString()}`;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(buildUrl(q));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQ(val);
+    // Instant auto-reset when cleared:
+    if (val === "") {
+      router.push(buildUrl(null));
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="relative">
+      <input type="hidden" name="tab" value={tab} />
+      <input
+        type="text"
+        name="q"
+        placeholder="Search groups..."
+        value={q}
+        onChange={handleChange}
+        className="border border-gray-300 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500 text-gray-900 bg-white"
+      />
+      <button
+        type="submit"
+        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+      >
+        <svg
+          className="w-4 h-4 text-gray-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </button>
+    </form>
   );
 }

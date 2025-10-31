@@ -3,6 +3,17 @@ import { createGroup } from "@/app/(backend)/GroupController/createGroups";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+const MIN_DURATION_MINUTES = 30;
+const MAX_DURATION_MINUTES = 24 * 60;
+
+function diffMinutes(a: string, b: string) {
+  // a/b are "YYYY-MM-DDTHH:MM"
+  const A = new Date(a);
+  const B = new Date(b);
+  return Math.round((B.getTime() - A.getTime()) / 60000);
+}
+
+
 export default function CreateGroupPage() {
   const [location, setLocation] = useState("");
   const [name, setName] = useState("");
@@ -117,6 +128,17 @@ export default function CreateGroupPage() {
       // Combine date and time into datetime strings
       const start = `${startDate}T${startTime}`;
       const end = `${endDate}T${endTime}`;
+
+      // duration guard (client-side)
+      const mins = diffMinutes(start, end);
+      if (mins < MIN_DURATION_MINUTES) {
+        setError(`Group duration must be at least ${MIN_DURATION_MINUTES} minutes`);
+      return;
+      }
+      if (mins > MAX_DURATION_MINUTES) {
+        setError(`Group duration cannot exceed ${MAX_DURATION_MINUTES / 60} hours`);
+    return;
+      }
       
       const formData = new FormData(e.currentTarget);
       formData.set('start', start);

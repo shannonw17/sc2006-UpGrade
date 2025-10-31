@@ -1,109 +1,125 @@
+// app/(backend)/FilterController/searchAndFilter.ts
 "use server";
 
 import prisma from "@/lib/db";
-import { buildWhereCommon, type NormalizedFilters } from "./filterUtils";
+import {
+  type RawFilters,
+  type NormalizedFilters,
+  normalizeFilters,
+  buildWhereCommon,
+} from "./filterUtils"; // <- your file that defines the types above
 
-// Can use this to build user profile filtering too
-// (e.g. in a "find members" page)
+// ---------- helpers ----------
+type AnyInput = FormData | Record<string, any>;
+function get(of: AnyInput, k: keyof RawFilters | string) {
+  return of instanceof FormData ? of.get(k as string)?.toString() : (of as any)[k];
+}
+function toInt(v: string | undefined, d = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+}
 
+// Optional: if you want to accept either FormData or POJO of RawFilters.
+function toRawFilters(input: AnyInput): RawFilters {
+  // Only keys that exist in RawFilters are produced here:
+  return {
+    tab: (get(input, "tab") as any) === "mine" ? "mine" : "all",
+    q: (get(input, "q") || "") as string,
+    from: (get(input, "from") || "") as string,
+    to: (get(input, "to") || "") as string,
+    loc: (get(input, "loc") || "") as string,
+    open: (get(input, "open") || "") as string, // "1" to mean openOnly
+  };
+}
+
+// ---------- main ----------
+/**
+ * Fetch groups using the same filter model as your FilterUtils:
+ * - Accepts FormData or plain object with RawFilters keys
+ * - Normalizes to NormalizedFilters
+ * - Builds Prisma where via buildWhereCommon(f)
+ * - Enforces public + same eduLevel for "all"
+ * - Post-filters openOnly (members < capacity)
+ */
 export async function fetchGroupsWithFilters(
   currentUserId: string,
-  filters: NormalizedFilters,
-  userEducationLevel?: string
+  input: FormData | RawFilters,
+  opts?: { userEduLevel?: "SEC" | "JC" | "POLY" | "UNI"; take?: number; skip?: number }
 ) {
-  const whereCommon = buildWhereCommon(filters);
+  const raw = input instanceof FormData ? toRawFilters(input) : (input as RawFilters);
+  const f: NormalizedFilters = normalizeFilters(raw);           // ✅ normalize FIRST
+  const whereCommon = buildWhereCommon(f);                      // ✅ pass NormalizedFilters
 
-  let educationLevel = userEducationLevel;
-  if (!educationLevel) {
-    const user = await prisma.user.findUnique({
-      where: { id: currentUserId },
-      select: { eduLevel: true }
-    });
-    educationLevel = user?.eduLevel;
-  }
+  const take = Math.min(opts?.take ?? 1000, 1000);
+  const skip = toInt(String(opts?.skip ?? 0));
 
-  const [allGroupsRaw, myMemberships, myCreatedGroupsRaw] = await Promise.all([
-    // For "all" tab: only show groups from hosts with same education level
-    prisma.group.findMany({
-      where: { 
-        ...whereCommon, 
-        visibility: true,
-        // Add education level filter for "all" tab
-        ...(educationLevel && {
-          host: {
-            eduLevel: educationLevel
-          }
-        })
-      },
-      orderBy: { createdAt: "desc" },
-      include: { 
-        _count: { select: { members: true } },
-        host: {
-          select: {
-            username: true,
-            eduLevel: true
-          }
-        },
-        tags: true
-      },
-    }),
-    prisma.groupMember.findMany({
-      where: { userId: currentUserId },
-      select: { groupId: true },
-    }),
-    // For "mine" tab: show all groups created by user (no education level filter)
-    prisma.group.findMany({
-      where: { ...whereCommon, hostId: currentUserId },
-      orderBy: { createdAt: "desc" },
-      include: { 
-        _count: { select: { members: true } },
-        host: {
-          select: {
-            username: true,
-            eduLevel: true
-          }
-        },
-        tags: true
-      },
-    }),
-  ]);
+  // Helper: members count < capacity
+  const openFilter = (g: any) => (g?._count?.members ?? 0) < g.capacity;
 
-  const joinedSet = new Set(myMemberships.map(m => m.groupId));
-
-  // For "joined" tab: only show joined groups from hosts with same education level
-  const joinedGroupsRaw = await prisma.group.findMany({
-    where: { 
-      ...whereCommon, 
-      id: { in: Array.from(joinedSet) },
-      // Add education level filter for "joined" tab
-      ...(educationLevel && {
-        host: {
-          eduLevel: educationLevel
-        }
-      })
+  // --- ALL (public + same edu level as current user) ---
+  const allGroupsRaw = await prisma.group.findMany({
+    where: {
+      ...whereCommon,
+      visibility: true,
+      ...(opts?.userEduLevel && { host: { eduLevel: opts.userEduLevel } }),
+    },
+    include: {
+      _count: { select: { members: true } },
+      host: { select: { id: true, username: true, eduLevel: true } },
+      members: { where: { userId: currentUserId }, select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
-    include: { 
-      _count: { select: { members: true } },
-      host: {
-        select: {
-          username: true,
-          eduLevel: true
-        }
-      },
-      tags: true
-    },
+    take,
+    skip,
   });
 
-  const openFilter = (g: typeof allGroupsRaw[number]) => g._count.members < g.capacity;
+  // --- MINE (hosted by me) ---
+  const myCreatedGroupsRaw = await prisma.group.findMany({
+    where: { ...whereCommon, hostId: currentUserId },
+    include: {
+      _count: { select: { members: true } },
+      host: { select: { id: true, username: true, eduLevel: true } },
+      members: { where: { userId: currentUserId }, select: { id: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take,
+    skip,
+  });
 
-  const allGroups       = filters.openOnly ? allGroupsRaw.filter(openFilter)       : allGroupsRaw;
-  const myCreatedGroups = filters.openOnly ? myCreatedGroupsRaw.filter(openFilter) : myCreatedGroupsRaw;
-  const joinedGroups    = filters.openOnly ? joinedGroupsRaw.filter(openFilter)    : joinedGroupsRaw;
+  // --- JOINED (optional; safe to keep even if UI doesn’t use it) ---
+  const joinedGroupsRaw = await prisma.group.findMany({
+    where: {
+      ...whereCommon,
+      hostId: { not: currentUserId },
+      members: { some: { userId: currentUserId } },
+      ...(opts?.userEduLevel && { host: { eduLevel: opts.userEduLevel } }),
+    },
+    include: {
+      _count: { select: { members: true } },
+      host: { select: { id: true, username: true, eduLevel: true } },
+      members: { where: { userId: currentUserId }, select: { id: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take,
+    skip,
+  });
 
-  const myCreatedIds = new Set(myCreatedGroups.map(g => g.id));
-  const justJoinedNotCreated = joinedGroups.filter(g => !myCreatedIds.has(g.id));
+  // Build joined set for quick UI checks
+  const joinedSet = new Set<string>();
+  for (const g of [...allGroupsRaw, ...myCreatedGroupsRaw, ...joinedGroupsRaw]) {
+    if (g.members?.length) joinedSet.add(g.id);
+  }
 
+  // Apply openOnly post-query to lists that have _count
+  const allGroups       = f.openOnly ? allGroupsRaw.filter(openFilter)       : allGroupsRaw;
+  const myCreatedGroups = f.openOnly ? myCreatedGroupsRaw.filter(openFilter) : myCreatedGroupsRaw;
+  const joinedGroups    = f.openOnly ? joinedGroupsRaw.filter(openFilter)    : joinedGroupsRaw;
+
+  // Avoid duplicates between "mine" and "joined"
+  const myIds = new Set(myCreatedGroups.map(g => g.id));
+  const justJoinedNotCreated = joinedGroups.filter(g => !myIds.has(g.id));
+
+  // Keep the return shape your client expects
   return {
     allGroups,
     myCreatedGroups,

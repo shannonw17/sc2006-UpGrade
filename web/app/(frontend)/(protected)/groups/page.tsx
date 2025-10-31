@@ -1,12 +1,11 @@
 // app/(frontend)/(protected)/groups/page.tsx
-import prisma from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/requireUser";
 import { normalizeFilters, type RawFilters } from "@/app/(backend)/FilterController/filterUtils";
 import { fetchGroupsWithFilters } from "@/app/(backend)/FilterController/searchAndFilter";
 import FilterBar from "./FilterBar";
-import GroupsPageClient from "./GroupsPageClient";
+import GroupsPageClient, { SearchBox } from "./GroupsPageClient";
 
 export const runtime = "nodejs";
 
@@ -19,10 +18,10 @@ export default async function GroupPage({ searchParams }: PageProps) {
   const CURRENT_USER_ID = user.id;
 
   const sp = await searchParams;
-  
+
   // Handle tab parameter directly
   const rawTab = sp?.tab as string | undefined;
-  
+
   let tab: "all" | "mine" | "joined" = "all";
   if (rawTab === "all" || rawTab === "mine" || rawTab === "joined") {
     tab = rawTab;
@@ -32,50 +31,36 @@ export default async function GroupPage({ searchParams }: PageProps) {
 
   // Use normalizeFilters for other filters
   const filters = normalizeFilters(sp);
-  
-  // Don't add tab to filters - pass it separately
-  // const finalFilters = { ...filters, tab }; // REMOVED
 
-  // Pass user's education level to the filter function
+  // Fetch data
   const {
     allGroups,
     myCreatedGroups,
-    joinedGroups: justJoinedNotCreated,
+    joinedGroups: justJoinedNotNotCreated,
     joinedSet,
-  } = await fetchGroupsWithFilters(CURRENT_USER_ID, filters, user.eduLevel);
+  } = await fetchGroupsWithFilters(CURRENT_USER_ID, filters, {
+    userEduLevel: user.eduLevel, // ✅ keep same edu level
+  });
 
-  // If joinedGroups is empty, fetch them manually with education level filter
-  let joinedGroups = justJoinedNotCreated;
-  
-  if (tab === 'joined' && joinedGroups.length === 0) {
-    joinedGroups = await prisma.group.findMany({
-      where: {
-        members: {
-          some: {
-            userId: CURRENT_USER_ID
-          }
-        },
-        hostId: { not: CURRENT_USER_ID },
-        // Add education level filter for joined groups too
-        host: {
-          eduLevel: user.eduLevel
-        }
-      },
-      include: {
-        host: { 
-          select: { 
-            username: true,
-            eduLevel: true 
-          } 
-        },
-        members: { select: { userId: true } },
-        _count: { select: { members: true } },
-        tags: true
-      }
-    });
+  const joinedGroups = justJoinedNotNotCreated;
+
+  // Use normalized fields for this
+  const hasActiveFilters =
+    !!(filters.q || filters.loc || filters.fromISO || filters.toISO || filters.openOnly);
+
+  // ✅ Helper to preserve search + filters across tabs
+  function tabHref(next: "all" | "mine" | "joined") {
+    const p = new URLSearchParams();
+    p.set("tab", next);
+
+    if ((sp as any)?.q)    p.set("q", String((sp as any).q));
+    if ((sp as any)?.from) p.set("from", String((sp as any).from));
+    if ((sp as any)?.to)   p.set("to", String((sp as any).to));
+    if ((sp as any)?.loc)  p.set("loc", String((sp as any).loc));
+    if ((sp as any)?.open) p.set("open", String((sp as any).open)); // "1"
+
+    return `/groups?${p.toString()}`;
   }
-
-  const hasActiveFilters = !!(filters.q || (filters as any).from || (filters as any).to || (filters as any).location || (filters as any).open);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -86,48 +71,31 @@ export default async function GroupPage({ searchParams }: PageProps) {
             {tab === "all" ? "All groups" : tab === "mine" ? "Created groups" : "Joined groups"}
           </h1>
         </div>
-        
+
         <div className="flex space-x-4">
-          {tab === "all" && <FilterBar />}
-          {tab === "all" && (
-            <form method="GET" className="relative">
-              <input type="hidden" name="tab" value="all" />
-              <input
-                type="text"
-                name="q"
-                placeholder="Search groups..."
-                defaultValue={filters.q || ""}
-                className="border border-gray-300 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500 text-gray-900 bg-white"
-              />
-              <button 
-                type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2"
-              >
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-            </form>
-          )}
+          {/* Client FilterBar */}
+          <FilterBar />
+
+          {/* ✅ Client SearchBox (no server-side form) */}
+          <SearchBox
+            tab={tab}
+            initialQ={filters.q || ""}
+            preserved={{
+              from: (sp as any)?.from,
+              to:   (sp as any)?.to,
+              loc:  (sp as any)?.loc,
+              open: (sp as any)?.open, // "1"
+            }}
+          />
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* ✅ Tabs with preserved filters */}
       <nav className="mb-6">
         <div className="flex gap-8 border-b">
-          <Tab href="/groups?tab=all" active={tab === "all"}>All groups</Tab>
-          <Tab href="/groups?tab=mine" active={tab === "mine"}>Created groups</Tab>
-          <Tab href="/groups?tab=joined" active={tab === "joined"}>Joined groups</Tab>
+          <Tab href={tabHref("all")} active={tab === "all"}>All groups</Tab>
+          <Tab href={tabHref("mine")} active={tab === "mine"}>Created groups</Tab>
+          <Tab href={tabHref("joined")} active={tab === "joined"}>Joined groups</Tab>
         </div>
       </nav>
 
@@ -146,7 +114,6 @@ export default async function GroupPage({ searchParams }: PageProps) {
 }
 
 /* ---------- Tab Component ---------- */
-
 function Tab({
   href,
   active,
@@ -160,9 +127,7 @@ function Tab({
     <Link
       href={href}
       className={`-mb-px px-1 py-2 text-sm font-medium ${
-        active 
-          ? "text-gray-900 border-b-2 border-gray-900" 
-          : "text-gray-600 hover:text-gray-900"
+        active ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-600 hover:text-gray-900"
       }`}
     >
       {children}
