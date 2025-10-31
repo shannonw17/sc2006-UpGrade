@@ -1,3 +1,5 @@
+// app/(frontend)/(protected)/homepage/HomepageClient.tsx
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -144,12 +146,17 @@ export default function HomepageClient({
 
   const [profiles, setProfiles] = useState<UserCard[]>(formatProfiles(initialProfiles));
   const [total, setTotal] = useState(initialTotal);
+
+  // Canonical filters used for fetching + UI
   const [searchQuery, setSearchQuery] = useState(initialFilters.searchQuery || "");
   const [yearFilter, setYearFilter] = useState(initialFilters.yearFilter || "");
   const [genderFilter, setGenderFilter] = useState(initialFilters.genderFilter || "");
   const [timingFilter, setTimingFilter] = useState<string[]>(
     initialFilters.timingFilter ? initialFilters.timingFilter.split(",").map(s => s.trim()).filter(Boolean) : []
   );
+
+  // Local input state so typing can live-update results (debounced) without URL churn
+  const [inputValue, setInputValue] = useState(searchQuery ?? "");
 
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
@@ -171,29 +178,6 @@ export default function HomepageClient({
   const filterPopupRef = useRef<HTMLDivElement>(null);
   const profileModalRef = useRef<HTMLDivElement>(null);
   const inviteModalRef = useRef<HTMLDivElement>(null);
-
-  //
-  // const [currentIndex, setCurrentIndex] = useState(0);
-
-  // useEffect(() => {
-  //   console.log(messages)
-  //   console.log("Use Effect Notification")
-
-  // Commented out as it is will run twice in dev mode
-  //   messages.forEach((msg, i) => {
-  //     setTimeout(() => {
-  //       toast.custom((t) => (
-  //         <div
-  //           className={`${
-  //             t.visible ? "animate-enter" : "animate-leave"
-  //           } bg-white text-gray-900 shadow-lg rounded-lg p-4 flex flex-col gap-2 w-72 border`}
-  //         >
-  //           <span>{msg}</span>
-  //         </div>
-  //       ));
-  //     }, i * 500); // delay between each toast
-  //   });
-  // }, []);
 
   // Close modals when clicking outside
   useEffect(() => {
@@ -325,6 +309,25 @@ export default function HomepageClient({
     setTimingFilter((prev) => (prev.includes(timing) ? prev.filter((t) => t !== timing) : [...prev, timing]));
   };
 
+  // Helper to build current filter payload, with optional search override
+  const buildFilters = (overrideSearch?: string) => ({
+    search: overrideSearch ?? searchQuery,
+    year: yearFilter,
+    gender: genderFilter,
+    timings: timingFilter,
+  });
+
+  // Update URL (without refetch) — called onBlur or clear, to avoid refreshy feel
+  const syncUrl = (value: string) => {
+    const params = new URLSearchParams();
+    if (value) params.set("query", value);
+    if (yearFilter) params.set("year", yearFilter);
+    if (genderFilter) params.set("gender", genderFilter);
+    if (timingFilter.length) params.set("timing", timingFilter.join(","));
+    const qs = params.toString();
+    router.replace(qs ? `/homepage?${qs}` : "/homepage");
+  };
+
   // Backend filter function
   const runBackendFilter = async (opts?: { 
     closePopup?: boolean; 
@@ -339,12 +342,7 @@ export default function HomepageClient({
     setLoadingList(true);
     setError(null);
 
-    const f = opts?.filters ?? {
-      search: searchQuery,
-      year: yearFilter,
-      gender: genderFilter,
-      timings: timingFilter,
-    };
+    const f = opts?.filters ?? buildFilters();
 
     const form = new FormData();
     form.append("searchQuery", f.search);
@@ -364,14 +362,9 @@ export default function HomepageClient({
         setProfiles(formattedProfiles);
         setTotal(res.total ?? 0);
 
+        // Optional URL sync
         if (opts?.pushUrl) {
-          const params = new URLSearchParams();
-          if (f.search) params.set("query", f.search);
-          if (f.year) params.set("year", f.year);
-          if (f.gender) params.set("gender", f.gender);
-          if (f.timings.length) params.set("timing", f.timings.join(","));
-          const qs = params.toString();
-          router.replace(qs ? `/homepage?${qs}` : "/homepage");
+          syncUrl(f.search);
         }
       } else {
         setError(res.error || "Failed to filter profiles");
@@ -385,32 +378,43 @@ export default function HomepageClient({
     }
   };
 
-  // Apply filters
+  // Apply filters (submit button in popup)
   const applyFilters = () => runBackendFilter({ closePopup: true, pushUrl: true });
 
-  // Clear filters
+  // Clear filters (also clears the local input)
   const clearAllFilters = (e?: React.MouseEvent) => {
     e?.preventDefault();
     const defaults = { search: "", year: "", gender: "", timings: [] as string[] };
     setSearchQuery(defaults.search);
+    setInputValue(""); // keep input in sync
     setYearFilter(defaults.year);
     setGenderFilter(defaults.gender);
     setTimingFilter(defaults.timings);
+    // Refetch and sync URL once
     runBackendFilter({ closePopup: true, pushUrl: true, filters: defaults });
   };
 
-  // Debounced search
-  const firstLoadRef = useRef(true);
+  // ✅ LIVE SEARCH: Debounced refetch as you type (no Enter needed), but no URL updates here.
   useEffect(() => {
-    if (firstLoadRef.current) {
-      firstLoadRef.current = false;
-      return;
-    }
     const id = setTimeout(() => {
-      runBackendFilter({ pushUrl: true });
-    }, 250);
+      setSearchQuery(inputValue); // keep empty-state / "No matches" message accurate
+      runBackendFilter({ pushUrl: false, filters: buildFilters(inputValue) });
+    }, 300); // tweak delay if you like
     return () => clearTimeout(id);
-  }, [searchQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue]);
+
+  // Clear button & onBlur URL sync
+  const handleSearchClear = async () => {
+    setInputValue("");
+    setSearchQuery("");
+    await runBackendFilter({ pushUrl: true, filters: buildFilters("") }); // also syncs URL via pushUrl
+  };
+
+  const handleSearchBlur = () => {
+    // sync URL once when user leaves the field (no refetch)
+    syncUrl(inputValue);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -651,24 +655,32 @@ export default function HomepageClient({
             )}
           </div>
 
-          {/* Search Bar */}
+          {/* Search Bar — live (debounced), no Enter needed */}
           <div className="relative">
             <input
               type="text"
               placeholder="Search by username..."
-              value={searchQuery}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSearchQuery(v);
-                if (v.trim() === "") {
-                  runBackendFilter({ pushUrl: true });
-                }
-              }}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onBlur={handleSearchBlur}
               className="border border-gray-300 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500 text-gray-900 bg-white"
             />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <Search className="w-4 h-4 text-gray-500" />
-            </div>
+            {/* Clear button when there is text; otherwise show search icon */}
+            {inputValue ? (
+              <button
+                type="button"
+                onClick={handleSearchClear}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                aria-label="Clear search"
+                title="Clear search"
+              >
+                ×
+              </button>
+            ) : (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <Search className="w-4 h-4 text-gray-500" />
+              </div>
+            )}
           </div>
         </div>
       </div>

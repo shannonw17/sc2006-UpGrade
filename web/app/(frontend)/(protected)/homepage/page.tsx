@@ -1,4 +1,4 @@
-// app/homepage/page.tsx
+// app/(frontend)/(protected)/homepage/page.tsx
 import { requireUser } from "@/lib/requireUser";
 import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";

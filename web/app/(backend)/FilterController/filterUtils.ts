@@ -1,4 +1,5 @@
-import { Prisma } from "@prisma/client";
+// app/(backend)/FilterController/filterUtils.ts
+import type { Prisma } from "@prisma/client";
 
 export type RawFilters = {
   tab?: "all" | "mine" | "joined";
@@ -37,13 +38,28 @@ export function normalizeFilters(sp?: RawFilters): NormalizedFilters {
 }
 
 export function buildWhereCommon(f: NormalizedFilters): Prisma.GroupWhereInput {
-  const and: Prisma.GroupWhereInput[] = [];
+  const AND: Prisma.GroupWhereInput[] = [];
 
-  if (f.q)   and.push({ name: { contains: f.q } });       // SQLite-safe (no mode)
-  if (f.loc) and.push({ location: { contains: f.loc } });
+  // 🔎 Keyword search across name, location, host.username, and TAG NAMES
+  if (f.q) {
+    AND.push({
+      OR: [
+        { name: { contains: f.q } },                   // group name
+        { location: { contains: f.q } },               // location text
+        { host: { username: { contains: f.q } } },     // host username (if relation exists)
+        { tags: { some: { name: { contains: f.q } } } } // ✅ tag names
+      ],
+    });
+  }
 
-  if (f.fromISO) and.push({ start: { gte: f.fromISO } });
-  if (f.toISO)   and.push({ end:   { lte: f.toISO } });
+  // Location filter (kept separate so "loc" UI filter still works)
+  if (f.loc) {
+    AND.push({ location: { contains: f.loc } });
+  }
 
-  return and.length ? { AND: and } : {};
+  // Date range
+  if (f.fromISO) AND.push({ start: { gte: f.fromISO } });
+  if (f.toISO)   AND.push({ end:   { lte: f.toISO } });
+
+  return AND.length ? { AND } : {};
 }

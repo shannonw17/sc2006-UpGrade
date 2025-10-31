@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/requireUser";
 import { normalizeFilters, type RawFilters } from "@/app/(backend)/FilterController/filterUtils";
-import { fetchGroupsWithFilters } from "@/app/(backend)/FilterController/searchAndFilter";
+import { fetchGroupsWithFilters } from "@/app/(backend)/FilterController/filterGroups";
 import FilterBar from "./FilterBar";
 import GroupsPageClient, { SearchBox } from "./GroupsPageClient";
 
