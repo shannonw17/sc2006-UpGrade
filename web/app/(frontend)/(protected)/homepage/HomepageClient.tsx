@@ -1,5 +1,4 @@
 // app/(frontend)/(protected)/homepage/HomepageClient.tsx
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -51,7 +50,7 @@ type FilterSuccess = {
 type FilterError = { success: false; error: string };
 type FilterResp = FilterSuccess | FilterError;
 
-// Helper function to get year display text
+//get "year" display text
 const getYearDisplay = (yearOfStudy: string): string => {
   const yearMap: Record<string, string> = {
     S1: "Sec 1", S2: "Sec 2", S3: "Sec 3", S4: "Sec 4", S5: "Sec 5",
@@ -62,7 +61,7 @@ const getYearDisplay = (yearOfStudy: string): string => {
   return yearMap[yearOfStudy] || yearOfStudy;
 };
 
-// Helper function to get year color class
+//diff colors for each year
 const getYearColor = (yearOfStudy: string): string => {
   const yearDisplay = getYearDisplay(yearOfStudy);
   const colorMap: Record<string, string> = {
@@ -84,7 +83,7 @@ const getYearColor = (yearOfStudy: string): string => {
   return colorMap[yearDisplay] || 'bg-gray-100 text-gray-800';
 };
 
-// Helper function to get gender icon
+//gender icon
 const getGenderIcon = (gender: string) => {
   const genderMap: Record<string, any> = {
     'MALE': <Mars size={16} className="text-blue-600" />,
@@ -95,7 +94,7 @@ const getGenderIcon = (gender: string) => {
   return genderMap[gender] || <User size={16} className="text-gray-600" />;
 };
 
-// Helper function to format gender for display
+//format gender for display
 const formatGender = (gender: string): string => {
   const genderMap: Record<string, string> = {
     MALE: "Male",
@@ -105,7 +104,7 @@ const formatGender = (gender: string): string => {
   return genderMap[gender] || gender;
 };
 
-// Helper function to format preferred timing for display
+//format preferred timing for display
 const formatPreferredTiming = (preferredTiming: string): string => {
   if (!preferredTiming) return "Not specified";
   
@@ -149,7 +148,7 @@ export default function HomepageClient({
   );
   const [total, setTotal] = useState(initialTotal);
 
-  // Canonical filters used for fetching + UI
+  //filter
   const [searchQuery, setSearchQuery] = useState(
     initialFilters.searchQuery || ""
   );
@@ -166,7 +165,7 @@ export default function HomepageClient({
       : []
   );
 
-  // Local input state so typing can live-update results (debounced) without URL churn
+  //local input state so typing can live-update results
   const [inputValue, setInputValue] = useState(searchQuery ?? "");
 
   const [showFilterPopup, setShowFilterPopup] = useState(false);
@@ -179,7 +178,7 @@ export default function HomepageClient({
   >(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // Invite states
+  //diff invite states
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedUserForInvite, setSelectedUserForInvite] = useState<any>(null);
   const [userGroups, setUserGroups] = useState<any[]>([]);
@@ -198,7 +197,7 @@ export default function HomepageClient({
   const hasShown = useRef(false);
 
   useEffect(() => {
-    if (hasShown.current) return; // 👈 guard against second mount
+    if (hasShown.current) return; //guard against second mount
     hasShown.current = true;
 
     console.log(messages);
@@ -219,7 +218,7 @@ export default function HomepageClient({
     });
   }, [messages]);
 
-  // Close modals when clicking outside
+  //close modals when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -248,7 +247,7 @@ export default function HomepageClient({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showFilterPopup, showProfileModal, showInviteModal]);
 
-  // Handle view profile
+  //handle view profile
   const handleViewProfile = async (targetUserId: string) => {
     setLoadingProfileId(targetUserId);
     setSelectedProfileUserId(targetUserId);
@@ -269,7 +268,7 @@ export default function HomepageClient({
     }
   };
 
-  // Handle invite
+  //handle invite
   const handleInviteClick = async (profile: any) => {
     setSelectedUserForInvite(profile);
     setLoadingGroups(true);
@@ -342,7 +341,7 @@ export default function HomepageClient({
     setUserGroups([]);
   };
 
-  // Message user function
+  //message user function
   const handleMessageUser = (userId: string) => {
     if (!userId) {
       setError("Invalid user ID");
@@ -351,7 +350,7 @@ export default function HomepageClient({
     router.push(`/chats?newChatWith=${userId}`);
   };
 
-  // Timing options
+  //timing options
   const timingOptions = [
     { value: "Morning", label: "Morning (6am-12pm)" },
     { value: "Afternoon", label: "Afternoon (12pm-6pm)" },
@@ -367,7 +366,7 @@ export default function HomepageClient({
     );
   };
 
-  // Helper to build current filter payload, with optional search override
+  //helper to build current filter payload, with optional search override
   const buildFilters = (overrideSearch?: string) => ({
     search: overrideSearch ?? searchQuery,
     year: yearFilter,
@@ -375,7 +374,7 @@ export default function HomepageClient({
     timings: timingFilter,
   });
 
-  // Update URL (without refetch) — called onBlur or clear, to avoid refreshy feel
+  //update URL (without refetch) — called onBlur or clear, to avoid refreshy feel
   const syncUrl = (value: string) => {
     const params = new URLSearchParams();
     if (value) params.set("query", value);
@@ -386,7 +385,7 @@ export default function HomepageClient({
     router.replace(qs ? `/homepage?${qs}` : "/homepage");
   };
 
-  // Backend filter function
+  //backend filter function
   const runBackendFilter = async (opts?: {
     closePopup?: boolean;
     pushUrl?: boolean;
@@ -420,7 +419,7 @@ export default function HomepageClient({
         setProfiles(formattedProfiles);
         setTotal(res.total ?? 0);
 
-        // Optional URL sync
+        //URL sync
         if (opts?.pushUrl) {
           syncUrl(f.search);
         }
@@ -436,11 +435,11 @@ export default function HomepageClient({
     }
   };
 
-  // Apply filters (submit button in popup)
+  //apply filters (submit button in popup)
   const applyFilters = () =>
     runBackendFilter({ closePopup: true, pushUrl: true });
 
-  // Clear filters (also clears the local input)
+  //clear filters (also clears the local input)
   const clearAllFilters = (e?: React.MouseEvent) => {
     e?.preventDefault();
     const defaults = {
@@ -450,40 +449,39 @@ export default function HomepageClient({
       timings: [] as string[],
     };
     setSearchQuery(defaults.search);
-    setInputValue(""); // keep input in sync
+    setInputValue(""); //keep input in sync
     setYearFilter(defaults.year);
     setGenderFilter(defaults.gender);
     setTimingFilter(defaults.timings);
-    // Refetch and sync URL once
+    //refetch and sync URL once
     runBackendFilter({ closePopup: true, pushUrl: true, filters: defaults });
   };
 
-  // ✅ LIVE SEARCH: Debounced refetch as you type (no Enter needed), but no URL updates here.
+  //live search: debounced refetch as you type (no "enter" required), but no URL updates here
   useEffect(() => {
     const id = setTimeout(() => {
-      setSearchQuery(inputValue); // keep empty-state / "No matches" message accurate
+      setSearchQuery(inputValue); //keep empty-state / "No matches" message accurate
       runBackendFilter({ pushUrl: false, filters: buildFilters(inputValue) });
-    }, 300); // tweak delay if you like
+    }, 300); 
     return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputValue]);
 
-  // Clear button & onBlur URL sync
+  //clear button & onBlur URL sync
   const handleSearchClear = async () => {
     setInputValue("");
     setSearchQuery("");
-    await runBackendFilter({ pushUrl: true, filters: buildFilters("") }); // also syncs URL via pushUrl
+    await runBackendFilter({ pushUrl: true, filters: buildFilters("") }); //also syncs URL via pushUrl
   };
 
   const handleSearchBlur = () => {
-    // sync URL once when user leaves the field (no refetch)
+    //sync URL once when user leaves the field (no refetch)
     syncUrl(inputValue);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 pt-0 px-8 pb-8">
       {/*Notification Popup*/}
-      <div className="p-6">
+      <div className="p-4">
         <Toaster
           position="top-right"
           containerStyle={{
@@ -944,7 +942,7 @@ export default function HomepageClient({
             )}
           </div>
 
-          {/* Search Bar — live (debounced), no Enter needed */}
+          {/* Search Bar — live (debounced), no enter needed */}
           <div className="relative">
             <input
               type="text"
@@ -1041,7 +1039,7 @@ export default function HomepageClient({
                   </button>
                 </div>
 
-                {/* View profile subtle button */}
+                {/* View profile button */}
                 <button
                   onClick={() => handleViewProfile(profile.id)}
                   disabled={loadingProfileId === profile.id}
