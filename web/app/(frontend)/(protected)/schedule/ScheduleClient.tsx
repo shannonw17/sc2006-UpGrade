@@ -29,7 +29,7 @@ type StudyGroup = {
   }>;
 };
 
-// Generate consistent color per group
+//generate a diff colour per study group
 function getColor(id: string) {
   const colors = [
     "bg-blue-500", "bg-green-500", "bg-yellow-500",
@@ -41,54 +41,84 @@ function getColor(id: string) {
   return colors[Math.abs(hash) % colors.length];
 }
 
+//helper function to get all dates b/w start and end
+function getDatesInRange(startDate: Date, endDate: Date): Date[] {
+  const dates: Date[] = [];
+  const currentDate = new Date(startDate);
+  currentDate.setHours(0, 0, 0, 0);
+  
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  
+  while (currentDate <= end) {
+    dates.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return dates;
+}
+
 export default function ScheduleClient({ initialStudyGroups }: { initialStudyGroups: StudyGroup[] }) {
   const [viewMode, setViewMode] = useState<"monthly" | "weekly">("monthly");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<StudyGroup | null>(null);
 
-  // Use the initial data from server
+  //use data from server
   const groups = initialStudyGroups;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  // Group by date with safe handling
+  // monthly view - include groups that span multiple days (for eg; overnight)
   const groupedByDate = useMemo(() => {
     const map: Record<string, StudyGroup[]> = {};
     const safeStudyGroups = Array.isArray(groups) ? groups : [];
     
     safeStudyGroups.forEach((g) => {
-      if (!g || !g.start) return;
+      if (!g || !g.start || !g.end) return;
       
       try {
-        const dateKey = new Date(g.start).toDateString();
-        if (!map[dateKey]) map[dateKey] = [];
-        map[dateKey].push(g);
+        const startDate = new Date(g.start);
+        const endDate = new Date(g.end);
+        const datesInRange = getDatesInRange(startDate, endDate);
+        
+        datesInRange.forEach(date => {
+          const dateKey = date.toDateString();
+          if (!map[dateKey]) map[dateKey] = [];
+          map[dateKey].push(g);
+        });
       } catch (error) {
         console.error("Error processing study group:", error);
       }
     });
+    
     return map;
   }, [groups]);
 
-  // Group by date and time for weekly view
+  //weekly view - include groups that span multiple days (for eg; overnight)
   const weeklyGroupedByDate = useMemo(() => {
     const map: Record<string, StudyGroup[]> = {};
     const safeStudyGroups = Array.isArray(groups) ? groups : [];
     
     safeStudyGroups.forEach((g) => {
-      if (!g || !g.start) return;
+      if (!g || !g.start || !g.end) return;
       
       try {
-        const dateKey = new Date(g.start).toDateString();
-        if (!map[dateKey]) map[dateKey] = [];
-        map[dateKey].push(g);
+        const startDate = new Date(g.start);
+        const endDate = new Date(g.end);
+        const datesInRange = getDatesInRange(startDate, endDate);
+        
+        datesInRange.forEach(date => {
+          const dateKey = date.toDateString();
+          if (!map[dateKey]) map[dateKey] = [];
+          map[dateKey].push(g);
+        });
       } catch (error) {
         console.error("Error processing study group:", error);
       }
     });
     
-    // Sort groups by start time within each date
+    //sort groups by start time within each date
     Object.keys(map).forEach(date => {
       map[date].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
     });
@@ -96,7 +126,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     return map;
   }, [groups]);
 
-  // Navigation functions
+  //navigation functions
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   
@@ -112,10 +142,10 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     setCurrentDate(newDate);
   };
   
-  // Today function - jump back to current date
+  //today button - jump back to present date
   const goToToday = () => setCurrentDate(new Date());
 
-  // Monthly grid
+  //monthly grid
   const startOfMonth = new Date(year, month, 1);
   const startDay = startOfMonth.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -127,7 +157,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     return days;
   }, [year, month, startDay, daysInMonth]);
 
-  // Weekly grid (Sunday–Saturday)
+  //weekly grid (sun-sat)
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
   const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -142,7 +172,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     isMidnight: boolean;
   };
 
-  // Time slots for weekly view (12am to 11pm)
+  //time slots for weekly view (12am to 11pm)
   const timeSlots = useMemo(() => {
     const slots: TimeSlot[] = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -159,7 +189,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     return slots;
   }, []);
 
-  // Check if current view is today (for hiding the Today button)
+  // if current view is today, hide the today button)
   const isTodayView = useMemo(() => {
     const today = new Date();
     if (viewMode === "monthly") {
@@ -172,44 +202,66 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     }
   }, [viewMode, month, year, startOfWeek]);
 
-  // Calculate group position and height for weekly view
-  const getGroupPosition = (group: StudyGroup) => {
+  //calculate group position and height for weekly view (includes multi day view)
+  const getGroupPosition = (group: StudyGroup, currentDate: Date) => {
     const start = new Date(group.start);
     const end = new Date(group.end);
-    
-    // Calculate minutes from start of day (12:00 AM = 0 minutes)
-    const startMinutes = start.getHours() * 60 + start.getMinutes();
-    let endMinutes = end.getHours() * 60 + end.getMinutes();
-    
-    // Handle events that end at midnight (12:00 AM)
-    if (endMinutes === 0 && end.getDate() === start.getDate()) {
-      endMinutes = 1440; // End of day (24 hours * 60 minutes)
+    const currentDayStart = new Date(currentDate);
+    currentDayStart.setHours(0, 0, 0, 0);
+    const currentDayEnd = new Date(currentDate);
+    currentDayEnd.setHours(23, 59, 59, 999);
+
+    //for events that span multiple days, calculate the portion for this specific day
+    let displayStart = new Date(Math.max(start.getTime(), currentDayStart.getTime()));
+    let displayEnd = new Date(Math.min(end.getTime(), currentDayEnd.getTime()));
+
+    //if this is the first day of a multi-day event/overnight->use the actual start time
+    if (start.toDateString() === currentDate.toDateString()) {
+      displayStart = start;
     }
-    
-    // Calculate duration in minutes
+
+    //if this is the last day of a multi-day event/overnight->use the actual end time
+    if (end.toDateString() === currentDate.toDateString()) {
+      displayEnd = end;
+    }
+
+    if (displayStart >= displayEnd) {
+      displayStart = new Date(currentDayStart);
+      displayEnd = new Date(currentDayEnd);
+    }
+
+    //calculate minutes from start of day (for eg; 12:00 AM = 0 minutes)
+    const startMinutes = displayStart.getHours() * 60 + displayStart.getMinutes();
+    let endMinutes = displayEnd.getHours() * 60 + displayEnd.getMinutes();
+
+    //handle events that end at midnight or extend to next day
+    if (endMinutes === 0 && displayEnd.getDate() === currentDate.getDate()) {
+      endMinutes = 1440; 
+    }
+
+    //calculate duration in minutes
     let duration = endMinutes - startMinutes;
-    
-    // Handle overnight events (like 10pm-12am) - they should span to end of day
+
+    //handle overnight events within the same calendar day
     if (duration < 0) {
-      duration = 1440 - startMinutes; // Span from start time to end of day
+      duration = 1440 - startMinutes; 
     }
-    
-    // Ensure minimum duration for visibility (at least 30 minutes)
+
+    //minimum duration for visibility (at least 30 minutes)
     const minDuration = 30;
     if (duration < minDuration) {
       duration = minDuration;
     }
-    
-    // Calculate percentages based on 1440 minutes in a day
+
     const topPercentage = (startMinutes / 1440) * 100;
     const heightPercentage = (duration / 1440) * 100;
-    
-    // Calculate minimum height in pixels (at least 40px for readability)
+
+    //for readability
     const minHeightPixels = 40;
-    const totalDayHeight = 1200; // 24 hours * 50px per hour
+    const totalDayHeight = 1200; 
     const calculatedHeightPixels = (duration / 1440) * totalDayHeight;
     const finalMinHeight = Math.max(minHeightPixels, calculatedHeightPixels);
-    
+
     return {
       top: `${topPercentage}%`,
       height: `${heightPercentage}%`,
@@ -217,26 +269,52 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     };
   };
 
-  // Handle view details click - show modal
+  //check if a group spans multiple days
+  const isMultiDayEvent = (group: StudyGroup): boolean => {
+    const start = new Date(group.start);
+    const end = new Date(group.end);
+    return start.toDateString() !== end.toDateString();
+  };
+
+  //get display text for multi-day/overnight events
+  const getMultiDayDisplayText = (group: StudyGroup, currentDate: Date): string => {
+    const start = new Date(group.start);
+    const end = new Date(group.end);
+    const currentDay = new Date(currentDate);
+    currentDay.setHours(0, 0, 0, 0);
+
+    if (start.toDateString() === currentDate.toDateString()) {
+      //first day - show start time
+      return start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (end.toDateString() === currentDate.toDateString()) {
+      //last day - show end time
+      return `Until ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      //middle day - show all day
+      return "All Day";
+    }
+  };
+
+  //view details button - show pop up
   const handleViewDetails = (group: StudyGroup, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedGroup(group);
   };
 
-  // Handle close modal
+  //close button
   const handleCloseModal = () => {
     setSelectedGroup(null);
   };
 
-  // Handle backdrop click
+  //backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       handleCloseModal();
     }
   };
 
-  // Safely get study groups count
+  //get study groups count
   const studyGroupsCount = Array.isArray(groups) ? groups.length : 0;
 
   return (
@@ -321,34 +399,34 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
 
                   {groupedByDate[date.toDateString()]?.length ? (
                     <div className="mt-4 flex flex-col gap-1.5">
-                      {groupedByDate[date.toDateString()].map((group) => (
-                        <div
-                          key={group.id}
-                          className={`p-2 rounded text-white ${getColor(group.id)} cursor-pointer hover:opacity-90 transition shadow-sm`}
-                        >
-                          <p className="font-bold text-xs truncate mb-0.5">{group.name}</p>
-                          <p className="text-[10px] mb-0.5 opacity-90">
-                            📍 {group.location}
-                          </p>
-                          <p className="text-[10px] mb-1">
-                            {new Date(group.start).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}{" "}
-                            -{" "}
-                            {new Date(group.end).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                          <button
-                            onClick={(e) => handleViewDetails(group, e)}
-                            className="text-[10px] italic underline font-medium hover:no-underline w-full text-left"
+                      {groupedByDate[date.toDateString()].map((group) => {
+                        const isMultiDay = isMultiDayEvent(group);
+                        const displayText = isMultiDay ? getMultiDayDisplayText(group, date) : 
+                          `${new Date(group.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${new Date(group.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+                        
+                        return (
+                          <div
+                            key={group.id}
+                            className={`p-2 rounded text-white ${getColor(group.id)} cursor-pointer hover:opacity-90 transition shadow-sm ${
+                              isMultiDay ? 'border-l-4 border-white border-opacity-50' : ''
+                            }`}
                           >
-                            view details
-                          </button>
-                        </div>
-                      ))}
+                            <p className="font-bold text-xs truncate mb-0.5">{group.name}</p>
+                            <p className="text-[10px] mb-0.5 opacity-90">
+                              📍 {group.location}
+                            </p>
+                            <p className="text-[10px] mb-1">
+                              {displayText}
+                            </p>
+                            <button
+                              onClick={(e) => handleViewDetails(group, e)}
+                              className="text-[10px] italic underline font-medium hover:no-underline w-full text-left"
+                            >
+                              view details
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="h-full flex items-center justify-center text-gray-300 text-xs">
@@ -420,14 +498,16 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
 
                         {/* Study Groups */}
                         {weeklyGroupedByDate[date.toDateString()]?.map((group) => {
-                          const position = getGroupPosition(group);
-                          const startTime = new Date(group.start);
-                          const endTime = new Date(group.end);
+                          const position = getGroupPosition(group, date);
+                          const isMultiDay = isMultiDayEvent(group);
+                          const displayText = getMultiDayDisplayText(group, date);
                           
                           return (
                             <div
                               key={group.id}
-                              className={`absolute left-0.5 right-0.5 rounded ${getColor(group.id)} text-white cursor-pointer hover:opacity-90 transition shadow-sm border border-white border-opacity-30 overflow-hidden`}
+                              className={`absolute left-0.5 right-0.5 rounded ${getColor(group.id)} text-white cursor-pointer hover:opacity-90 transition shadow-sm border border-white border-opacity-30 overflow-hidden ${
+                                isMultiDay ? 'border-l-4 border-white border-opacity-70' : ''
+                              }`}
                               style={{
                                 top: position.top,
                                 height: position.height,
@@ -450,13 +530,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
                                 
                                 {/* Time */}
                                 <div className="text-[10px] font-medium mb-0.5">
-                                  {startTime.toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })} - {endTime.toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
+                                  {displayText}
                                 </div>
                                 
                                 {/* View Details */}
