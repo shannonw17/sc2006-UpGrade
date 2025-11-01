@@ -129,15 +129,20 @@ export default function CreateGroupPage() {
       const start = `${startDate}T${startTime}`;
       const end = `${endDate}T${endTime}`;
 
+      if (end <= start) {
+        setError("End time must be after start time");
+        return;
+      }
+
       // duration guard (client-side)
       const mins = diffMinutes(start, end);
       if (mins < MIN_DURATION_MINUTES) {
         setError(`Group duration must be at least ${MIN_DURATION_MINUTES} minutes`);
-      return;
+        return;
       }
       if (mins > MAX_DURATION_MINUTES) {
         setError(`Group duration cannot exceed ${MAX_DURATION_MINUTES / 60} hours`);
-    return;
+        return;
       }
       
       const formData = new FormData(e.currentTarget);
