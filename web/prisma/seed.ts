@@ -28,16 +28,44 @@ async function syncCurrentSize(groupId: string) {
 async function main() {
   console.log("🌱 Seeding database...");
 
-  const [aliceHash, bobHash, johnHash, maryHash, admin1Hash, admin2Hash] = await Promise.all([
+  const [
+    aliceHash,
+    bobHash,
+    johnHash,
+    maryHash,
+    joshHash,
+    admin1Hash,
+    admin2Hash,
+  ] = await Promise.all([
     bcrypt.hash("alice123", 10),
     bcrypt.hash("bob123", 10),
     bcrypt.hash("john123", 10),
     bcrypt.hash("mary123", 10),
+    bcrypt.hash("Test1234567@", 10),
     bcrypt.hash("admin123987", 10),
     bcrypt.hash("admin543678", 10),
   ]);
 
   // USERS
+
+  //Test User for Test Cases
+  const josh = await prisma.user.upsert({
+    where: { email: "josh@e.ntu.edu.sg" },
+    update: { status: "ACTIVE" },
+    create: {
+      username: "josh",
+      email: "josh@e.ntu.edu.sg",
+      passwordHash: joshHash,
+      eduLevel: "UNI",
+      yearOfStudy: "U1",
+      gender: "FEMALE",
+      preferredTiming: ["Morning", "Evening"].join(","),
+      preferredLocations: ["NTU", "Woodlands"].join(","),
+      currentCourse: "Computer Science",
+      status: "ACTIVE",
+    },
+  });
+
   const alice = await prisma.user.upsert({
     where: { email: "alice@e.ntu.edu.sg" },
     update: { status: "ACTIVE" },
@@ -208,6 +236,7 @@ async function main() {
   console.log("  bob   / bob@e.ntu.edu.sg    | password: bob123");
   console.log("  john  / john@e.ntu.edu.sg   | password: john123");
   console.log("  mary  / mary@e.ntu.edu.sg   | password: mary123");
+  console.log("  josh  / josh@e.ntu.edu.sg   | password: Test1234567@");
   console.log("Admins: ");
   console.log("  admin1  / admin1@gmail.com   | password: admin123987");
   console.log("  admin2  / admin2@gmail.com   | password: admin543678");
