@@ -19,7 +19,7 @@ export default function VerifyEmailPage() {
   const queryUserId = searchParams.get("userId") ?? "";
   const fromRegistration = searchParams.get("fromRegistration") === "true";
 
-  // Server-action state machines
+  //server-action state machines
   const [findState, findAction, findPending] = useActionState<FindUserByEmailState, FormData>(
     findUserByEmailAction,
     {}
@@ -33,7 +33,6 @@ export default function VerifyEmailPage() {
     {}
   );
 
-  // Local UI state
   const [emailInput, setEmailInput] = useState(queryEmail);
   const [code, setCode] = useState("");
   const [userId, setUserId] = useState(queryUserId);
@@ -59,7 +58,7 @@ export default function VerifyEmailPage() {
 
   const canVerify = useMemo(() => userId && code.trim().length === 6, [userId, code]);
 
-  // Success screen after verification
+  //success screen after verification
   if (verifyState?.ok) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -71,7 +70,7 @@ export default function VerifyEmailPage() {
 
           <div className="text-center mb-8">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -104,7 +103,7 @@ export default function VerifyEmailPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-8">
-          {/* Step 1: Lookup account if we don't have a userId yet */}
+          {/* lookup account if we don't have a userId yet */}
           {!userId ? (
             <form action={findAction} className="mb-6">
               <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
@@ -132,7 +131,9 @@ export default function VerifyEmailPage() {
               {findState?.message && (
                 <div
                   className={`mt-4 p-3 rounded-md border ${
-                    findState.ok ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-600"
+                    findState.ok
+                      ? "bg-green-50 border-green-200 text-green-700"
+                      : "bg-red-50 border-red-200 text-red-600"
                   }`}
                 >
                   <p className="text-sm text-center">{findState.message}</p>
@@ -141,7 +142,7 @@ export default function VerifyEmailPage() {
             </form>
           ) : (
             <>
-              {/* Step 2: Verify code */}
+              {/* verify code */}
               {fromRegistration && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p className="text-sm text-blue-600 text-center">
@@ -150,7 +151,7 @@ export default function VerifyEmailPage() {
                 </div>
               )}
 
-              {/* VERIFY FORM */}
+              {/* verify form */}
               <form action={verifyAction} className="mb-3">
                 {/* carry userId to the server action */}
                 <input type="hidden" name="userId" value={userId} />
@@ -167,7 +168,11 @@ export default function VerifyEmailPage() {
                     onChange={(e) => setCode(e.target.value)}
                     maxLength={6}
                     placeholder="Enter 6-digit code"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-300 text-gray-900 text-center text-2xl tracking-widest"
+                    className={`w-full px-4 py-3 border ${
+                      verifyState?.ok === false
+                        ? "border-red-400 focus:ring-red-500"
+                        : "border-gray-300 focus:ring-blue-500"
+                    } rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-colors placeholder-gray-300 text-gray-900 text-center text-2xl tracking-widest`}
                     required
                   />
                 </div>
@@ -179,11 +184,17 @@ export default function VerifyEmailPage() {
                 >
                   {verifyPending ? "Verifying…" : "Verify Account"}
                 </button>
+
+                {/* show verification error message */}
+                {verifyState?.message && !verifyState.ok && (
+                  <div className="mt-4 p-3 rounded-md border bg-red-50 border-red-200 text-red-600 text-center text-sm">
+                    {verifyState.message || "Invalid or expired verification code."}
+                  </div>
+                )}
               </form>
 
-              {/* Step 3: Resend code — separate form (NOT nested) */}
+              {/* resend code */}
               <form action={resendAction} className="w-full">
-                {/* Prefer email, but pass userId too so the action can fall back if email is blank */}
                 <input type="hidden" name="email" value={emailInput} />
                 <input type="hidden" name="userId" value={userId} />
                 <button
@@ -194,16 +205,16 @@ export default function VerifyEmailPage() {
                   {resendPending ? "Sending…" : "Resend Code"}
                 </button>
                 {resendState?.message && (
-                <div
-                  className={`mt-3 p-3 rounded-md border text-sm text-center ${
-                  resendState.ok
-                  ? "bg-green-50 border-green-200 text-green-700"
-                  : "bg-red-50 border-red-200 text-red-600"
-                }`}
-    >
-                {resendState.message}
-              </div>
-              )}
+                  <div
+                    className={`mt-3 p-3 rounded-md border text-sm text-center ${
+                      resendState.ok
+                        ? "bg-green-50 border-green-200 text-green-700"
+                        : "bg-red-50 border-red-200 text-red-600"
+                    }`}
+                  >
+                    {resendState.message}
+                  </div>
+                )}
               </form>
             </>
           )}

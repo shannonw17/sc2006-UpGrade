@@ -15,7 +15,7 @@ type PageProps = {
   }>;
 };
 
-// Server action to mark notification as read
+//server action to mark notification as read
 async function markAsRead(formData: FormData) {
   "use server";
   const notificationId = formData.get("notificationId") as string;
@@ -34,7 +34,7 @@ async function markAsRead(formData: FormData) {
   }
 }
 
-// Server action to delete notification
+//server action to delete notification
 async function deleteNotification(formData: FormData) {
   "use server";
   const notificationId = formData.get("notificationId") as string;
@@ -52,7 +52,7 @@ async function deleteNotification(formData: FormData) {
   }
 }
 
-// Server action to mark all notifications as read
+//server action to mark all notifications as read
 async function markAllAsRead() {
   "use server";
   const user = await requireUser();
@@ -72,7 +72,7 @@ async function markAllAsRead() {
   }
 }
 
-// Server action to delete all notifications
+//server action to delete all notifications
 async function deleteAllNotifications() {
   "use server";
   const user = await requireUser();
@@ -132,7 +132,7 @@ export default async function InboxPage(props: PageProps) {
             capacity: true, 
             currentSize: true, 
             isClosed: true,
-            hostId: true  // Added to get host ID for messaging
+            hostId: true  //to get host ID for messaging
           } 
         },
         sender: { select: { id: true, username: true } },
@@ -417,7 +417,7 @@ export default async function InboxPage(props: PageProps) {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                               </Link>
-                              {/* NEW: Message Host Button - Requirement 1.1.1 */}
+                              {/*  Message Host Button */}
                               <MessageHostLink hostId={invite.group.hostId} />
                             </div>
                           </div>
@@ -430,7 +430,7 @@ export default async function InboxPage(props: PageProps) {
             </>
           )}
 
-          {/* Notifications Tab - Keep existing code */}
+          {/* Notifications Tab */}
           {activeTab === 'notifications' && (
             <>
               {notifications.length === 0 ? (
