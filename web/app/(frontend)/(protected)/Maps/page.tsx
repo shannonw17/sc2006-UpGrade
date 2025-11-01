@@ -33,7 +33,7 @@ export default function Maps() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [location, setLocation] = useState("");
-  const [query, setQuery] = useState("Singapore");
+  const [query, setQuery] = useState("");
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState("");
   const markersRef = useRef<{ libName: string; marker: any }[]>([]);
@@ -42,7 +42,7 @@ export default function Maps() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number } | null>(null);
   const hasFetched = useRef(false);
-
+  const [selectedLibName, setSelectedLibName] = useState<string | null>(null);
   // Calculate distance between two coordinates using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371; // Earth's radius in kilometers
@@ -68,8 +68,9 @@ export default function Maps() {
         const distance = calculateDistance(searchLat, searchLng, libLat, libLng);
         return { ...lib, distance };
       })
-      .filter(lib => lib.distance !== Infinity)
-      .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+      //.filter(lib => lib.distance !== Infinity)
+      //.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+      .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
   };
 
   // Detect if we're coming from edit form
@@ -81,6 +82,34 @@ export default function Maps() {
       setLocation(formData.location || '');
     }
   }, []);
+  useEffect(() => {
+    markersRef.current.forEach(({ libName, marker }) => {
+      marker.setIcon({
+        url:
+          selectedLibName && libName === selectedLibName
+            ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+            : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      });
+    });
+  }, [selectedLibName]);
+
+  useEffect(() => {
+    if (!libraries || libraries.length === 0) {
+      setFilteredLibraries([]);
+      return;
+    }
+    if (searchLocation) {
+      setFilteredLibraries(
+        sortLibrariesByDistance(
+          libraries,
+          searchLocation.lat,
+          searchLocation.lng
+        )
+      );
+    } else {
+      setFilteredLibraries(libraries);
+    }
+  }, [libraries, searchLocation]);
 
   useEffect(() => {
     if (hasFetched.current) return;
@@ -138,25 +167,27 @@ export default function Maps() {
         lat += offset(index);
         lng += offset(index);
       }
+      const isSelected = selectedLibName === lib.name;
 
       const marker = new window.google.maps.Marker({
         position: { lat, lng },
         map: mapInstance,
-        title: `${lib.name}${lib.distance ? ` (${lib.distance}km)` : ''}`,
+        title: `${lib.name}${lib.distance ? ` (${lib.distance}km)` : ""}`,
         icon: {
-          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+          url: isSelected
+            ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+            : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
         },
       });
 
+      // Clicking a LIBRARY marker selects that library
       marker.addListener("click", () => {
-        markersRef.current.forEach(({ libName, marker: m }) => {
-          m.setIcon({
-            url:
-              libName === lib.name
-                ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
-                : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-          });
-        });
+        // Remove the free-click red marker if present
+        if (markerRef.current) {
+          markerRef.current.setMap(null);
+          markerRef.current = null;
+        }
+        setSelectedLibName(lib.name);
 
         const countryAndPostal =
           lib.address?.country && lib.address?.postalCode
@@ -228,6 +259,10 @@ export default function Maps() {
     });
 
     map.addListener("click", async (e) => {
+      // Clear any red library selection
+      setSelectedLibName(null);
+
+      // Make all library markers blue
       markersRef.current.forEach(({ marker }) => {
         marker.setIcon({
           url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
@@ -243,27 +278,20 @@ export default function Maps() {
       let address = "";
       if (res.results[0]) {
         address = res.results[0].formatted_address;
-        setLocation(address);
       } else {
         address = `Lat: ${lat}, Lng: ${lng}`;
-        setLocation(address);
       }
-
+      setLocation(address);
       setSelectedLocation(address);
 
-      if (markerRef.current) {
-        markerRef.current.setMap(null);
-      }
-
+      // Replace previous free-click marker with a single red one
+      if (markerRef.current) markerRef.current.setMap(null);
       markerRef.current = new window.google.maps.Marker({
         position: { lat, lng },
-        map: map,
-        icon: {
-          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-        },
+        map,
+        icon: { url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png" },
       });
 
-      // Update libraries with distances from clicked location
       const sortedLibraries = sortLibrariesByDistance(libraries, lat, lng);
       setFilteredLibraries(sortedLibraries);
       setSearchLocation({ lat, lng });
@@ -481,25 +509,28 @@ export default function Maps() {
                           key={index}
                           onClick={() => {
                             const lat = parseFloat(lib.coordinates.geoLatitude);
-                            const lng = parseFloat(lib.coordinates.geoLongitude);
+                            const lng = parseFloat(
+                              lib.coordinates.geoLongitude
+                            );
                             if (!isNaN(lat) && !isNaN(lng) && mapInstance) {
                               mapInstance.setCenter({ lat, lng });
                               mapInstance.setZoom(16);
                             }
 
-                            markersRef.current.forEach(({ libName, marker }) => {
-                              marker.setIcon({
-                                url:
-                                  libName === lib.name
-                                    ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
-                                    : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                              });
-                            });
+                            // Remove the red free-click marker if present
+                            if (markerRef.current) {
+                              markerRef.current.setMap(null);
+                              markerRef.current = null;
+                            }
+
+                            setSelectedLibName(lib.name); // single source of truth
 
                             const countryAndPostal =
                               lib.address?.country && lib.address?.postalCode
                                 ? `${lib.address.country} ${lib.address.postalCode}`
-                                : lib.address?.country || lib.address?.postalCode || "";
+                                : lib.address?.country ||
+                                  lib.address?.postalCode ||
+                                  "";
 
                             const fullAddress = [
                               lib.address?.block,
@@ -512,20 +543,42 @@ export default function Maps() {
 
                             setSelectedLocation(fullAddress);
                             setLocation(fullAddress);
+
+                            // Repaint marker icons according to selectedLibName
+                            markersRef.current.forEach(
+                              ({ libName, marker }) => {
+                                marker.setIcon({
+                                  url:
+                                    libName === lib.name
+                                      ? "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                                      : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                                });
+                              }
+                            );
                           }}
                           className={`p-4 cursor-pointer transition-all duration-200 hover:bg-gray-50 group ${
-                            isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                            isSelected
+                              ? "bg-blue-50 border-l-4 border-blue-600"
+                              : ""
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
-                              isSelected ? 'bg-blue-600' : 'bg-gray-300 group-hover:bg-blue-400'
-                            }`} />
+                            <div
+                              className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                                isSelected
+                                  ? "bg-blue-600"
+                                  : "bg-gray-300 group-hover:bg-blue-400"
+                              }`}
+                            />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between">
-                                <h4 className={`font-medium truncate ${
-                                  isSelected ? 'text-blue-900' : 'text-gray-900'
-                                }`}>
+                                <h4
+                                  className={`font-medium truncate ${
+                                    isSelected
+                                      ? "text-blue-900"
+                                      : "text-gray-900"
+                                  }`}
+                                >
                                   {lib.name}
                                 </h4>
                                 {lib.distance !== undefined && (
@@ -536,15 +589,24 @@ export default function Maps() {
                               </div>
                               <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                 {lib.address.block} {lib.address.streetName}
-                                {lib.address.buildingName && `, ${lib.address.buildingName}`}
+                                {lib.address.buildingName &&
+                                  `, ${lib.address.buildingName}`}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
                                 {lib.address.postalCode}
                               </p>
                             </div>
                             {isSelected && (
-                              <svg className="flex-shrink-0 w-5 h-5 text-blue-600 mt-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              <svg
+                                className="flex-shrink-0 w-5 h-5 text-blue-600 mt-1"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                             )}
                           </div>
