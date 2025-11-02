@@ -25,7 +25,7 @@ export async function joinNotify(groupId: string, newUserId: string) {
       userId: m.userId,
       groupId: groupId,
       type: "GROUP_MEMBER_JOINED",
-      message: `${newUserName} has joined "${group.name} (${groupId})".`,
+      message: `${newUserName} has joined "${group.name}".`,
     })),
   });
   revalidatePath("/inbox");

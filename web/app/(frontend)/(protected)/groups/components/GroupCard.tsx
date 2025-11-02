@@ -1,4 +1,3 @@
-// app/(frontend)/(protected)/groups/components/GroupCard.tsx
 "use client";
 
 import { useState } from "react";
@@ -7,26 +6,6 @@ import { useRouter } from "next/navigation";
 import { joinGroup } from "@/app/(backend)/GroupController/joinGroup";
 import { leaveGroup } from "@/app/(backend)/GroupController/leaveGroup";
 import ReportGroup from "./reportGroup";
-
-function getTagColor(tagName: string): string {
-  const colors = [
-    "bg-red-100 text-red-800",
-    "bg-yellow-100 text-yellow-800",
-    "bg-green-100 text-green-800",
-    "bg-blue-100 text-blue-800",
-    "bg-indigo-100 text-indigo-800",
-    "bg-purple-100 text-purple-800",
-    "bg-pink-100 text-pink-800",
-    "bg-orange-100 text-orange-800",
-  ];
-
-  let hash = 0;
-  for (let i = 0; i < tagName.length; i++) {
-    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return colors[Math.abs(hash) % colors.length];
-}
 
 interface GroupCardProps {
   group: any;
@@ -145,10 +124,13 @@ export default function GroupCard({
   return (
     <>
       <div className="flex border border-gray-200 rounded-lg shadow-sm bg-white">
+        {/* Highlight Bar */}
         <div className={`w-2 rounded-l-lg ${getHighlightColor()}`}></div>
 
+        {/* Main Content */}
         <div className="flex-1 p-6">
           <div className="flex items-center justify-between">
+            {/* Left side - Group Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
                 <div className="font-semibold text-gray-900 text-lg">
@@ -161,18 +143,15 @@ export default function GroupCard({
                   </span>
                 )}
 
-                {group.tags?.length > 0 && (
+                {/* Tags Display */}
+                {group.tags && group.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {group.tags.map((tag: any, idx: number) => (
-                      <span
-                        key={idx}
-                        className={`${getTagColor(
-                          tag.name
-                        )} text-xs font-medium px-2 py-1 rounded-full`}
-                      >
-                        #{tag.name}
+                    {/* Main Tag */}
+                    {group.tags[0] && (
+                      <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
+                        #{group.tags[0].name}
                       </span>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
@@ -182,6 +161,7 @@ export default function GroupCard({
               </div>
             </div>
 
+            {/* Right side - Buttons */}
             <div className="flex items-center gap-4">
               <Link
                 href={`/groups/${group.id}?fromTab=${getFromTab()}`}
@@ -209,6 +189,7 @@ export default function GroupCard({
         </div>
       </div>
 
+      {/* Report Modal */}
       {showReportModal && (
         <ReportGroup
           groupId={group.id}

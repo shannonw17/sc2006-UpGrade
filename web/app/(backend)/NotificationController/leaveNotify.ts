@@ -21,7 +21,7 @@ export async function leaveNotify(groupId: string, leavingUserId: string) {
     data: members.map((m) => ({
       userId: m.userId,
       type: "GROUP_MEMBER_LEFT",
-      message: `${leavingName} has left "${group.name} (${groupId})".`,
+      message: `${leavingName} has left "${group.name}".`,
     })),
   });
 
@@ -29,7 +29,7 @@ export async function leaveNotify(groupId: string, leavingUserId: string) {
   data: {
     userId: leavingUserId,
     type: "GROUP_MEMBER_LEFT",
-    message: `You have left "${group.name} (${groupId})".`,
+    message: `You have left "${group.name}".`,
   },
 });
 

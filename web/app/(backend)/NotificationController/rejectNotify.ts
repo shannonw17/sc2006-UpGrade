@@ -17,7 +17,7 @@ export async function rejectNotify(senderId: string, receiverId: string, groupId
       userId: senderId,
       groupId: groupId,
       type: "INVITE_REJECTED",
-      message: `${receivererUserName} rejected your invite to join group "${group.name}(${groupId})".`,
+      message: `${receivererUserName} rejected your invite to join group "${group.name}".`,
     },
   });
   revalidatePath("/inbox");
