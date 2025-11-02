@@ -197,7 +197,7 @@ export default function HomepageClient({
   const hasShown = useRef(false);
 
   useEffect(() => {
-    if (hasShown.current) return; //guard against second mount
+    if (hasShown.current) return;
     hasShown.current = true;
 
     console.log(messages);
@@ -419,7 +419,6 @@ export default function HomepageClient({
         setProfiles(formattedProfiles);
         setTotal(res.total ?? 0);
 
-        //URL sync
         if (opts?.pushUrl) {
           syncUrl(f.search);
         }
@@ -466,15 +465,13 @@ export default function HomepageClient({
     return () => clearTimeout(id);
   }, [inputValue]);
 
-  //clear button & onBlur URL sync
   const handleSearchClear = async () => {
     setInputValue("");
     setSearchQuery("");
-    await runBackendFilter({ pushUrl: true, filters: buildFilters("") }); //also syncs URL via pushUrl
+    await runBackendFilter({ pushUrl: true, filters: buildFilters("") });
   };
 
   const handleSearchBlur = () => {
-    //sync URL once when user leaves the field (no refetch)
     syncUrl(inputValue);
   };
 

@@ -15,7 +15,6 @@ function toInt(value: string | undefined, fallback: number) {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
-// Map friendly UI strings → enum values in your schema
 const GenderMap: Record<string, "MALE" | "FEMALE" | "OTHER"> = {
   male: "MALE",
   female: "FEMALE",
@@ -99,10 +98,9 @@ export async function filterProfilesAction(formDataOrObj: FormData | FilterInput
     const excludeId = (get("excludeUserId") || "").trim();
 
     const timingArr = toArray(rawTiming);
-    const take = Math.min(toInt(get("take") as any, 24), 100); // cap page size
+    const take = Math.min(toInt(get("take") as any, 24), 100);
     const skip = toInt(get("skip") as any, 0);
 
-    // Normalize enums (case-insensitive from UI)
     const yearKey = rawYear.toLowerCase();
     const genderKey = rawGender.toLowerCase();
     const eduKey = rawEdu.toUpperCase() as any;
@@ -116,21 +114,17 @@ export async function filterProfilesAction(formDataOrObj: FormData | FilterInput
 
     // Build WHERE
     const andConditions: any[] = [];
+    andConditions.push({ status: "ACTIVE" });
 
-    // Constrain to same eduLevel (recommended; matches your FRs)
+    // Constrain to same eduLevel
     if (eduLevel) andConditions.push({ eduLevel });
 
     const notClause = excludeId ? { NOT: { id: excludeId } } : undefined; 
 
     if (rawSearch) {
-      // Username search; extend to course/subjects if you like
       andConditions.push({
         OR: [
           { username: { contains: rawSearch } },
-          // Optional extras (uncomment to broaden search):
-          // { currentCourse: { contains: rawSearch } },
-          // { relevantSubjects: { contains: rawSearch } },
-          // { school: { contains: rawSearch } },
         ],
       });
     }
@@ -139,7 +133,6 @@ export async function filterProfilesAction(formDataOrObj: FormData | FilterInput
     if (gender) andConditions.push({ gender });
 
     if (timingArr.length) {
-      // For each timing token, require ANY overlap against the CSV
       andConditions.push({
         OR: timingArr.map(t => csvWordOR("preferredTiming", t)),
       });

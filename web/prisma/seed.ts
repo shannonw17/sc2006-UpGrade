@@ -46,7 +46,7 @@ async function main() {
     bcrypt.hash("admin543678", 10),
   ]);
 
-  // USERS
+  //USERS
 
   //Test User for Test Cases
   const josh = await prisma.user.upsert({
@@ -135,7 +135,7 @@ async function main() {
     },
   });
 
-  // ADMINS
+  //ADMINS
   const admin1 = await prisma.admin.upsert({
     where: { email: "admin1@gmail.com" },
     update: {},
@@ -148,6 +148,7 @@ async function main() {
     create: { username: "admin2", email: "admin2@gmail.com", passwordHash: admin2Hash },
   });
 
+  //GROUPS
   const g1 = await prisma.group.upsert({
     where: { groupID: "GROUP001" },
     update: { hostId: alice.id, name: "Math Revision" },
@@ -164,14 +165,24 @@ async function main() {
     },
   });
 
-  // Tags for Math Revision
-  await prisma.tag.createMany({
-    data: [
-      { name: "Mathematics", color: getRandomTagColor(), groupId: g1.id },
-      { name: "Calculus", color: getRandomTagColor(), groupId: g1.id },
-      { name: "Let's grind", color: getRandomTagColor(), groupId: g1.id },
-    ],
-  });
+  //tags for Math Revision
+  await Promise.all([
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Mathematics", groupId: g1.id } },
+      update: {},
+      create: { name: "Mathematics", color: getRandomTagColor(), groupId: g1.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Calculus", groupId: g1.id } },
+      update: {},
+      create: { name: "Calculus", color: getRandomTagColor(), groupId: g1.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Let's grind", groupId: g1.id } },
+      update: {},
+      create: { name: "Let's grind", color: getRandomTagColor(), groupId: g1.id },
+    }),
+  ]);
 
   const g2 = await prisma.group.upsert({
     where: { groupID: "GROUP002" },
@@ -189,14 +200,24 @@ async function main() {
     },
   });
 
-  // Tags for CS2103 Project Team
-  await prisma.tag.createMany({
-    data: [
-      { name: "Software Engineering", color: getRandomTagColor(), groupId: g2.id },
-      { name: "Java", color: getRandomTagColor(), groupId: g2.id },
-      { name: "Project work", color: getRandomTagColor(), groupId: g2.id },
-    ],
-  });
+  //tags for CS2103 Project Team
+  await Promise.all([
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Software Engineering", groupId: g2.id } },
+      update: {},
+      create: { name: "Software Engineering", color: getRandomTagColor(), groupId: g2.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Java", groupId: g2.id } },
+      update: {},
+      create: { name: "Java", color: getRandomTagColor(), groupId: g2.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Project work", groupId: g2.id } },
+      update: {},
+      create: { name: "Project work", color: getRandomTagColor(), groupId: g2.id },
+    }),
+  ]);
 
   const g3 = await prisma.group.upsert({
     where: { groupID: "GROUP003" },
@@ -214,14 +235,24 @@ async function main() {
     },
   });
 
-  // Tags for Mugger
-  await prisma.tag.createMany({
-    data: [
-      { name: "Intensive study", color: getRandomTagColor(), groupId: g3.id },
-      { name: "Exam prep", color: getRandomTagColor(), groupId: g3.id },
-      { name: "Focus session", color: getRandomTagColor(), groupId: g3.id },
-    ],
-  });
+  //tags for Mugger
+  await Promise.all([
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Intensive study", groupId: g3.id } },
+      update: {},
+      create: { name: "Intensive study", color: getRandomTagColor(), groupId: g3.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Exam prep", groupId: g3.id } },
+      update: {},
+      create: { name: "Exam prep", color: getRandomTagColor(), groupId: g3.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Focus session", groupId: g3.id } },
+      update: {},
+      create: { name: "Focus session", color: getRandomTagColor(), groupId: g3.id },
+    }),
+  ]);
 
   await ensureMembership(alice.id, g1.id);
   await ensureMembership(bob.id, g2.id);

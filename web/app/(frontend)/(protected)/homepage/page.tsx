@@ -4,7 +4,6 @@ import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";
 import { sendInWebsiteAlert } from "@/app/(backend)/ScheduleController/sendEmailReminder";
 
-// Shape matching HomepageClient's UserCard (no need to export)
 type UserCard = {
   id: string;
   email: string;
@@ -20,7 +19,7 @@ type UserCard = {
   usualStudyPeriod: string | null;
 };
 
-// Helper function to get year display text
+//year display
 const getYearDisplay = (yearOfStudy: string): string => {
   const yearMap: Record<string, string> = {
     S1: "Sec 1", S2: "Sec 2", S3: "Sec 3", S4: "Sec 4", S5: "Sec 5",
@@ -31,29 +30,7 @@ const getYearDisplay = (yearOfStudy: string): string => {
   return yearMap[yearOfStudy] || yearOfStudy;
 };
 
-// Helper function to get year color class
-const getYearColor = (yearOfStudy: string): string => {
-  const yearDisplay = getYearDisplay(yearOfStudy);
-  const colorMap: Record<string, string> = {
-    'Sec 1': 'bg-red-100 text-red-800',
-    'Sec 2': 'bg-orange-100 text-orange-800',
-    'Sec 3': 'bg-amber-100 text-amber-800',
-    'Sec 4': 'bg-yellow-100 text-yellow-800',
-    'Sec 5': 'bg-lime-100 text-lime-800',
-    'JC 1': 'bg-green-100 text-green-800',
-    'JC 2': 'bg-emerald-100 text-emerald-800',
-    'Poly 1': 'bg-cyan-100 text-cyan-800',
-    'Poly 2': 'bg-blue-100 text-blue-800',
-    'Poly 3': 'bg-indigo-100 text-indigo-800',
-    'Year 1': 'bg-red-100 text-red-800',
-    'Year 2': 'bg-yellow-100 text-yellow-800',
-    'Year 3': 'bg-blue-100 text-blue-800',
-    'Year 4': 'bg-green-100 text-green-800',
-  };
-  return colorMap[yearDisplay] || 'bg-gray-100 text-gray-800';
-};
-
-// Helper function to format gender for display
+//gender display
 const formatGender = (gender: string): string => {
   const genderMap: Record<string, string> = {
     MALE: "Male",
@@ -63,14 +40,12 @@ const formatGender = (gender: string): string => {
   return genderMap[gender] || gender;
 };
 
-// Helper function to format preferred timing for display
+//preferred timing display
 const formatPreferredTiming = (preferredTiming: string): string => {
   if (!preferredTiming) return "Not specified";
   
-  // Split by comma and format each timing
   const timings = preferredTiming.split(',').map(timing => {
     const trimmed = timing.trim();
-    // Capitalize first letter of each timing
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
   });
   
@@ -84,13 +59,11 @@ async function getProfiles(currentUserId: string, timingFilter?: string[]): Prom
   });
   if (!currentUser) return [];
 
-  // Build CSV "whole token" matching for SQLite String column
-  // (simple contains is ok if you control the tokens: Morning/Afternoon/Evening/Night)
   const timingOR =
     timingFilter && timingFilter.length > 0
       ? {
           OR: timingFilter.map((t) => ({
-            preferredTiming: { contains: t }, // no mode: "insensitive" on SQLite
+            preferredTiming: { contains: t },
           })),
         }
       : {};
@@ -99,7 +72,7 @@ async function getProfiles(currentUserId: string, timingFilter?: string[]): Prom
     where: {
       NOT: { id: currentUserId },
       eduLevel: currentUser.eduLevel,
-      status:'ACTIVE',
+      status: 'ACTIVE',
       ...timingOR,
     },
     select: {
@@ -119,7 +92,6 @@ async function getProfiles(currentUserId: string, timingFilter?: string[]): Prom
     orderBy: { username: "asc" },
   });
 
-  // Transform the data to include formatted year, gender, and preferred timing
   return rows.map(user => ({
     ...user,
     yearOfStudy: getYearDisplay(user.yearOfStudy),
@@ -131,12 +103,10 @@ async function getProfiles(currentUserId: string, timingFilter?: string[]): Prom
 export default async function Home({
   searchParams,
 }: {
-  // In Next.js 15 App Router, searchParams is now a Promise that needs to be awaited
   searchParams: Promise<{ timing?: string }>;
 }) {
   const user = await requireUser();
   
-  // ✅ AWAIT the searchParams promise first
   const resolvedSearchParams = await searchParams;
 
   const timingFilter = resolvedSearchParams?.timing
