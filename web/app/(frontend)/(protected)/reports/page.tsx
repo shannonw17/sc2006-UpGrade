@@ -1,7 +1,7 @@
 // app/(frontend)/reports/page.tsx
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/requireAdmin";
-import AdminHomepageClient from "../admin/AdminHomepageClient"; // Import the existing component
+import AdminHomepageClient from "../admin/AdminHomepageClient";
 
 export default async function ReportsPage() {
   await requireAdmin();
@@ -17,6 +17,13 @@ export default async function ReportsPage() {
               email: true,
               warning: true,
               status: true,
+            }
+          },
+          tags: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
             }
           }
         }
@@ -44,7 +51,8 @@ export default async function ReportsPage() {
       location: report.group.location,
       start: report.group.start.toISOString(),
       end: report.group.end.toISOString(),
-      host: report.group.host
+      host: report.group.host,
+      tags: report.group.tags
     },
     reporter: report.user,
     reportTypes: report.types,

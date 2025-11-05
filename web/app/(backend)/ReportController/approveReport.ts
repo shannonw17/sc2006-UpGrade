@@ -6,10 +6,12 @@ import { revalidatePath } from "next/cache";
 import { banUser } from "./banUser";
 import { warnUser } from "./warnUser";
 
-export async function approveReport(reportId: string, action: "warn" | "ban") {
+export async function approveReport(
+  reportId: string, 
+  groupAction: "delete" | "keep", 
+  userAction: "warn" | "ban" | "none"
+) {
   try {
-    console.log("🔍 Starting approveReport - reportId:", reportId, "action:", action);
-    
     const report = await prisma.report.findUnique({ where: { id: reportId } });
     if (!report) throw new Error("Report not found");
     
@@ -21,53 +23,48 @@ export async function approveReport(reportId: string, action: "warn" | "ban") {
     const host = await prisma.user.findUnique({ where: { id: hostId } });
     const warning = host?.warning;
 
-    // Handle host warning/ban
-    if (host?.warning) {
-      if (action === "ban") {
-        console.log("Banning host");
-        await banUser(hostId, true);
-      }
-    } else {
-      if (action === "warn") {
-        console.log("Warning host");
-        await warnUser(hostId, true, groupId);
+    // handle host action
+    if (userAction !== "none") {
+      if (warning) {
+        if (userAction === "ban") {
+          await banUser(hostId, true);
+        }
+      } else {
+        if (userAction === "warn") {
+          await warnUser(hostId, true, groupId);
+        }
       }
     }
 
-    // Complete transaction with ALL dependencies
-    await prisma.$transaction(async (tx) => {
-      console.log("Starting complete deletion transaction...");
-      
-      // 1. Delete ALL notifications related to this group (including those via invitations)
-      await tx.notification.deleteMany({
-        where: {
-          OR: [
-            { groupId: groupId },
-            { invitation: { groupId: groupId } }
-          ]
-        }
+    // handle group action
+    if (groupAction === "delete") {
+      await prisma.$transaction(async (tx) => {
+        await tx.notification.deleteMany({
+          where: {
+            OR: [
+              { groupId: groupId },
+              { invitation: { groupId: groupId } }
+            ]
+          }
+        });
+        
+        await tx.groupMember.deleteMany({ where: { groupId } });
+        
+        await tx.invitation.deleteMany({ where: { groupId } });
+        
+        await tx.report.deleteMany({ where: { groupId } });
+        
+        await tx.group.delete({ where: { id: groupId } });
       });
-      
-      // 2. Delete group members
-      await tx.groupMember.deleteMany({ where: { groupId } });
-      
-      // 3. Delete invitations for this group
-      await tx.invitation.deleteMany({ where: { groupId } });
-      
-      // 4. Delete ALL reports for this group (not just this one report)
-      await tx.report.deleteMany({ where: { groupId } });
-      
-      // 5. Finally delete the group itself
-      await tx.group.delete({ where: { id: groupId } });
-      
-      console.log("✅ All deletions completed successfully");
-    });
+    } else {
+      await prisma.report.delete({ where: { id: reportId } });
+    }
 
-    console.log("✅ Transaction completed");
     revalidatePath("/reports");
+    revalidatePath("/admin");
 
   } catch (error: any) {
-    console.error("❌ Error in approveReport:", error);
+    console.error("Error in approveReport:", error);
     throw error;
   }
 }
