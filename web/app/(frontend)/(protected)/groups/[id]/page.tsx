@@ -2,7 +2,6 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
 import { requireUser } from "@/lib/requireUser";
-<<<<<<< Updated upstream
 import { DeleteButton } from "./DeleteButton";
 import { ArrowLeft } from "lucide-react";
 import { MessageHostButton } from "./MessageHostButton";
@@ -27,10 +26,6 @@ function getTagColor(tagName: string): string {
   
   return colors[Math.abs(hash) % colors.length];
 }
-=======
-import { deleteGroup } from "@/app/(backend)/GroupController/deleteGroup";
-import { DeleteButton } from "./DeleteButton";
->>>>>>> Stashed changes
 
 interface GroupPageProps {
   params: Promise<{ id: string }>;
@@ -107,7 +102,6 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-<<<<<<< Updated upstream
         {/* Header with Smart Back Button */}
         <div className="mb-6">
           <Link 
@@ -164,43 +158,10 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="grid gap-4">
             <DetailItem label="Group Name" value={group.groupID} />
-=======
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link 
-            href="/groups" 
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium mb-6"
-          >
-            ← Back to all groups
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{group.name}</h1>
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-            <span className={`px-3 py-1 rounded-full ${
-              group.visibility ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
-            }`}>
-              {group.visibility ? "Public" : "Private"}
-            </span>
-            <span>•</span>
-            <span>{group.currentSize}/{group.capacity} members</span>
-            {isHost && (
-              <>
-                <span>•</span>
-                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full">You are hosting</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Group Details Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid gap-4">
-            <DetailItem label="Group ID" value={group.groupID} />
->>>>>>> Stashed changes
             <DetailItem label="Start Time" value={new Date(group.start).toLocaleString()} />
             <DetailItem label="End Time" value={new Date(group.end).toLocaleString()} />
             <DetailItem label="Location" value={group.location} />
             <DetailItem label="Capacity" value={`${group.currentSize}/${group.capacity}`} />
-<<<<<<< Updated upstream
             <DetailItem label="Host" value={group.host?.username || "Unknown"} />
 
             {/* Tags Display - UPDATED WITH RANDOM COLORS */}
@@ -222,9 +183,6 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
               </div>
             </div>
 
-=======
-            <DetailItem label="Host ID" value={group.hostId} />
->>>>>>> Stashed changes
             <DetailItem label="Created At" value={new Date(group.createdAt).toLocaleString()} />
           </div>
 
@@ -234,7 +192,6 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
             </div>
           )}
         </div>
-<<<<<<< Updated upstream
 
         {/* Members List Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -290,8 +247,6 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
             </div>
           )}
         </div>
-=======
->>>>>>> Stashed changes
       </div>
     </main>
   );

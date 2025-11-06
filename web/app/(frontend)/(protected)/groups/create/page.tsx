@@ -3,17 +3,6 @@ import { createGroup } from "@/app/(backend)/GroupController/createGroups";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const MIN_DURATION_MINUTES = 30;
-const MAX_DURATION_MINUTES = 24 * 60;
-
-function diffMinutes(a: string, b: string) {
-  // a/b are "YYYY-MM-DDTHH:MM"
-  const A = new Date(a);
-  const B = new Date(b);
-  return Math.round((B.getTime() - A.getTime()) / 60000);
-}
-
-
 export default function CreateGroupPage() {
   const [location, setLocation] = useState("");
   const [name, setName] = useState("");
@@ -128,22 +117,6 @@ export default function CreateGroupPage() {
       // Combine date and time into datetime strings
       const start = `${startDate}T${startTime}`;
       const end = `${endDate}T${endTime}`;
-
-      if (end <= start) {
-        setError("End time must be after start time");
-        return;
-      }
-
-      // duration guard (client-side)
-      const mins = diffMinutes(start, end);
-      if (mins < MIN_DURATION_MINUTES) {
-        setError(`Group duration must be at least ${MIN_DURATION_MINUTES} minutes`);
-        return;
-      }
-      if (mins > MAX_DURATION_MINUTES) {
-        setError(`Group duration cannot exceed ${MAX_DURATION_MINUTES / 60} hours`);
-        return;
-      }
       
       const formData = new FormData(e.currentTarget);
       formData.set('start', start);
@@ -176,26 +149,17 @@ export default function CreateGroupPage() {
 
         {/* Form Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-<<<<<<< Updated upstream
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Group Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Group Name <span className="text-red-500">*</span>
-=======
-          <form action={createGroup} className="space-y-6">
-            {/* Group Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Group Name
->>>>>>> Stashed changes
               </label>
               <input
                 name="name"
                 type="text"
                 required
                 value={name}
-<<<<<<< Updated upstream
                 onChange={(e) => setName(e.target.value.slice(0, 30))} // Limit to 30 characters
                 placeholder="Enter group name (max 30 characters)"
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
@@ -452,128 +416,6 @@ export default function CreateGroupPage() {
               </button>
             </div>
           </form>
-=======
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter group name"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              />
-            </div>
-
-            {/* Visibility */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Visibility
-              </label>
-              <select
-                name="visibility"
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              >
-                <option value="public">Public - Anyone can join</option>
-                <option value="private">Private - Invite only</option>
-              </select>
-            </div>
-
-            {/* Date & Time */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Time
-                </label>
-                <input
-                  name="start"
-                  type="datetime-local"
-                  required
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Time
-                </label>
-                <input
-                  name="end"
-                  type="datetime-local"
-                  required
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              <div className="flex space-x-3">
-                <input
-                  name="location"
-                  type="text"
-                  required
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Enter location or select on map"
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={goToMap}
-                  className="rounded-lg bg-blue-600 text-white px-6 py-3 hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
-                >
-                  Select on Map
-                </button>
-              </div>
-            </div>
-
-            {/* Capacity */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Capacity
-              </label>
-              <div className="flex items-center space-x-3">
-                <input
-                  name="capacity"
-                  type="number"
-                  min={1}
-                  max={50}
-                  required
-                  value={capacity}
-                  onChange={(e) => setCapacity(Number(e.target.value))}
-                  className="w-32 rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
-                <span className="text-gray-500 text-sm">members</span>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-              <a 
-                href="/groups" 
-                className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </a>
-              <button 
-                type="submit" 
-                className="rounded-lg bg-gradient-to-r from-black to-blue-700 px-6 py-3 text-white font-medium hover:opacity-90 transition-opacity shadow-sm"
-              >
-                Create Group
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Help Text */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">
-            Your group will be visible to others based on the visibility settings you choose.
-          </p>
->>>>>>> Stashed changes
         </div>
       </div>
     </main>
