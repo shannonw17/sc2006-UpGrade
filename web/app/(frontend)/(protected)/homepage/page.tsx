@@ -1,57 +1,8 @@
-<<<<<<< Updated upstream
 // app/(frontend)/(protected)/homepage/page.tsx
 import { requireUser } from "@/lib/requireUser";
 import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";
 import { sendInWebsiteAlert } from "@/app/(backend)/ScheduleController/sendEmailReminder";
-=======
-import { requireUser } from "@/lib/requireUser";
-import { logout } from "@/app/(backend)/AccountController/logout";
-import prisma from "@/lib/db";
-import HomepageClient from "./HomepageClient";
-
-async function getProfiles(currentUserId: string) {
-  try {
-    const profiles = await prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        eduLevel: true,
-        createdAt: true,
-        receivedInvites: {
-          where: {
-            senderId: currentUserId,
-          },
-          select: {
-            id: true,
-            groupId: true,
-          }
-        }
-      },
-      where: {
-        NOT: {
-          id: currentUserId
-        }
-      },
-      orderBy: {
-        username: 'asc'
-      }
-    });
-    
-    return profiles.map(profile => ({
-      id: profile.id,
-      username: profile.username,
-      year: profile.eduLevel ? `Year ${profile.eduLevel}` : 'Not specified',
-      gender: 'Not specified',
-      hasInvite: profile.receivedInvites.length === 0
-    }));
-  } catch (error) {
-    console.error('Error fetching profiles:', error);
-    return [];
-  }
-}
->>>>>>> Stashed changes
 
 type UserCard = {
   id: string;
@@ -155,7 +106,6 @@ export default async function Home({
   searchParams: Promise<{ timing?: string }>;
 }) {
   const user = await requireUser();
-<<<<<<< Updated upstream
   
   const resolvedSearchParams = await searchParams;
 
@@ -185,9 +135,4 @@ export default async function Home({
       }}
     />
   );
-=======
-  const profiles = await getProfiles(user.id);
-
-  return <HomepageClient user={user} initialProfiles={profiles} />;
->>>>>>> Stashed changes
 }
