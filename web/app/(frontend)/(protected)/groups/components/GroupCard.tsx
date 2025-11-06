@@ -18,6 +18,28 @@ interface GroupCardProps {
   onEditClick?: (group: any) => void;
 }
 
+// ---- date/time helpers (dd/mm/yyyy + 12-hour time) ----
+const fmtDate = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+const fmtTime = new Intl.DateTimeFormat("en-SG", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function formatGroupWhen(startISO: string | Date, endISO?: string | Date) {
+  const start = new Date(startISO);
+  const end = endISO ? new Date(endISO) : undefined;
+  const date = fmtDate.format(start); // -> dd/mm/yyyy
+  const timeStart = fmtTime.format(start);
+  const timeEnd = end ? fmtTime.format(end) : undefined;
+  return timeEnd ? `${date}, ${timeStart} - ${timeEnd}` : `${date}, ${timeStart}`;
+}
+
 export default function GroupCard({
   group,
   isHost,
@@ -121,6 +143,8 @@ export default function GroupCard({
     );
   };
 
+  const when = formatGroupWhen(group.start, group.end);
+
   return (
     <>
       <div className="flex border border-gray-200 rounded-lg shadow-sm bg-white">
@@ -146,7 +170,6 @@ export default function GroupCard({
                 {/* Tags Display */}
                 {group.tags && group.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {/* Main Tag */}
                     {group.tags[0] && (
                       <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
                         #{group.tags[0].name}
@@ -157,7 +180,7 @@ export default function GroupCard({
               </div>
 
               <div className="text-gray-600 text-sm">
-                {new Date(group.start).toLocaleString()} • {group.location}
+                {when} • {group.location}
               </div>
             </div>
 

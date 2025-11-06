@@ -1,3 +1,4 @@
+// app/(frontend)/(protected)/groups/FilterBar.tsx
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";

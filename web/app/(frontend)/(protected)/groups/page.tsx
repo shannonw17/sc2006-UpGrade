@@ -38,7 +38,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
     myCreatedGroups,
     joinedGroups: justJoinedNotNotCreated,
     joinedSet,
-  } = await fetchGroupsWithFilters(CURRENT_USER_ID, filters, {
+  } = await fetchGroupsWithFilters(CURRENT_USER_ID, sp as RawFilters, {
     userEduLevel: user.eduLevel, // ✅ keep same edu level
   });
 
