@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/requireUser";
 import { normalizeFilters, type RawFilters } from "@/app/(backend)/FilterController/filterUtils";
 import { fetchGroupsWithFilters } from "@/app/(backend)/FilterController/searchAndFilter";
 import FilterBar from "./FilterBar";
-import GroupsPageClient from "./GroupsPageClient";
+import GroupsPageClient, { SearchBox } from "./GroupsPageClient";
 
 export const runtime = "nodejs";
 
@@ -77,6 +77,14 @@ export default async function GroupPage({ searchParams }: PageProps) {
 
   const hasActiveFilters = !!(filters.q || (filters as any).from || (filters as any).to || (filters as any).location || (filters as any).open);
 
+  // Extract preserved filter parameters for SearchBox
+  const preservedFilters = {
+    from: (filters as any).from || sp?.from as string,
+    to: (filters as any).to || sp?.to as string,
+    loc: (filters as any).location || sp?.loc as string,
+    open: (filters as any).open || sp?.open as string,
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       {/* Header */}
@@ -88,37 +96,13 @@ export default async function GroupPage({ searchParams }: PageProps) {
         </div>
         
         <div className="flex space-x-4">
-          {tab === "all" && <FilterBar />}
-          {tab === "all" && (
-            <form method="GET" className="relative">
-              <input type="hidden" name="tab" value="all" />
-              <input
-                type="text"
-                name="q"
-                placeholder="Search groups..."
-                defaultValue={filters.q || ""}
-                className="border border-gray-300 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500 text-gray-900 bg-white"
-              />
-              <button 
-                type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2"
-              >
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-            </form>
-          )}
+          {/* Show FilterBar and SearchBox for ALL tabs */}
+          <FilterBar />
+          <SearchBox 
+            tab={tab}
+            initialQ={filters.q || ""}
+            preserved={preservedFilters}
+          />
         </div>
       </div>
 
