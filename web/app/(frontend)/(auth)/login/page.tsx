@@ -14,17 +14,19 @@ const initialResend: ResendVerificationState = {};
 export default function LoginForm() {
   const [loginState, loginAction, loginPending] = useActionState(login, initialLogin);
 
-  // Resend verification (server action)
+  //resend verification (server action)
   const [resendState, resendAction, resendPending] = useActionState(
     resendVerificationAction,
     initialResend
   );
 
   const [showResend, setShowResend] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<"user" | "admin">("user");
+  
   const isUnverifiedError =
     !!loginState?.error && loginState.error.toLowerCase().includes("verify your email");
 
-  // Prefill the email for resend, from either the login state or last successful resend
+  //prefill the email for resend, from either the login state or last successful resend
   const presetEmail =
     resendState?.presetEmail ||
     (loginState?.identifier && loginState.identifier.includes("@")
@@ -34,6 +36,10 @@ export default function LoginForm() {
   useEffect(() => {
     if (isUnverifiedError) setShowResend(true);
   }, [isUnverifiedError]);
+
+  const handleRoleChange = (role: "user" | "admin") => {
+    setSelectedRole(role);
+  };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -59,7 +65,7 @@ export default function LoginForm() {
             </div>
           )}
 
-          {/* Unverified account block + resend (server action, no API) */}
+          {/* Unverified account block + resend (server action) */}
           {isUnverifiedError && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm text-yellow-700 text-center mb-3">{loginState.error}</p>
@@ -132,11 +138,25 @@ export default function LoginForm() {
             <legend className="block text-sm font-medium text-gray-900 mb-2">Sign in as</legend>
             <div className="flex gap-4">
               <label className="inline-flex items-center gap-2 text-sm">
-                <input type="radio" name="as" value="user" defaultChecked className="accent-blue-600" />
+                <input 
+                  type="radio" 
+                  name="as" 
+                  value="user" 
+                  checked={selectedRole === "user"}
+                  onChange={() => handleRoleChange("user")}
+                  className="accent-blue-600" 
+                />
                 User
               </label>
               <label className="inline-flex items-center gap-2 text-sm">
-                <input type="radio" name="as" value="admin" className="accent-blue-600" />
+                <input 
+                  type="radio" 
+                  name="as" 
+                  value="admin" 
+                  checked={selectedRole === "admin"}
+                  onChange={() => handleRoleChange("admin")}
+                  className="accent-blue-600" 
+                />
                 Admin
               </label>
             </div>
@@ -188,14 +208,17 @@ export default function LoginForm() {
             {loginPending ? "Signing in..." : "Sign in"}
           </button>
 
-          <div className="text-center mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <a href="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                Register now
-              </a>
-            </p>
-          </div>
+          {/* Only show register link for user role */}
+          {selectedRole === "user" && (
+            <div className="text-center mt-6 pt-6 border-t border-gray-200">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <a href="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                  Register now
+                </a>
+              </p>
+            </div>
+          )}
         </form>
       </div>
     </main>
