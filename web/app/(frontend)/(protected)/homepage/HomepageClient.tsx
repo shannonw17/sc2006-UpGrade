@@ -344,46 +344,44 @@ useEffect(() => {
   };
 
   const handleSendInvite = async (groupId: string, groupName: string) => {
-    if (!selectedUserForInvite) return;
-    setInviteLoading(groupId);
-    setInviteSuccess(null);
-    setInviteError(null);
-    setError(null);
-    try {
-      const formData = new FormData();
-      formData.append("groupId", groupId);
-      formData.append("receiverUsername", selectedUserForInvite.username);
-      const result = await sendInvite(formData);
+  if (!selectedUserForInvite) return;
+  setInviteLoading(groupId);
+  setInviteSuccess(null);
+  setInviteError(null);
+  setError(null); 
+  try {
+    const formData = new FormData();
+    formData.append("groupId", groupId);
+    formData.append("receiverUsername", selectedUserForInvite.username);
+    const result = await sendInvite(formData);
 
-      if (result.ok) {
-        setInviteSuccess(
-          `Invite sent to ${selectedUserForInvite.username} for group "${groupName}"!`
-        );
-      } else {
-        const map: Record<string, string> = {
-          "missing-fields": "Missing required fields",
-          "group-not-found": "Group not found",
-          forbidden: "You do not have permission to invite to this group",
-          "group-closed": "This group is closed",
-          "group-full": "This group is full",
-          "user-not-found": "User not found",
-          "cannot-invite-self": "You cannot invite yourself",
-          "already-member": "User is already a member of this group",
-          "invite-already-sent": "Invite has already been sent to this user",
-          "internal-error": "Internal server error",
-        };
-        const msg = map[result.error] || result.error;
-        if (result.error === "invite-already-sent")
-          setInviteError(`Failed to send invite: ${msg}`);
-        else setError(`Failed to send invite: ${msg}`);
-      }
-    } catch (e) {
-      console.error("Send invite error:", e);
-      setError("Failed to send invite");
-    } finally {
-      setInviteLoading(null);
+    if (result.ok) {
+      setInviteSuccess(
+        `Invite sent to ${selectedUserForInvite.username} for group "${groupName}"!`
+      );
+    } else {
+      const map: Record<string, string> = {
+        "missing-fields": "Missing required fields",
+        "group-not-found": "Group not found",
+        forbidden: "You do not have permission to invite to this group",
+        "group-closed": "This group is closed",
+        "group-full": "This group is full",
+        "user-not-found": "User not found",
+        "cannot-invite-self": "You cannot invite yourself",
+        "already-member": "User is already a member of this group",
+        "invite-already-sent": "Invite has already been sent to this user",
+        "internal-error": "Internal server error",
+      };
+      const msg = map[result.error] || result.error;
+      setInviteError(`Failed to send invite: ${msg}`); //always show in modal
     }
-  };
+  } catch (e) {
+    console.error("Send invite error:", e);
+    setInviteError("Failed to send invite"); //also show catch errors in modal
+  } finally {
+    setInviteLoading(null);
+  }
+};
 
   const closeInviteModal = () => {
     setShowInviteModal(false);
@@ -391,6 +389,7 @@ useEffect(() => {
     setInviteSuccess(null);
     setInviteError(null);
     setUserGroups([]);
+    setError(null);
   };
 
   //message user function
