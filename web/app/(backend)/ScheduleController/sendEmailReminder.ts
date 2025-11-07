@@ -114,6 +114,18 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
 
     const users = g.members.map((m) => m.user).filter(Boolean);
 
+    const localStart = g.start.toLocaleString("en-SG", {
+  timeZone: "Asia/Singapore",
+  weekday: "short",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+  });
+
+
     // Inbox notifications (SQLite has no skipDuplicates; add your own guard if needed)
     if (users.length) {
       await prisma.notification.createMany({
@@ -123,7 +135,7 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
           type: "GROUP_START_REMINDER",
           message: `Reminder: "${
             g.name
-          }" starts at ${g.start.toISOString()} (UTC) @ ${g.location}`,
+          }" starting at ${localStart} (SGT) @ ${g.location}`,
           // expiresAt: g.end,
         })),
       });
