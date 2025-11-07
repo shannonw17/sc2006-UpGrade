@@ -2,41 +2,46 @@
 
 import prisma from "@/lib/db";
 import { requireUser } from "@/lib/requireUser";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
+import { compare, hash } from "bcryptjs";
 
-const ChangePwSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z
-    .string()
-    .min(8, "Password must be at least 8 characters"),
-});
-
-export async function changePassword(input: {
-  currentPassword: string;
-  newPassword: string;
-}) {
+export async function changePassword(
+  oldPassword: string,
+  newPassword: string,
+  confirmPassword: string
+) {
   const user = await requireUser();
 
-  const parsed = ChangePwSchema.safeParse(input);
-  if (!parsed.success) {
-    return { error: parsed.error.issues.map(i => i.message).join("; ") };
+  // Check match
+  if (newPassword !== confirmPassword) {
+    return { ok: false, error: "Passwords do not match." };
   }
 
+  // Match forgot password rules: min 12 chars, 1 uppercase, 1 lowercase, 1 number, 1 special
+  const strongPwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/;
+  if (!strongPwdRegex.test(newPassword)) {
+    return {
+      ok: false,
+      error:
+        "Password must be at least 12 characters long and include at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.",
+    };
+  }
+
+  // Verify old password
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  if (!dbUser?.passwordHash) {
-    return { error: "Account has no password set." };
+  if (!dbUser) {
+    return { ok: false, error: "User not found." };
   }
 
-  const ok = await bcrypt.compare(parsed.data.currentPassword, dbUser.passwordHash);
-  if (!ok) return { error: "Current password is incorrect." };
+  const valid = await compare(oldPassword, dbUser.passwordHash);
+  if (!valid) {
+    return { ok: false, error: "Current password is incorrect." };
+  }
 
-  const newHash = await bcrypt.hash(parsed.data.newPassword, 10);
-
+  const newHash = await hash(newPassword, 12);
   await prisma.user.update({
     where: { id: user.id },
     data: { passwordHash: newHash },
   });
 
-  return { ok: true };
+  return { ok: true, message: "Password updated successfully." };
 }
