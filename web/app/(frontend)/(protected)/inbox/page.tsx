@@ -67,6 +67,7 @@ async function markAllAsRead() {
     });
     const { revalidatePath } = await import("next/cache");
     revalidatePath("/inbox");
+    revalidatePath("/homepage")
   } catch (error) {
     console.error("Mark all as read failed:", error);
   }

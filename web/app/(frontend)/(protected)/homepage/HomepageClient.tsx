@@ -41,6 +41,12 @@ type UserCard = {
   usualStudyPeriod: string | null;
 };
 
+type NotificationDTO = {
+  id: string;
+  message: string;
+  read: boolean;
+};
+
 type FilterSuccess = {
   success: true;
   profiles: UserCard[];
@@ -120,12 +126,14 @@ export default function HomepageClient({
   user,
   initialProfiles,
   messages,
+  notifications,
   initialTotal = 0,
   initialFilters = { searchQuery: "", yearFilter: "", genderFilter: "", timingFilter: "" },
 }: {
   user: any;
   initialProfiles: UserCard[];
   messages: string[];
+  notifications?: NotificationDTO[];
   initialTotal?: number;
   initialFilters?: Filters;
 }) {
@@ -196,8 +204,11 @@ export default function HomepageClient({
 
   const hasShown = useRef(false);
 
+  // Avoid duplicate toasts on React StrictMode double-mount in dev
+const shownThisMount = useRef<Set<string>>(new Set());
+
   // Keep list in sync when server sends new results after URL changes
-useEffect(() => {
+  useEffect(() => {
   setProfiles(formatProfiles(initialProfiles));
   setTotal(initialTotal);
   // also keep local filter inputs in sync with URL (optional)
@@ -213,28 +224,51 @@ useEffect(() => {
   setInputValue(initialFilters.searchQuery || "");
 }, [initialProfiles, initialTotal, initialFilters]);
 
+// Normalize inputs: show real unread notifications first; fall back to legacy messages
+// update your helper:
+function getUnreadToasts(): { id: string; text: string; legacy: boolean }[] {
+  // If the server passed notifications (even []), use them exclusively.
+  if (typeof notifications !== "undefined") {
+    return (notifications || [])
+      .filter((n) => n && n.read === false)
+      .map((n) => ({ id: n.id, text: n.message, legacy: false }));
+  }
 
-  useEffect(() => {
-    if (hasShown.current) return;
-    hasShown.current = true;
+  // Only if notifications prop wasn't provided at all, use legacy messages
+  return (messages || []).map((m, i) => ({
+    id: `legacy-${i}-${m}`,
+    text: m,
+    legacy: true,
+  }));
+}
 
-    console.log(messages);
-    console.log("Use Effect Notification");
+useEffect(() => {
+  const toShow = getUnreadToasts();
 
-    messages.forEach((msg, i) => {
-      setTimeout(() => {
-        toast.custom((t) => (
-          <div
-            className={`${
-              t.visible ? "animate-enter" : "animate-leave"
-            } bg-white text-gray-900 shadow-lg rounded-lg p-4 flex flex-col gap-2 w-72 border`}
-          >
-            <span>{msg}</span>
+  toShow.forEach((n, i) => {
+    if (shownThisMount.current.has(n.id)) return; // avoid duplicates on dev remount
+    shownThisMount.current.add(n.id);
+
+    setTimeout(() => {
+      toast.custom((t) => (
+        <div
+          className={`${t.visible ? "animate-enter" : "animate-leave"} bg-white text-gray-900 shadow-lg rounded-lg p-4 w-80 border border-gray-200`}
+        >
+          <div className="text-sm">{n.text}</div>
+
+          <div className="flex justify-end pt-3">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50"
+            >
+              Dismiss
+            </button>
           </div>
-        ));
-      }, i * 500);
-    });
-  }, [messages]);
+        </div>
+      ), { id: n.id });
+    }, i * 450);
+  });
+}, [notifications, messages]);
 
   //close modals when clicking outside
   useEffect(() => {
@@ -449,6 +483,7 @@ useEffect(() => {
       {/*Notification Popup*/}
       <div className="p-4">
         <Toaster
+          toastOptions={{ duration : 2500 }}
           position="top-right"
           containerStyle={{
             top: "10px",
@@ -456,7 +491,7 @@ useEffect(() => {
           }}
         />
         {/* Add animations for smooth transitions */}
-        <style jsx>{`
+        <style jsx global>{`
           .animate-enter {
             animation: fadeIn 0.3s ease-out forwards;
           }

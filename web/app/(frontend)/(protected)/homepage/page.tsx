@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import HomepageClient from "./HomepageClient";
 import { sendInWebsiteAlert } from "@/app/(backend)/ScheduleController/sendEmailReminder";
 
+
 /* ---------- display helpers (unchanged) ---------- */
 type UserCard = {
   id: string;
@@ -188,6 +189,13 @@ export default async function Home({
 }) {
   const user = await requireUser();
 
+  // right after `const user = await requireUser();`
+const notifications = await prisma.notification.findMany({
+  where: { userId: user.id, read: false },
+  select: { id: true, message: true, read: true },
+  orderBy: { createdAt: "desc" },
+});
+
   // notifications
   const raw = await sendInWebsiteAlert();
 
@@ -220,6 +228,7 @@ export default async function Home({
       user={user}
       initialProfiles={profiles}
       messages={msg}
+      notifications={notifications}
       initialTotal={total}
       initialFilters={{
         searchQuery: query,
