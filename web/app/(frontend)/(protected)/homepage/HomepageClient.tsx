@@ -7,7 +7,7 @@ import { Toaster, toast } from "react-hot-toast";
 import { viewOtherProfile } from "@/app/(backend)/ProfileController/viewOtherProfile";
 import { sendInvite } from "@/app/(backend)/InvitationController/sendInvite";
 import { getUserGroups } from "@/app/(backend)/GroupController/getUserGroups";
-import { filterProfilesAction } from "@/app/(backend)/FilterController/filterProfiles";
+//import { filterProfilesAction } from "@/app/(backend)/FilterController/filterProfiles";
 import { 
   MessageCircle, 
   BookOpen, 
@@ -195,6 +195,24 @@ export default function HomepageClient({
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const hasShown = useRef(false);
+
+  // Keep list in sync when server sends new results after URL changes
+useEffect(() => {
+  setProfiles(formatProfiles(initialProfiles));
+  setTotal(initialTotal);
+  // also keep local filter inputs in sync with URL (optional)
+  setSearchQuery(initialFilters.searchQuery || "");
+  setYearFilter(initialFilters.yearFilter || "");
+  setGenderFilter(initialFilters.genderFilter || "");
+  setTimingFilter(
+    (initialFilters.timingFilter || "")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean)
+  );
+  setInputValue(initialFilters.searchQuery || "");
+}, [initialProfiles, initialTotal, initialFilters]);
+
 
   useEffect(() => {
     if (hasShown.current) return;
@@ -386,89 +404,40 @@ export default function HomepageClient({
   };
 
   //backend filter function
-  const runBackendFilter = async (opts?: {
-    closePopup?: boolean;
-    pushUrl?: boolean;
-    filters?: {
-      search: string;
-      year: string;
-      gender: string;
-      timings: string[];
-    };
-  }) => {
-    setLoadingList(true);
-    setError(null);
+  // Was: const applyFilters = () => runBackendFilter({ closePopup: true, pushUrl: true });
+const applyFilters = () => {
+  setShowFilterPopup(false);
+  syncUrl(inputValue);
+};
 
-    const f = opts?.filters ?? buildFilters();
+// Was doing a POST + replace; now only reset local state then update URL
+const clearAllFilters = (e?: React.MouseEvent) => {
+  e?.preventDefault();
+  setSearchQuery("");
+  setInputValue("");
+  setYearFilter("");
+  setGenderFilter("");
+  setTimingFilter([]);
+  setShowFilterPopup(false);
+  router.replace("/homepage"); // clean URL
+};
 
-    const form = new FormData();
-    form.append("searchQuery", f.search);
-    form.append("yearFilter", f.year);
-    form.append("genderFilter", f.gender);
-    form.append("timingFilter", f.timings.join(","));
-    form.append("take", "24");
-    form.append("skip", "0");
-    if (user?.eduLevel) form.append("eduLevel", user.eduLevel);
-    if (user?.id) form.append("excludeUserId", user.id);
 
-    try {
-      const res = (await filterProfilesAction(form)) as FilterResp;
+  // Live search: debounce URL update (SSR will refetch results on each keypress)
+// Live search: only keys trigger a GET
+useEffect(() => {
+  const id = setTimeout(() => {
+    setSearchQuery(inputValue);
+    syncUrl(inputValue);
+  }, 450);
+  return () => clearTimeout(id);
+}, [inputValue]); // 👈 only input, not filters
 
-      if (res.success) {
-        const formattedProfiles = formatProfiles(res.profiles);
-        setProfiles(formattedProfiles);
-        setTotal(res.total ?? 0);
-
-        if (opts?.pushUrl) {
-          syncUrl(f.search);
-        }
-      } else {
-        setError(res.error || "Failed to filter profiles");
-      }
-    } catch (e) {
-      console.error("filter error:", e);
-      setError("Server error while filtering profiles");
-    } finally {
-      setLoadingList(false);
-      if (opts?.closePopup) setShowFilterPopup(false);
-    }
-  };
-
-  //apply filters (submit button in popup)
-  const applyFilters = () =>
-    runBackendFilter({ closePopup: true, pushUrl: true });
-
-  //clear filters (also clears the local input)
-  const clearAllFilters = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    const defaults = {
-      search: "",
-      year: "",
-      gender: "",
-      timings: [] as string[],
-    };
-    setSearchQuery(defaults.search);
-    setInputValue(""); //keep input in sync
-    setYearFilter(defaults.year);
-    setGenderFilter(defaults.gender);
-    setTimingFilter(defaults.timings);
-    //refetch and sync URL once
-    runBackendFilter({ closePopup: true, pushUrl: true, filters: defaults });
-  };
-
-  //live search: debounced refetch as you type (no "enter" required), but no URL updates here
-  useEffect(() => {
-    const id = setTimeout(() => {
-      setSearchQuery(inputValue); //keep empty-state / "No matches" message accurate
-      runBackendFilter({ pushUrl: false, filters: buildFilters(inputValue) });
-    }, 300); 
-    return () => clearTimeout(id);
-  }, [inputValue]);
 
   const handleSearchClear = async () => {
     setInputValue("");
     setSearchQuery("");
-    await runBackendFilter({ pushUrl: true, filters: buildFilters("") });
+    router.replace("/homepage");
   };
 
   const handleSearchBlur = () => {
