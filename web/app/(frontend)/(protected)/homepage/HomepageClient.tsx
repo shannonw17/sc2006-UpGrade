@@ -7,7 +7,6 @@ import { Toaster, toast } from "react-hot-toast";
 import { viewOtherProfile } from "@/app/(backend)/ProfileController/viewOtherProfile";
 import { sendInvite } from "@/app/(backend)/InvitationController/sendInvite";
 import { getUserGroups } from "@/app/(backend)/GroupController/getUserGroups";
-//import { filterProfilesAction } from "@/app/(backend)/FilterController/filterProfiles";
 import { 
   MessageCircle, 
   BookOpen, 
@@ -120,6 +119,58 @@ const formatPreferredTiming = (preferredTiming: string): string => {
   });
   
   return timings.join(', ');
+};
+
+const getYearOptionsByEduLevel = (eduLevel: string) => {
+  const options: { value: string; label: string }[] = [];
+  
+  switch (eduLevel?.toUpperCase()) {
+    case 'SEC':
+      options.push(
+        { value: 'S1', label: 'Sec 1' },
+        { value: 'S2', label: 'Sec 2' },
+        { value: 'S3', label: 'Sec 3' },
+        { value: 'S4', label: 'Sec 4' },
+        { value: 'S5', label: 'Sec 5' }
+      );
+      break;
+    
+    case 'JC':
+      options.push(
+        { value: 'J1', label: 'JC 1' },
+        { value: 'J2', label: 'JC 2' }
+      );
+      break;
+    
+    case 'POLY':
+      options.push(
+        { value: 'P1', label: 'Poly 1' },
+        { value: 'P2', label: 'Poly 2' },
+        { value: 'P3', label: 'Poly 3' }
+      );
+      break;
+    
+    case 'UNI':
+      options.push(
+        { value: 'U1', label: 'Year 1' },
+        { value: 'U2', label: 'Year 2' },
+        { value: 'U3', label: 'Year 3' },
+        { value: 'U4', label: 'Year 4' }
+      );
+      break;
+    
+    default:
+      options.push(
+        { value: 'S1', label: 'Sec 1' }, { value: 'S2', label: 'Sec 2' }, { value: 'S3', label: 'Sec 3' }, 
+        { value: 'S4', label: 'Sec 4' }, { value: 'S5', label: 'Sec 5' },
+        { value: 'J1', label: 'JC 1' }, { value: 'J2', label: 'JC 2' },
+        { value: 'P1', label: 'Poly 1' }, { value: 'P2', label: 'Poly 2' }, { value: 'P3', label: 'Poly 3' },
+        { value: 'U1', label: 'Year 1' }, { value: 'U2', label: 'Year 2' }, { value: 'U3', label: 'Year 3' }, 
+        { value: 'U4', label: 'Year 4' }
+      );
+  }
+  
+  return options;
 };
 
 export default function HomepageClient({
@@ -874,10 +925,11 @@ useEffect(() => {
                       className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-700 bg-white"
                     >
                       <option value="">All Years</option>
-                      <option value="Year 1">Year 1</option>
-                      <option value="Year 2">Year 2</option>
-                      <option value="Year 3">Year 3</option>
-                      <option value="Year 4">Year 4</option>
+                      {getYearOptionsByEduLevel(user.eduLevel).map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

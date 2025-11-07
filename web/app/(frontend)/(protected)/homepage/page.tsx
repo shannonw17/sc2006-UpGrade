@@ -5,7 +5,6 @@ import HomepageClient from "./HomepageClient";
 import { sendInWebsiteAlert } from "@/app/(backend)/ScheduleController/sendEmailReminder";
 
 
-/* ---------- display helpers (unchanged) ---------- */
 type UserCard = {
   id: string;
   email: string;
@@ -60,7 +59,6 @@ const formatPreferredTiming = (csv?: string | null): string => {
     .join(", ");
 };
 
-/* ---------- filters & helpers (mirrors filterProfilesAction) ---------- */
 const GenderMap: Record<string, "MALE" | "FEMALE" | "OTHER"> = {
   "m": "MALE", "male": "MALE",
   "f": "FEMALE", "female": "FEMALE",
@@ -88,7 +86,6 @@ const YearMap: Record<string, "S1"|"S2"|"S3"|"S4"|"S5"|"J1"|"J2"|"P1"|"P2"|"P3"|
   "u4": "U4", "year 4": "U4", "year 4 (uni)": "U4",
 };
 
-// CSV “whole-word” matching for preferredTiming (SQLite-safe)
 function csvWordOR(field: "preferredTiming", token: string) {
   return {
     OR: [
@@ -105,7 +102,6 @@ function toArray(csv?: string | null) {
   return csv.split(",").map(s => s.trim()).filter(Boolean);
 }
 
-/* ---------- data fetch (SSR) ---------- */
 async function getProfilesWithFilters(
   currentUserId: string,
   params: {
@@ -133,7 +129,7 @@ async function getProfilesWithFilters(
 
   if (q) AND.push({ username: { contains: q } });
 
-  if (YearMap[yearKey]) {
+  if (yearKey && YearMap[yearKey]) {
     AND.push({ yearOfStudy: YearMap[yearKey] });
   }
   if (GenderMap[genderKey]) {
@@ -179,7 +175,6 @@ async function getProfilesWithFilters(
   return { rows: mapped, total };
 }
 
-/* ---------- page ---------- */
 export const runtime = "nodejs";
 
 export default async function Home({
@@ -189,7 +184,6 @@ export default async function Home({
 }) {
   const user = await requireUser();
 
-  // right after `const user = await requireUser();`
 const notifications = await prisma.notification.findMany({
   where: { userId: user.id, read: false },
   select: { id: true, message: true, read: true },
