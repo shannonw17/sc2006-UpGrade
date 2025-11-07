@@ -21,12 +21,13 @@ export async function fetchGroupsWithFilters(
   }
 
   const [allGroupsRaw, myMemberships, myCreatedGroupsRaw] = await Promise.all([
-    // ALL tab — hide closed
+    // all tab
     prisma.group.findMany({
       where: { 
         ...whereCommon, 
         visibility: true,
-        isClosed: false,                 // 👈 add this
+        isClosed: false,
+        currentSize: { lt: prisma.group.fields.capacity },
         ...(educationLevel && {
           host: { eduLevel: educationLevel as any }
         })
@@ -44,13 +45,12 @@ export async function fetchGroupsWithFilters(
       select: { groupId: true },
     }),
 
-    // CREATED tab — usually show all your groups (closed or not).
-    // If you ALSO want to hide closed here, add isClosed: false below.
+    // created tab 
     prisma.group.findMany({
       where: { 
         ...whereCommon, 
         hostId: currentUserId,
-        // isClosed: false,              // ← uncomment if you want to hide closed in "Created"
+        // isClosed: false,
       },
       orderBy: { createdAt: "desc" },
       include: { 
@@ -63,12 +63,12 @@ export async function fetchGroupsWithFilters(
 
   const joinedSet = new Set(myMemberships.map(m => m.groupId));
 
-  // JOINED tab — hide closed
+  // joined tab
   const joinedGroupsRaw = await prisma.group.findMany({
     where: { 
       ...whereCommon, 
       id: { in: Array.from(joinedSet) },
-      isClosed: false,                  // 👈 add this
+      isClosed: false,
       ...(educationLevel && {
         host: { eduLevel: educationLevel as any }
       })
@@ -81,7 +81,6 @@ export async function fetchGroupsWithFilters(
     },
   });
 
-  // keep your openOnly capacity check as-is
   const openFilter = (g: typeof allGroupsRaw[number]) => g._count.members < g.capacity;
 
   const allGroups        = filters.openOnly ? allGroupsRaw.filter(openFilter)       : allGroupsRaw;
