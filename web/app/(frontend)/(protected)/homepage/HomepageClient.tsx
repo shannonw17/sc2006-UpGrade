@@ -74,7 +74,7 @@ const getYearColor = (yearOfStudy: string): string => {
     'JC 2': 'bg-emerald-100 text-emerald-800',
     'Poly 1': 'bg-cyan-100 text-cyan-800',
     'Poly 2': 'bg-blue-100 text-blue-800',
-    'Poly 3': 'bg-indigo-100 text-indigo-800',
+    'Poly 3': 'bg-pink-100 text-pink-800',
     'Year 1': 'bg-red-100 text-red-800',
     'Year 2': 'bg-yellow-100 text-yellow-800',
     'Year 3': 'bg-blue-100 text-blue-800',
