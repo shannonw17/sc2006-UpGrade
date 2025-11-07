@@ -202,7 +202,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     }
   }, [viewMode, month, year, startOfWeek]);
 
-  //calculate group position and height for weekly view (includes multi day view)
+  //calculate group position and height for weekly view (FIXED for multi-day events)
   const getGroupPosition = (group: StudyGroup, currentDate: Date) => {
     const start = new Date(group.start);
     const end = new Date(group.end);
@@ -211,43 +211,38 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     const currentDayEnd = new Date(currentDate);
     currentDayEnd.setHours(23, 59, 59, 999);
 
-    //for events that span multiple days, calculate the portion for this specific day
+    // For events that span multiple days, calculate the portion for this specific day
     let displayStart = new Date(Math.max(start.getTime(), currentDayStart.getTime()));
     let displayEnd = new Date(Math.min(end.getTime(), currentDayEnd.getTime()));
 
-    //if this is the first day of a multi-day event/overnight->use the actual start time
+    // If this is the first day of a multi-day event, use the actual start time
     if (start.toDateString() === currentDate.toDateString()) {
       displayStart = start;
     }
 
-    //if this is the last day of a multi-day event/overnight->use the actual end time
+    // If this is the last day of a multi-day event, use the actual end time
     if (end.toDateString() === currentDate.toDateString()) {
       displayEnd = end;
     }
 
+    // If the event doesn't occur on this day at all, return null
     if (displayStart >= displayEnd) {
-      displayStart = new Date(currentDayStart);
-      displayEnd = new Date(currentDayEnd);
+      return null;
     }
 
-    //calculate minutes from start of day (for eg; 12:00 AM = 0 minutes)
+    // Calculate minutes from start of day (e.g., 12:00 AM = 0 minutes)
     const startMinutes = displayStart.getHours() * 60 + displayStart.getMinutes();
     let endMinutes = displayEnd.getHours() * 60 + displayEnd.getMinutes();
 
-    //handle events that end at midnight or extend to next day
-    if (endMinutes === 0 && displayEnd.getDate() === currentDate.getDate()) {
-      endMinutes = 1440; 
+    // Handle events that end exactly at midnight
+    if (endMinutes === 0 && displayEnd.getDate() > currentDate.getDate()) {
+      endMinutes = 1440; // End of day
     }
 
-    //calculate duration in minutes
+    // Calculate duration in minutes
     let duration = endMinutes - startMinutes;
 
-    //handle overnight events within the same calendar day
-    if (duration < 0) {
-      duration = 1440 - startMinutes; 
-    }
-
-    //minimum duration for visibility (at least 30 minutes)
+    // Ensure minimum duration for visibility (at least 30 minutes)
     const minDuration = 30;
     if (duration < minDuration) {
       duration = minDuration;
@@ -256,7 +251,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     const topPercentage = (startMinutes / 1440) * 100;
     const heightPercentage = (duration / 1440) * 100;
 
-    //for readability
+    // For readability
     const minHeightPixels = 40;
     const totalDayHeight = 1200; 
     const calculatedHeightPixels = (duration / 1440) * totalDayHeight;
@@ -285,14 +280,21 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
 
     if (start.toDateString() === currentDate.toDateString()) {
       //first day - show start time
-      return start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} →`;
     } else if (end.toDateString() === currentDate.toDateString()) {
       //last day - show end time
-      return `Until ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `→ ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     } else {
       //middle day - show all day
       return "All Day";
     }
+  };
+
+  //get full time display for single-day events
+  const getFullTimeDisplay = (group: StudyGroup): string => {
+    const start = new Date(group.start);
+    const end = new Date(group.end);
+    return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   //view details button - show pop up
@@ -402,7 +404,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
                       {groupedByDate[date.toDateString()].map((group) => {
                         const isMultiDay = isMultiDayEvent(group);
                         const displayText = isMultiDay ? getMultiDayDisplayText(group, date) : 
-                          `${new Date(group.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${new Date(group.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+                          getFullTimeDisplay(group);
                         
                         return (
                           <div
@@ -500,7 +502,10 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
                         {weeklyGroupedByDate[date.toDateString()]?.map((group) => {
                           const position = getGroupPosition(group, date);
                           const isMultiDay = isMultiDayEvent(group);
-                          const displayText = getMultiDayDisplayText(group, date);
+                          const displayText = isMultiDay ? getMultiDayDisplayText(group, date) : getFullTimeDisplay(group);
+                          
+                          // Skip rendering if the group doesn't actually occur on this day
+                          if (!position) return null;
                           
                           return (
                             <div
