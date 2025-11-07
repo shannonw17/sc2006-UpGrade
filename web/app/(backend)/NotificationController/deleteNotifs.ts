@@ -1,6 +1,6 @@
 //delete all group related notifications of all group members in group ie. GROUP_MEMBER_JOINED, GROUP_MEMBER_LEFT, GROUP_START_REMINDER
 //call when group is removed due to ban, dont remove GROUP_REPORTED
-
+// app/(backend)/NotificationController/deleteNotifs.ts
 "use server";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";

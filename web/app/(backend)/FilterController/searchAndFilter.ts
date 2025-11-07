@@ -21,46 +21,41 @@ export async function fetchGroupsWithFilters(
   }
 
   const [allGroupsRaw, myMemberships, myCreatedGroupsRaw] = await Promise.all([
-    // For "all" tab: only show groups from hosts with same education level
+    // ALL tab — hide closed
     prisma.group.findMany({
       where: { 
         ...whereCommon, 
         visibility: true,
-        // Add education level filter for "all" tab
+        isClosed: false,                 // 👈 add this
         ...(educationLevel && {
-          host: {
-            eduLevel: educationLevel as any // Fix: Cast to any to bypass strict type checking
-          }
+          host: { eduLevel: educationLevel as any }
         })
       },
       orderBy: { createdAt: "desc" },
       include: { 
         _count: { select: { members: true } },
-        host: {
-          select: {
-            username: true,
-            eduLevel: true
-          }
-        },
+        host: { select: { username: true, eduLevel: true } },
         tags: true
       },
     }),
+
     prisma.groupMember.findMany({
       where: { userId: currentUserId },
       select: { groupId: true },
     }),
-    // For "mine" tab: show all groups created by user (no education level filter)
+
+    // CREATED tab — usually show all your groups (closed or not).
+    // If you ALSO want to hide closed here, add isClosed: false below.
     prisma.group.findMany({
-      where: { ...whereCommon, hostId: currentUserId },
+      where: { 
+        ...whereCommon, 
+        hostId: currentUserId,
+        // isClosed: false,              // ← uncomment if you want to hide closed in "Created"
+      },
       orderBy: { createdAt: "desc" },
       include: { 
         _count: { select: { members: true } },
-        host: {
-          select: {
-            username: true,
-            eduLevel: true
-          }
-        },
+        host: { select: { username: true, eduLevel: true } },
         tags: true
       },
     }),
@@ -68,37 +63,30 @@ export async function fetchGroupsWithFilters(
 
   const joinedSet = new Set(myMemberships.map(m => m.groupId));
 
-  // For "joined" tab: only show joined groups from hosts with same education level
+  // JOINED tab — hide closed
   const joinedGroupsRaw = await prisma.group.findMany({
     where: { 
       ...whereCommon, 
       id: { in: Array.from(joinedSet) },
-      // Add education level filter for "joined" tab
+      isClosed: false,                  // 👈 add this
       ...(educationLevel && {
-        host: {
-          eduLevel: educationLevel as any // Fix: Cast to any to bypass strict type checking
-        }
+        host: { eduLevel: educationLevel as any }
       })
     },
     orderBy: { createdAt: "desc" },
     include: { 
       _count: { select: { members: true } },
-      host: {
-        select: {
-          username: true,
-          eduLevel: true
-        }
-      },
+      host: { select: { username: true, eduLevel: true } },
       tags: true
     },
   });
 
-  // Fix: Properly type the groups and fix the openFilter function
+  // keep your openOnly capacity check as-is
   const openFilter = (g: typeof allGroupsRaw[number]) => g._count.members < g.capacity;
 
-  const allGroups = filters.openOnly ? allGroupsRaw.filter(openFilter) : allGroupsRaw;
-  const myCreatedGroups = filters.openOnly ? myCreatedGroupsRaw.filter(openFilter) : myCreatedGroupsRaw;
-  const joinedGroups = filters.openOnly ? joinedGroupsRaw.filter(openFilter) : joinedGroupsRaw;
+  const allGroups        = filters.openOnly ? allGroupsRaw.filter(openFilter)       : allGroupsRaw;
+  const myCreatedGroups  = filters.openOnly ? myCreatedGroupsRaw.filter(openFilter) : myCreatedGroupsRaw;
+  const joinedGroups     = filters.openOnly ? joinedGroupsRaw.filter(openFilter)    : joinedGroupsRaw;
 
   const myCreatedIds = new Set(myCreatedGroups.map(g => g.id));
   const justJoinedNotCreated = joinedGroups.filter(g => !myCreatedIds.has(g.id));
