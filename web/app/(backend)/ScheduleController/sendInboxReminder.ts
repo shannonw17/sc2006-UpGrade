@@ -1,3 +1,5 @@
+// app/(backend)/ScheduleController/sendInboxReminder.ts
+
 import prisma from "@/lib/db";
 import { readSession } from "@/lib/auth";
 import { redirect } from "next/navigation";

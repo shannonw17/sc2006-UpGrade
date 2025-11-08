@@ -1,8 +1,9 @@
+// app/(backend)/ScheduleController/sendEmailReminder.ts
 "use server";
 
 import prisma from "@/lib/db";
 import { addMinutes, startOfMinute } from "date-fns";
-import { string } from "zod";
+import { sendEmail } from "@/lib/emailer";
 
 type WindowLabel = "24h" | "2h" | "15m";
 const WINDOW_TO_MINUTES: Record<WindowLabel, number> = {
@@ -20,11 +21,9 @@ function floorTo5Min(d: Date) {
 }
 
 // simple placeholder email sender
-async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  console.log(`[email → ${to}] ${subject}`);
-}
-
-
+// async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+//   console.log(`[email → ${to}] ${subject}`);
+// }
 
 export async function sendInWebsiteAlert(): Promise<
   { [key: string]: string }[]
@@ -54,10 +53,6 @@ export async function sendInWebsiteAlert(): Promise<
 
   return messages;
 }
-
-
-
-
 
 /**
  * Sends inbox + (optional) email reminders for groups starting soon.
@@ -156,22 +151,44 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
       const fresh = toEmail.filter((u) => !already.has(u!.id));
 
       for (const u of fresh) {
-        await sendEmail({
-          to: u!.email,
-          subject: `Reminder: ${g.name} starts soon`,
-          html: `
-            <p>Hi ${u!.username},</p>
-            <p>Your study group <strong>${
-              g.name
-            }</strong> will start on <strong>${g.start.toISOString()}</strong> (UTC).</p>
-            <p>Location: ${g.location}</p>
-            <p>Group ID: ${g.groupID}</p>
-          `,
-        });
 
-        await prisma.emailReminderLog.create({
-          data: { userId: u!.id, groupId: g.id, window: windowLabel },
-        });
+         const subject = `Reminder: ${g.name} starts soon`;
+        // Use plain text (your emailer signature is `text`)
+        const text =
+        `Hi ${u!.username},
+
+        Your study group "${g.name}" starts at ${localStart} (SGT).
+        Location: ${g.location}
+        Group ID: ${g.groupID}
+
+        See you there!`;
+        // await sendEmail({
+        //   to: u!.email,
+        //   subject: `Reminder: ${g.name} starts soon`,
+        //   html: `
+        //     <p>Hi ${u!.username},</p>
+        //     <p>Your study group <strong>${
+        //       g.name
+        //     }</strong> will start on <strong>${g.start.toISOString()}</strong> (UTC).</p>
+        //     <p>Location: ${g.location}</p>
+        //     <p>Group ID: ${g.groupID}</p>
+        //   `,
+        // });
+
+        // await prisma.emailReminderLog.create({
+        //   data: { userId: u!.id, groupId: g.id, window: windowLabel },
+        // });
+        try {
+          await sendEmail(u!.email, subject, text);
+          await prisma.emailReminderLog.create({
+            data: { userId: u!.id, groupId: g.id, window: windowLabel },
+          });
+        } catch (error) {
+          console.error(
+            `[reminders] Failed to send email to userId=${u!.id} email=${u!.email}:`,
+            error
+          );
+        }
         sentEmails++;
       }
     }

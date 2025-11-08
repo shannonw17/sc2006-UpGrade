@@ -1,3 +1,4 @@
+// lib/emailer.ts
 import nodemailer from "nodemailer";
 
 // reusable transporter 
