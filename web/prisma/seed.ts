@@ -340,6 +340,7 @@ async function main() {
   // ========== UNIVERSITY GROUPS ==========
   console.log("Creating University Groups...");
   
+  // Alice's group that will be 3/4 initially (so X can join to make it full)
   const uni_g1 = await prisma.group.upsert({
     where: { groupID: "UNI_GROUP001" },
     update: { hostId: alice.id, name: "Math Revision" },
@@ -350,7 +351,7 @@ async function main() {
       start: new Date("2025-12-15T10:00:00Z"),
       end: new Date("2025-12-15T12:00:00Z"),
       location: "NTU Library Room 101",
-      capacity: 5,
+      capacity: 4, 
       currentSize: 1,
       hostId: alice.id,
     },
@@ -410,11 +411,47 @@ async function main() {
     }),
   ]);
 
+  // Sarah's group that will clash with X's new group (same time) 
   const uni_g3 = await prisma.group.upsert({
     where: { groupID: "UNI_GROUP003" },
-    update: { hostId: wei.id, name: "Final Year Project Discussion" },
+    update: { hostId: sarah.id, name: "Programming Workshop" },
     create: {
       groupID: "UNI_GROUP003",
+      name: "Programming Workshop",
+      visibility: true,
+      start: new Date("2025-12-20T14:00:00Z"), 
+      end: new Date("2025-12-20T16:00:00Z"),   
+      location: "NTU",
+      capacity: 6,
+      currentSize: 1,
+      hostId: sarah.id,
+    },
+  });
+
+  // Tags for Programming Workshop
+  await Promise.all([
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Programming", groupId: uni_g3.id } },
+      update: {},
+      create: { name: "Programming", color: getRandomTagColor(), groupId: uni_g3.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "Web Development", groupId: uni_g3.id } },
+      update: {},
+      create: { name: "Web Development", color: getRandomTagColor(), groupId: uni_g3.id },
+    }),
+    prisma.tag.upsert({
+      where: { name_groupId: { name: "University", groupId: uni_g3.id } },
+      update: {},
+      create: { name: "University", color: getRandomTagColor(), groupId: uni_g3.id },
+    }),
+  ]);
+
+  const uni_g4 = await prisma.group.upsert({
+    where: { groupID: "UNI_GROUP004" },
+    update: { hostId: wei.id, name: "Final Year Project Discussion" },
+    create: {
+      groupID: "UNI_GROUP004",
       name: "Final Year Project Discussion",
       visibility: false,
       start: new Date("2025-12-28T15:00:00Z"),
@@ -429,19 +466,19 @@ async function main() {
   // Tags for Final Year Project Discussion
   await Promise.all([
     prisma.tag.upsert({
-      where: { name_groupId: { name: "Final Year", groupId: uni_g3.id } },
+      where: { name_groupId: { name: "Final Year", groupId: uni_g4.id } },
       update: {},
-      create: { name: "Final Year", color: getRandomTagColor(), groupId: uni_g3.id },
+      create: { name: "Final Year", color: getRandomTagColor(), groupId: uni_g4.id },
     }),
     prisma.tag.upsert({
-      where: { name_groupId: { name: "Project", groupId: uni_g3.id } },
+      where: { name_groupId: { name: "Project", groupId: uni_g4.id } },
       update: {},
-      create: { name: "Project", color: getRandomTagColor(), groupId: uni_g3.id },
+      create: { name: "Project", color: getRandomTagColor(), groupId: uni_g4.id },
     }),
     prisma.tag.upsert({
-      where: { name_groupId: { name: "University", groupId: uni_g3.id } },
+      where: { name_groupId: { name: "University", groupId: uni_g4.id } },
       update: {},
-      create: { name: "University", color: getRandomTagColor(), groupId: uni_g3.id },
+      create: { name: "University", color: getRandomTagColor(), groupId: uni_g4.id },
     }),
   ]);
 
@@ -597,6 +634,7 @@ async function main() {
   // ========== GROUP MEMBERSHIPS ==========
 
   // University Groups
+  // Alice's group
   await ensureMembership(alice.id, uni_g1.id);
   await ensureMembership(john.id, uni_g1.id);
   await ensureMembership(josh.id, uni_g1.id);
@@ -604,8 +642,12 @@ async function main() {
   await ensureMembership(mary.id, uni_g2.id);
   await ensureMembership(sarah.id, uni_g2.id);
 
-  await ensureMembership(wei.id, uni_g3.id);
+  // Sarah's group 
   await ensureMembership(sarah.id, uni_g3.id);
+  await ensureMembership(wei.id, uni_g3.id);
+
+  await ensureMembership(wei.id, uni_g4.id);
+  await ensureMembership(mary.id, uni_g4.id);
 
   // Polytechnic Groups
   await ensureMembership(bob.id, poly_g1.id);
@@ -628,6 +670,7 @@ async function main() {
     syncCurrentSize(uni_g1.id), 
     syncCurrentSize(uni_g2.id), 
     syncCurrentSize(uni_g3.id),
+    syncCurrentSize(uni_g4.id),
     syncCurrentSize(poly_g1.id),
     syncCurrentSize(poly_g2.id),
     syncCurrentSize(jc_g1.id),
@@ -635,30 +678,16 @@ async function main() {
   ]);
 
   console.log("🌱 Seeding complete!");
-  console.log("\nEDUCATION LEVEL SEPARATION:");
-  console.log("=============================");
   
-  console.log("\nUNIVERSITY GROUPS:");
-  console.log("UNI_GROUP001: Math Revision");
-  console.log("   • alice, john, josh");
+  console.log("\nALL GROUPS:");
+  console.log("UNI_GROUP001: Math Revision (3/4)");
   console.log("UNI_GROUP002: Data Science Study (PRIVATE)");
-  console.log("   • mary, sarah_56");
-  console.log("UNI_GROUP003: Final Year Project Discussion (PRIVATE)");
-  console.log("   • wei_92, sarah_56");
-  
-  console.log("\nPOLYTECHNIC GROUPS:");
+  console.log("UNI_GROUP003: Programming Workshop (Time Conflict)");
+  console.log("UNI_GROUP004: Final Year Project Discussion (PRIVATE)");
   console.log("POLY_GROUP001: CS2103 Project Team (PRIVATE)");
-  console.log("   • bob, emma_61");
   console.log("POLY_GROUP002: Electrical Engineering Lab");
-  console.log("   • mike_23, emma_61, bob");
-  
-  console.log("\nJC GROUPS:");
   console.log("JC_GROUP001: A-Levels Math Revision");
-  console.log("   • priya_15, david_74");
-  
-  console.log("\nSECONDARY SCHOOL GROUPS:");
   console.log("SEC_GROUP001: O-Level Science Study");
-  console.log("   • chloe_15, ryan_09, ahmad_37");
   
   console.log("\nTEST USERS:");
   console.log("====================");
@@ -687,6 +716,11 @@ async function main() {
   console.log("\nADMINS:");
   console.log("  admin1   / admin1@gmail.com         | password: admin123987");
   console.log("  admin2   / admin2@gmail.com         | password: admin543678");
+  
+  console.log("\n DEMO:");
+  console.log("1. Create account 'X', a university student");
+  console.log("2. Join Alice's group (Math Revision) to see capacity full message");
+  console.log("3. Create new group on 20/12/2025, 3pm and invite Sarah to show time conflict with Sarah's group");
 }
 
 main()
