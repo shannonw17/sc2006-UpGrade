@@ -19,10 +19,17 @@ export default async function GroupPage({ searchParams }: PageProps) {
   const CURRENT_USER_ID = user.id;
 
   const sp = await searchParams;
-  
+
+  // 🔗 Build a tab href that preserves current query params (q/from/to/loc/open/etc.)
+  const buildTabHref = (target: "all" | "mine" | "joined") => {
+    const p = new URLSearchParams(sp as any ?? {});
+    p.set("tab", target);
+    return `/groups?${p.toString()}`;
+  };
+
   // Handle tab parameter directly
   const rawTab = sp?.tab as string | undefined;
-  
+
   let tab: "all" | "mine" | "joined" = "all";
   if (rawTab === "all" || rawTab === "mine" || rawTab === "joined") {
     tab = rawTab;
@@ -32,11 +39,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
 
   // Use normalizeFilters for other filters
   const filters = normalizeFilters(sp);
-  
-  // Don't add tab to filters - pass it separately
-  // const finalFilters = { ...filters, tab }; // REMOVED
 
-  // Pass user's education level to the filter function
   const {
     allGroups,
     myCreatedGroups,
@@ -46,7 +49,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
 
   // If joinedGroups is empty, fetch them manually with education level filter
   let joinedGroups = justJoinedNotCreated;
-  
+
   if (tab === 'joined' && joinedGroups.length === 0) {
     joinedGroups = await prisma.group.findMany({
       where: {
@@ -62,11 +65,11 @@ export default async function GroupPage({ searchParams }: PageProps) {
         }
       },
       include: {
-        host: { 
-          select: { 
+        host: {
+          select: {
             username: true,
-            eduLevel: true 
-          } 
+            eduLevel: true
+          }
         },
         members: { select: { userId: true } },
         _count: { select: { members: true } },
@@ -75,14 +78,20 @@ export default async function GroupPage({ searchParams }: PageProps) {
     });
   }
 
-  const hasActiveFilters = !!(filters.q || (filters as any).from || (filters as any).to || (filters as any).location || (filters as any).open);
+  const hasActiveFilters = !!(
+    filters.q ||
+    (filters as any).from ||
+    (filters as any).to ||
+    (filters as any).location ||
+    (filters as any).open
+  );
 
   // Extract preserved filter parameters for SearchBox
   const preservedFilters = {
-    from: (filters as any).from || sp?.from as string,
-    to: (filters as any).to || sp?.to as string,
-    loc: (filters as any).location || sp?.loc as string,
-    open: (filters as any).open || sp?.open as string,
+    from: (filters as any).from || (sp?.from as string),
+    to: (filters as any).to || (sp?.to as string),
+    loc: (filters as any).location || (sp?.loc as string),
+    open: (filters as any).open || (sp?.open as string),
   };
 
   return (
@@ -94,11 +103,11 @@ export default async function GroupPage({ searchParams }: PageProps) {
             {tab === "all" ? "All groups" : tab === "mine" ? "Created groups" : "Joined groups"}
           </h1>
         </div>
-        
+
         <div className="flex space-x-4">
           {/* Show FilterBar and SearchBox for ALL tabs */}
           <FilterBar />
-          <SearchBox 
+          <SearchBox
             tab={tab}
             initialQ={filters.q || ""}
             preserved={preservedFilters}
@@ -109,9 +118,9 @@ export default async function GroupPage({ searchParams }: PageProps) {
       {/* Tabs */}
       <nav className="mb-6">
         <div className="flex gap-8 border-b">
-          <Tab href="/groups?tab=all" active={tab === "all"}>All groups</Tab>
-          <Tab href="/groups?tab=mine" active={tab === "mine"}>Created groups</Tab>
-          <Tab href="/groups?tab=joined" active={tab === "joined"}>Joined groups</Tab>
+          <Tab href={buildTabHref("all")} active={tab === "all"}>All groups</Tab>
+          <Tab href={buildTabHref("mine")} active={tab === "mine"}>Created groups</Tab>
+          <Tab href={buildTabHref("joined")} active={tab === "joined"}>Joined groups</Tab>
         </div>
       </nav>
 
@@ -144,8 +153,8 @@ function Tab({
     <Link
       href={href}
       className={`-mb-px px-1 py-2 text-sm font-medium ${
-        active 
-          ? "text-gray-900 border-b-2 border-gray-900" 
+        active
+          ? "text-gray-900 border-b-2 border-gray-900"
           : "text-gray-600 hover:text-gray-900"
       }`}
     >
