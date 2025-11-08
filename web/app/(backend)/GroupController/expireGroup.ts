@@ -3,10 +3,10 @@
 
 import prisma from "@/lib/db";
 
-/**
- * Close groups whose start <= now, then hard-delete groups already-closed
- * whose start <= cutoff (grace window).
- */
+
+// Close groups whose start <= now, then delete groups already-closed
+// whose start <= cutoff (grace window).
+
 export async function expireGroupsNow(now = new Date()): Promise<{
   closedCount: number;
   deletedCount: number;
@@ -19,7 +19,7 @@ export async function expireGroupsNow(now = new Date()): Promise<{
   let deletedCount = 0;
   const deletedIds: string[] = [];
 
-  // 1) Close newly expired groups
+  // Close newly expired groups
   const toExpire = await prisma.group.findMany({
     where: { isClosed: false, start: { lte: now } },
     select: { id: true },
@@ -40,8 +40,7 @@ export async function expireGroupsNow(now = new Date()): Promise<{
     invitationsDeleted = delInv.count;
   }
 
-  // 2) Hard-delete closed groups older than the grace window
-  //    (Prisma schema has onDelete: Cascade for children, so one deleteMany is sufficient.)
+  // Delete closed groups older than the grace window
   const cutoff = new Date(now.getTime() - 1 * 60 * 1000); // 1 minute grace
   const oldClosed = await prisma.group.findMany({
     where: { isClosed: true, start: { lte: cutoff } },
@@ -49,15 +48,15 @@ export async function expireGroupsNow(now = new Date()): Promise<{
   });
 
   if (oldClosed.length > 0) {
-    const idsToDelete = oldClosed.map(g => g.id);
 
-    // Optional: if you prefer a transaction, wrap in $transaction([]).
+    const idsToDelete = oldClosed.map(g => g.id);
     const delRes = await prisma.group.deleteMany({
       where: { id: { in: idsToDelete } },
     });
 
     deletedCount = delRes.count;
     deletedIds.push(...idsToDelete);
+
   }
 
   return {
@@ -65,7 +64,6 @@ export async function expireGroupsNow(now = new Date()): Promise<{
     deletedCount,
     invitationsDeleted,
     deletedIds,
-    // Debug info you can log in cron to verify the time filter is matching what you expect.
     debug: {
       cutoffISO: cutoff.toISOString(),
       candidateIds: oldClosed.map(g => g.id),

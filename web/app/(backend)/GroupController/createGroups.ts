@@ -46,14 +46,12 @@ function generateGroupID(length = 9) {
   return out;
 }
 
-/**
- * Check if user already has groups that overlap with the proposed time
- */
+// Check if user already has groups that overlap with the proposed time
 async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Date) {
   const existingGroups = await prisma.group.findMany({
     where: {
       hostId: hostId,
-      isClosed: false, // Only check active groups
+      isClosed: false, 
     },
     select: {
       id: true,
@@ -68,7 +66,7 @@ async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Dat
     const existingStart = new Date(group.start);
     const existingEnd = new Date(group.end);
 
-    // Check for time overlap: if one group starts before the other ends and ends after the other starts
+    // Check for time overlap
     const hasOverlap = newStart < existingEnd && newEnd > existingStart;
 
     if (hasOverlap) {
@@ -106,7 +104,7 @@ export async function createGroup(formData: FormData) {
   if (!name) throw new Error("Group name is required");
   if (!location) throw new Error("Location is required");
   
-  // Capacity validation
+  // Check Capacity
   if (!Number.isFinite(capacity) || capacity < 2) {
     throw new Error("Capacity must be at least 2 members");
   }
@@ -117,7 +115,7 @@ export async function createGroup(formData: FormData) {
   if (!startLocal) throw new Error("Start time is required");
   if (!endLocal) throw new Error("End time is required");
 
-  // Tag validation
+  // Check Tags
   if (tags.length === 0) {
     throw new Error("At least one tag is required");
   }
@@ -134,13 +132,13 @@ export async function createGroup(formData: FormData) {
   }
 
   if (!name) throw new Error("Group name is required");
-  if (name.length > 30) throw new Error("Group name cannot exceed 30 characters"); // Add this line
+  if (name.length > 30) throw new Error("Group name cannot exceed 30 characters");
   if (!location) throw new Error("Location is required");
 
-  // SGT = UTC+8 → offset +480 minutes
+  // SGT = UTC+8 
   const SGT_OFFSET_MIN = 8 * 60;
 
-  // Convert local wall-clock (SGT) to absolute UTC instants
+  // Convert local (SGT) to UTC
   const start = localDatetimeToUTC(startLocal, SGT_OFFSET_MIN);
   const end = localDatetimeToUTC(endLocal, SGT_OFFSET_MIN);
 
@@ -148,7 +146,7 @@ export async function createGroup(formData: FormData) {
   if (isNaN(+end)) throw new Error("Invalid end datetime");
   if (end <= start) throw new Error("End time must be after start time");
 
-  // Optional: prevent creating groups in the past
+  // Prevent creating groups in the past
   const nowUtc = new Date();
   if (start < nowUtc) throw new Error("Start time must be in the future");
 
@@ -208,7 +206,7 @@ export async function createGroup(formData: FormData) {
       });
     }
 
-    // Ensure host is also a member
+    // Check host membership
     await tx.groupMember.create({
       data: { userId: hostId, groupId: group.id },
     });

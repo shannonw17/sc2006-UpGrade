@@ -5,15 +5,14 @@ import { revalidatePath } from "next/cache";
 import { leaveNotify } from "../NotificationController/leaveNotify";
 import { deleteNotif } from "../NotificationController/deleteNotifs";
 
-// Demo: you probably have auth; wire your real user id here.
-function getCurrentUserId() {
-  // e.g., from session. For demo, hardcode or pass via form.
-  return "cmg87rs3w0002vofsnekwzvyg"; // Test user
-}
+// function getCurrentUserId() {
+//   // e.g., from session. For demo, hardcode or pass via form.
+//   return "cmg87rs3w0002vofsnekwzvyg"; // Test user
+// }
 
 export async function leaveGroup(formData: FormData) {
   const groupId = String(formData.get("groupId") || "");
-  const userId  = String(formData.get("userId")  || getCurrentUserId());
+  const userId  = String(formData.get("userId"));
 
   if (!groupId || !userId) throw new Error("Missing groupId or userId");
 
@@ -23,7 +22,7 @@ export async function leaveGroup(formData: FormData) {
   });
   if (!group) throw new Error("Group not found");
 
-  // 🚫 Host cannot leave their own group
+  // Host cannot leave their own group
   if (group.hostId === userId) {
     throw new Error("Hosts cannot leave their own group. Close the group instead.");
   }

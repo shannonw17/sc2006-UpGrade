@@ -6,10 +6,7 @@ import { requireUser } from "@/lib/requireUser";
 import { revalidatePath } from "next/cache";
 import { getRandomTagColor } from "@/lib/tagColors";
 
-/**
- * Convert an HTML <input type="datetime-local"> value (local wall-clock) to a UTC Date, 
- * assuming a fixed timezone offset (e.g., SGT = +08:00).
- */
+// Convert an HTML <input type="datetime-local"> to UTC Date
 function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
   const norm = local.length === 16 ? `${local}:00` : local;
   const [datePart, timePart] = norm.split("T");
@@ -38,15 +35,14 @@ function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
   return new Date(msUTC);
 }
 
-/**
- * Check if user already has groups that overlap with the proposed time (excluding current group)
- */
+
+// Check if user already has groups that overlap with the proposed time (exclude current group)
 async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Date, excludeGroupId: string) {
   const existingGroups = await prisma.group.findMany({
     where: {
       hostId: hostId,
       isClosed: false,
-      id: { not: excludeGroupId }, // Exclude the current group being edited
+      id: { not: excludeGroupId }, 
     },
     select: {
       id: true,
@@ -60,8 +56,6 @@ async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Dat
   for (const group of existingGroups) {
     const existingStart = new Date(group.start);
     const existingEnd = new Date(group.end);
-
-    // Check for time overlap
     const hasOverlap = newStart < existingEnd && newEnd > existingStart;
 
     if (hasOverlap) {
@@ -97,7 +91,7 @@ export async function updateGroup(formData: FormData) {
 
   if (!groupId || !name || !location) throw new Error("Missing required fields");
   
-  // Updated capacity validation: min 2, max 50
+
   if (!Number.isFinite(capacity) || capacity < 2) {
     throw new Error("Capacity must be at least 2 members");
   }
@@ -107,7 +101,6 @@ export async function updateGroup(formData: FormData) {
   
   if (!startLocal || !endLocal) throw new Error("Start/End required");
 
-  // Tag validation
   if (tags.length === 0) {
     throw new Error("At least one tag is required");
   }

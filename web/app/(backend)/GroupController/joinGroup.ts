@@ -17,7 +17,7 @@ export async function joinGroup(formData: FormData) {
 
   const confirmResolve = String(formData.get("confirmResolve") || "false") === "true";
 
-  // --- Step 1: Is user already in this group? ---------------------------------
+  // Check if user is already a member of the target group
   const existingMembership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
     select: { userId: true, groupId: true },
@@ -32,7 +32,7 @@ export async function joinGroup(formData: FormData) {
           "This group's time overlaps with another group you're in. Please confirm to leave the conflicting group."
         );
       }
-      // Leave the conflicting (old) group; keep membership in this group.
+
       await resolveConflict(
         userId,
         overlap.conflictingGroup.id, // oldGroupId
@@ -42,18 +42,15 @@ export async function joinGroup(formData: FormData) {
       );
     }
 
-    // Nothing to join; just refresh UI.
     revalidatePath("/groups");
     revalidatePath("/inbox");
     return;
   }
 
-  // --- Step 2: Not yet a member → guard with group status ---------------------
-  // Use the shared helper: only proceed if group is open, not full, and not expired.
+  // If user not a member yet
   const ok = await checkGroupStatus(groupId);
   if (!ok) throw new Error("Group is closed, full, or expired");
 
-  // Before we actually join, also check overlap so we can resolve via resolveConflict.
   const overlap = await checkOverlap(userId, groupId);
   if (overlap.conflict && overlap.conflictingGroup) {
     if (!confirmResolve) {
@@ -62,7 +59,6 @@ export async function joinGroup(formData: FormData) {
       );
     }
 
-    // Resolve conflict by leaving old and joining this group (resolveConflict also notifies).
     await resolveConflict(
       userId,
       overlap.conflictingGroup.id, // oldGroupId
@@ -71,17 +67,14 @@ export async function joinGroup(formData: FormData) {
       /* userConfirmed */ true
     );
 
-    // resolveConflict already did join + notifications + (likely) revalidate.
-    // Revalidate again is harmless.
     revalidatePath("/groups");
     revalidatePath("/inbox");
     return;
   }
 
-  // --- Step 3: Normal join path (no conflict) ---------------------------------
+  // Join the group directly
   let didJoinHere = false;
   await prisma.$transaction(async (tx) => {
-    // Re-check state inside the transaction to avoid races
     const group = await tx.group.findUnique({
       where: { id: groupId },
       select: { capacity: true, currentSize: true, isClosed: true, start: true },
@@ -94,7 +87,7 @@ export async function joinGroup(formData: FormData) {
     const already = await tx.groupMember.findUnique({
       where: { userId_groupId: { userId, groupId } },
     });
-    if (already) return; // someone added them meanwhile (idempotent)
+    if (already) return; 
 
     await tx.groupMember.create({ data: { groupId, userId } });
     await tx.group.update({
@@ -102,7 +95,7 @@ export async function joinGroup(formData: FormData) {
       data: { currentSize: { increment: 1 } },
     });
 
-    await cancelPending(groupId); // if capacity reached, clear pending
+    await cancelPending(groupId); 
     didJoinHere = true;
   });
 
@@ -111,7 +104,6 @@ export async function joinGroup(formData: FormData) {
     await joinNotify(groupId, userId);
   }
 
-  // Final revalidate
   revalidatePath("/groups");
   revalidatePath("/inbox");
 }

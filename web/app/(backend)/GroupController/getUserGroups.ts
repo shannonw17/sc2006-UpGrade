@@ -21,10 +21,10 @@ export async function getUserGroups() {
                 userId: user.id
               }
             },
-            visibility: true // public groups only for members
+            visibility: true 
           }
         ],
-        isClosed: false, // Only non-closed groups
+        isClosed: false, 
       },
       select: {
         id: true,
@@ -33,7 +33,7 @@ export async function getUserGroups() {
         capacity: true,
         hostId: true,
         isClosed: true,
-        visibility: true, // public/private status
+        visibility: true, 
         host: {
           select: {
             username: true
