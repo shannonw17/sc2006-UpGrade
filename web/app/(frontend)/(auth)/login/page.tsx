@@ -22,6 +22,7 @@ export default function LoginForm() {
 
   const [showResend, setShowResend] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"user" | "admin">("user");
+  const [resendEmail, setResendEmail] = useState("");
   
   const isUnverifiedError =
     !!loginState?.error && loginState.error.toLowerCase().includes("verify your email");
@@ -34,8 +35,11 @@ export default function LoginForm() {
       : "");
 
   useEffect(() => {
-    if (isUnverifiedError) setShowResend(true);
-  }, [isUnverifiedError]);
+    if (isUnverifiedError) {
+      setShowResend(true);
+      setResendEmail(presetEmail);
+    }
+  }, [isUnverifiedError, presetEmail]);
 
   const handleRoleChange = (role: "user" | "admin") => {
     setSelectedRole(role);
@@ -54,7 +58,74 @@ export default function LoginForm() {
           <p className="text-gray-600">Welcome back! Please sign in to your account.</p>
         </div>
 
-        {/* LOGIN via server action */}
+        {/* Unverified account block + resend (server action) - PLACED BEFORE MAIN FORM */}
+        {isUnverifiedError && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-700 text-center mb-3">{loginState.error}</p>
+
+            {!showResend ? (
+              <div className="text-center space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResend(true)}
+                  className="text-sm bg-yellow-600 text-white py-2 px-4 rounded hover:bg-yellow-700 transition-colors"
+                >
+                  Resend Verification Code
+                </button>
+                <p className="text-xs text-yellow-700">
+                  Or{" "}
+                  <a href="/verify-email" className="underline font-medium">
+                    click here
+                  </a>{" "}
+                  to go to verification page
+                </p>
+              </div>
+            ) : (
+              // Separate form for resend verification - OUTSIDE the main form
+              <form action={resendAction} className="space-y-3">
+                <p className="text-sm text-yellow-700">Enter your email to resend the verification code:</p>
+                
+                <input
+                  type="email"
+                  name="email"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  placeholder="your.email@school.edu.sg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                  required
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={resendPending}
+                    className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {resendPending ? "Sending..." : "Send Code"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowResend(false)}
+                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                {resendState?.message && (
+                  <p
+                    className={`text-xs text-center ${
+                      resendState.ok ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {resendState.message}
+                  </p>
+                )}
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* LOGIN via server action - MAIN FORM */}
         <form action={loginAction} className="bg-white rounded-lg shadow-sm border p-8">
           {/* Generic errors (not unverified) */}
           {loginState?.error && !isUnverifiedError && (
@@ -62,74 +133,6 @@ export default function LoginForm() {
               <p className="text-sm text-red-600 text-center" aria-live="polite">
                 {loginState.error}
               </p>
-            </div>
-          )}
-
-          {/* Unverified account block + resend (server action) */}
-          {isUnverifiedError && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm text-yellow-700 text-center mb-3">{loginState.error}</p>
-
-              {!showResend ? (
-                <div className="text-center space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowResend(true)}
-                    className="text-sm bg-yellow-600 text-white py-2 px-4 rounded hover:bg-yellow-700 transition-colors"
-                  >
-                    Resend Verification Code
-                  </button>
-                  <p className="text-xs text-yellow-700">
-                    Or{" "}
-                    <a href="/verify-email" className="underline font-medium">
-                      click here
-                    </a>{" "}
-                    to go to verification page
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-yellow-700">Enter your email to resend the verification code:</p>
-
-                  {/* Server action form for resending */}
-                  <form action={resendAction} className="space-y-3">
-                    <input
-                      type="email"
-                      name="email"
-                      defaultValue={presetEmail}
-                      placeholder="your.email@school.edu.sg"
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                      required
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        disabled={resendPending}
-                        className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-                      >
-                        {resendPending ? "Sending..." : "Send Code"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowResend(false)}
-                        className="flex-1 bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm hover:bg-gray-400"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-
-                    {resendState?.message && (
-                      <p
-                        className={`text-xs text-center ${
-                          resendState.ok ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {resendState.message}
-                      </p>
-                    )}
-                  </form>
-                </div>
-              )}
             </div>
           )}
 
