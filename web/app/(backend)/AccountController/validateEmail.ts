@@ -1,5 +1,4 @@
 // web/app/(backend)/AccountController/validateEmail.ts
-// FIXED: Changed .edu,sg to .edu.sg
 
 "use server";
 

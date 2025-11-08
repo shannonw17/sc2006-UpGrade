@@ -1,5 +1,3 @@
-// TO IGNORE FOR NOW --> HAVE NO IDEA WHETHER NEED THIS FUNCTION OR CAN DIRECTLY ACCESS DATABASE WHEN VIEWING PROFILE VIA FRONTEND
-
 //display all attributes of user
 //note: profile page calls { resetPassword } from "../AccountController/resetPassword"; //see UI Mockup "change password" section
 
