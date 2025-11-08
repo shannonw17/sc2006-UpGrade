@@ -8,6 +8,21 @@ import { joinGroup } from '@/app/(backend)/GroupController/joinGroup';
 import { leaveGroup } from '@/app/(backend)/GroupController/leaveGroup';
 import ReportGroup from './reportGroup';
 
+// app/(frontend)/(protected)/groups/components/GroupCard.tsx
+
+const formatSG = (d: string | Date) =>
+  new Date(d).toLocaleString("en-GB", {
+    timeZone: "Asia/Singapore",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+
 function getTagColor(tagName: string): string {
   const colors = [
     "bg-red-100 text-red-800",
@@ -203,7 +218,7 @@ export default function GroupCard({
                 </div>
             
                 <div className="text-gray-600 text-sm">
-                    {new Date(group.start).toLocaleString()} • {group.location}
+                    {formatSG(group.start)} • {group.location}
                 </div>
             </div>
 
