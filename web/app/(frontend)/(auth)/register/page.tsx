@@ -23,6 +23,9 @@ export default function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailValid, setEmailValid] = useState(true);
+  const [emailTouched, setEmailTouched] = useState(false);
   
   // Password validation states
   const [passwordRequirements, setPasswordRequirements] = useState({
@@ -39,6 +42,7 @@ export default function RegisterForm() {
       { value: "S2", label: "Sec 2" },
       { value: "S3", label: "Sec 3" },
       { value: "S4", label: "Sec 4" },
+      { value: "S5", label: "Sec 5" },
     ],
     JC: [
       { value: "J1", label: "Year 1" },
@@ -60,14 +64,10 @@ export default function RegisterForm() {
   // Redirect to verification page after successful registration
   useEffect(() => {
     if (state?.success && state?.userId) {
-      // Get the email from the form
-      const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
-      const email = emailInput?.value || '';
-      
       // Redirect to verification page
       window.location.href = `/verify-email?userId=${state.userId}&email=${encodeURIComponent(email)}&fromRegistration=true`;
     }
-  }, [state]);
+  }, [state, email]);
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
@@ -93,6 +93,38 @@ export default function RegisterForm() {
     setPasswordMatch(password === newConfirmPassword);
   };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setEmailTouched(true);
+    
+    // Validate email ends with .edu.sg
+    const isValid = newEmail.toLowerCase().endsWith('.edu.sg');
+    setEmailValid(isValid);
+  };
+
+  const handleEmailBlur = () => {
+    setEmailTouched(true);
+    const isValid = email.toLowerCase().endsWith('.edu.sg');
+    setEmailValid(isValid);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!emailValid) {
+      e.preventDefault();
+      return;
+    }
+    // Let the form submit normally if email is valid
+  };
+
+  // Check if form can be submitted
+  const canSubmit = emailValid && passwordMatch && 
+    passwordRequirements.minLength && 
+    passwordRequirements.hasUppercase &&
+    passwordRequirements.hasLowercase &&
+    passwordRequirements.hasNumber &&
+    passwordRequirements.hasSpecial;
+
   // Registration form
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -107,7 +139,7 @@ export default function RegisterForm() {
           <p className="text-gray-600">Join our student collaboration platform</p>
         </div>
 
-        <form action={formAction} className="bg-white rounded-lg shadow-sm border p-8">
+        <form action={formAction} onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border p-8">
           {state?.message && !state?.success && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600 text-center" aria-live="polite">{state.message}</p>
@@ -147,10 +179,21 @@ export default function RegisterForm() {
                 name="email"
                 type="email"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-300 text-gray-900"
+                value={email}
+                onChange={handleEmailChange}
+                onBlur={handleEmailBlur}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors placeholder-gray-300 text-gray-900 ${
+                  emailTouched && !emailValid
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                }`}
                 placeholder="your.email@school.edu.sg"
               />
-              <p className="text-xs text-gray-500 mt-1">Must end with .edu.sg</p>
+              {emailTouched && !emailValid ? (
+                <p className="text-xs text-red-600 mt-1">Email must end with .edu.sg</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">Must end with .edu.sg</p>
+              )}
             </div>
 
             {/* Password */}
@@ -454,7 +497,7 @@ export default function RegisterForm() {
 
           <button
             type="submit"
-            disabled={pending || !passwordMatch}
+            disabled={pending || !canSubmit}
             className="w-full mt-6 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {pending ? (
