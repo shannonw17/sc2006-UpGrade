@@ -93,6 +93,20 @@ export default function CreateGroupPage() {
     }
   };
 
+  // Function to validate minimum 30-minute duration
+  const validateDuration = () => {
+    if (!startDate || !startTime || !endDate || !endTime) {
+      return true; // Let required field validation handle empty fields
+    }
+
+    const startDateTime = new Date(`${startDate}T${startTime}`);
+    const endDateTime = new Date(`${endDate}T${endTime}`);
+    
+    const durationInMinutes = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60);
+    
+    return durationInMinutes >= 30;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -107,6 +121,12 @@ export default function CreateGroupPage() {
     }
     if (!/^[a-zA-Z0-9\s\-_]+$/.test(mainTag)) {
       setError("Main tag can only contain letters, numbers, spaces, hyphens, and underscores");
+      return;
+    }
+
+    // Validate duration (minimum 30 minutes)
+    if (!validateDuration()) {
+      setError("Study group duration must be at least 30 minutes");
       return;
     }
 
@@ -137,6 +157,36 @@ export default function CreateGroupPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Calculate and display duration
+  const calculateDuration = () => {
+    if (!startDate || !startTime || !endDate || !endTime) {
+      return null;
+    }
+
+    const startDateTime = new Date(`${startDate}T${startTime}`);
+    const endDateTime = new Date(`${endDate}T${endTime}`);
+    
+    const durationInMinutes = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60);
+    
+    if (durationInMinutes < 0) {
+      return "Invalid: End time must be after start time";
+    }
+    
+    const hours = Math.floor(durationInMinutes / 60);
+    const minutes = Math.round(durationInMinutes % 60);
+    
+    if (hours === 0) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    } else if (minutes === 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    } else {
+      return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+  };
+
+  const durationText = calculateDuration();
+  const isValidDuration = validateDuration();
 
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
@@ -173,7 +223,7 @@ export default function CreateGroupPage() {
             {/* Visibility */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Visibility
+                Visibility <span className="text-red-500">*</span>
               </label>
               <select
                 name="visibility"
@@ -271,12 +321,12 @@ export default function CreateGroupPage() {
               </div>
             </div>
 
-            {/* ... rest of the form (Start/End Time, Location, Capacity) remains the same ... */}
-            
             {/* Start Date & Time */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Start Date & Time</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  Start Date & Time <span className="text-red-500">*</span>
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Date</label>
@@ -305,7 +355,9 @@ export default function CreateGroupPage() {
 
               {/* End Date & Time */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">End Date & Time</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  End Date & Time <span className="text-red-500">*</span>
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Date</label>
@@ -330,13 +382,46 @@ export default function CreateGroupPage() {
                     />
                   </div>
                 </div>
+
+                {/* Duration Display */}
+                {durationText && (
+                  <div className={`mt-3 p-3 rounded-lg border ${
+                    isValidDuration && !durationText.includes('Invalid') 
+                      ? 'bg-green-50 border-green-200 text-green-800' 
+                      : 'bg-red-50 border-red-200 text-red-800'
+                  }`}>
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        {isValidDuration && !durationText.includes('Invalid') ? (
+                          <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium">
+                          Duration: {durationText}
+                          {!isValidDuration && !durationText.includes('Invalid') && (
+                            <span className="block text-xs mt-1">
+                              Minimum study group duration is 30 minutes
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Location */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
+                Location <span className="text-red-500">*</span>
               </label>
               <div className="flex space-x-3">
                 <input
@@ -361,7 +446,7 @@ export default function CreateGroupPage() {
             {/* Capacity */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Capacity
+                Capacity <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center space-x-3">
                 <input
@@ -409,7 +494,7 @@ export default function CreateGroupPage() {
               </button>
               <button 
                 type="submit" 
-                disabled={isSubmitting || !mainTag.trim()}
+                disabled={isSubmitting || !mainTag.trim() || !isValidDuration}
                 className="rounded-lg bg-gradient-to-r from-black to-blue-700 px-6 py-3 text-white font-medium hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
               >
                 {isSubmitting ? "Creating..." : "Create Group"}
