@@ -720,7 +720,7 @@ async function main() {
   console.log("\n DEMO:");
   console.log("1. Create account 'X', a university student");
   console.log("2. Join Alice's group (Math Revision) to see capacity full message");
-  console.log("3. Create new group on 20/12/2025, 3pm and invite Sarah to show time conflict with Sarah's group");
+  console.log("3. Create new group on 20/12/2025, 10pm and invite Sarah to show time conflict with Sarah's group (Programming Workshop)");
 }
 
 main()
