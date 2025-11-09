@@ -12,18 +12,13 @@ export default function FilterBar() {
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [loc, setLoc] = useState("");
-  const [openOnly, setOpenOnly] = useState(false);
 
-  // Sync with search params
   useEffect(() => {
     setFrom(sp.get("from") ?? "");
     setTo(sp.get("to") ?? "");
-    setLoc(sp.get("loc") ?? "");
-    setOpenOnly(sp.get("open") === "1");
   }, [sp]);
 
-  // Close dropdown when clicking outside
+  //close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -32,27 +27,25 @@ export default function FilterBar() {
     };
     if (isOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+  }, []);
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
     
     const params = new URLSearchParams();
 
-    // Preserve ALL existing parameters except the ones we're updating
+    //preserve existing parameters
     const currentTab = sp.get("tab") ?? "all";
     const currentQuery = sp.get("q") ?? "";
     
     params.set("tab", currentTab);
     if (currentQuery) params.set("q", currentQuery);
     
-    // Add/update filter parameters
+    //add/update filter parameters
     if (from) params.set("from", from);
     if (to) params.set("to", to);
-    if (loc) params.set("loc", loc);
-    if (openOnly) params.set("open", "1");
 
-    console.log("Applying filters:", { from, to, loc, openOnly });
+    console.log("Applying filters:", { from, to });
     console.log("URL params:", params.toString());
 
     router.push(`/groups?${params.toString()}`);
@@ -62,7 +55,7 @@ export default function FilterBar() {
   const handleReset = () => {
     const params = new URLSearchParams();
     
-    // Preserve only tab and search query, remove all filters
+    //preserve only tab and search query, remove filters
     const currentTab = sp.get("tab") ?? "all";
     const currentQuery = sp.get("q") ?? "";
     
@@ -117,46 +110,20 @@ export default function FilterBar() {
               </div>
             </div>
 
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              <input
-                placeholder="Location contains…"
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white"
-                value={loc}
-                onChange={(e) => setLoc(e.target.value)}
-              />
-            </div>
-
-            {/* Availability */}
-            <div>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={openOnly}
-                  onChange={(e) => setOpenOnly(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                Only groups with space
-              </label>
-            </div>
-
             {/* Buttons */}
             <div className="flex space-x-2 pt-2">
+              <button
+                type="submit"
+                className="flex-1 bg-black text-white px-3 py-2 rounded text-sm hover:bg-gray-700"
+              >
+                Apply
+              </button>
               <button
                 type="button"
                 onClick={handleReset}
                 className="flex-1 border border-gray-300 px-3 py-2 rounded text-sm hover:bg-gray-50 bg-white text-center"
               >
                 Reset
-              </button>
-              <button
-                type="submit"
-                className="flex-1 bg-black text-white px-3 py-2 rounded text-sm hover:bg-gray-800"
-              >
-                Apply
               </button>
             </div>
           </form>

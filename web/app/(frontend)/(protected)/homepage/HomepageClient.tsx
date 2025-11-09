@@ -977,14 +977,14 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={applyFilters}
-                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700"
+                      className="flex-1 bg-black text-white px-3 py-2 rounded text-sm font-medium hover:bg-gray-700"
                     >
                       Apply
                     </button>
                     <button
                       type="button"
                       onClick={clearAllFilters}
-                      className="flex-1 bg-gray-500 text-white px-3 py-2 rounded text-sm hover:bg-gray-600"
+                      className="flex-1 border border-gray-300 px-3 py-2 rounded text-sm hover:bg-gray-50 bg-white text-center"
                     >
                       Clear
                     </button>

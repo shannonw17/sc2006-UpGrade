@@ -125,7 +125,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
       ? []
       : str
           .split(",")
-          .map((s) => s.trim().toLowerCase())
+          .map((s) => s.trim())
           .filter(Boolean);
 
   const [formData, setFormData] = useState(() => {
