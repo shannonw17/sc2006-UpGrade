@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Send, Trash2, Clock, User, MessageSquare, Check, CheckCheck } from "lucide-react";
+import { Search, Send, Trash2, Clock, User, MessageSquare, Check, CheckCheck, MoreVertical, X } from "lucide-react";
 
 interface User {
   id: string;
@@ -62,9 +62,23 @@ export default function ChatInterface({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const hasAutoOpenedRef = useRef(false); // NEW: prevent multiple auto-opens
   const hasAutoStartedRef = useRef(false); // NEW: prevent multiple auto-starts
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMessageMenuOpen(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // NEW: Auto-open chat when initialChatToOpen is provided
   useEffect(() => {
@@ -338,6 +352,7 @@ export default function ChatInterface({
       await deleteMessage(messageId);
       setMessages(messages.filter((msg) => msg.id !== messageId));
       setMessageToDelete(null);
+      setMessageMenuOpen(null);
       router.refresh();
     } catch (error) {
       console.error("Error deleting message:", error);
@@ -426,22 +441,38 @@ export default function ChatInterface({
     <div className="flex h-screen bg-white border border-gray-300">
       {/* Delete Message Confirmation Modal */}
       {messageToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete this message?</h3>
-            <p className="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
-            <div className="flex gap-3 justify-end">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-gray-200 transform transition-all duration-200 scale-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Delete Message</h3>
               <button
                 onClick={() => setMessageToDelete(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="mb-2">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Trash2 size={24} className="text-red-600" />
+              </div>
+              <p className="text-center text-gray-600 mb-2">This action cannot be undone.</p>
+              <p className="text-center text-sm text-gray-500">The message will be permanently deleted.</p>
+            </div>
+            
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => setMessageToDelete(null)}
+                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 rounded-lg flex-1"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteMessage(messageToDelete)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-all duration-200 rounded-lg flex-1 shadow-sm"
               >
-                Confirm
+                Delete
               </button>
             </div>
           </div>
@@ -611,7 +642,7 @@ export default function ChatInterface({
                     return (
                       <div
                         key={message.id}
-                        className={`flex gap-2 ${isOwn ? "justify-end" : "justify-start"}`}
+                        className={`flex gap-2 ${isOwn ? "justify-end" : "justify-start"} group relative`}
                       >
                         {!isOwn && showAvatar && (
                           <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0 self-end mb-0.5">
@@ -623,24 +654,55 @@ export default function ChatInterface({
                           <div className="w-8 flex-shrink-0" />
                         )}
                         
-                        <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[70%]`}>
+                        <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[65%]`}>
                           {showAvatar && !isOwn && (
                             <div className="text-xs text-gray-600 mb-1 px-3">
                               {message.sender.username}
                             </div>
                           )}
-                          <div
-                            onDoubleClick={() => isOwn && setMessageToDelete(message.id)}
-                            className={`px-4 py-2 max-w-full ${
-                              isOwn
-                                ? "bg-blue-500 text-white cursor-pointer"
-                                : "bg-white text-gray-800 border border-gray-200"
-                            }`}
-                          >
-                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                          
+                          <div className="flex items-end gap-1">
+                            <div
+                              className={`px-3 py-2 max-w-full rounded-2xl ${
+                                isOwn
+                                  ? "bg-blue-500 text-white rounded-br-md"
+                                  : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
+                              } transition-all duration-200`}
+                            >
+                              <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                            </div>
+
+                            {/* Message Menu Button */}
+                            {isOwn && (
+                              <div ref={menuRef} className="relative">
+                                <button
+                                  onClick={() => setMessageMenuOpen(messageMenuOpen === message.id ? null : message.id)}
+                                  className="p-1 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-200 rounded-lg"
+                                >
+                                  <MoreVertical size={14} className="text-gray-500" />
+                                </button>
+
+                                {/* Message Menu Dropdown */}
+                                {messageMenuOpen === message.id && (
+                                  <div className="absolute right-0 top-6 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10 min-w-32">
+                                    <button
+                                      onClick={() => {
+                                        setMessageToDelete(message.id);
+                                        setMessageMenuOpen(null);
+                                      }}
+                                      className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                                    >
+                                      <Trash2 size={14} />
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
+
                           {showTimestamp && (
-                            <div className="flex items-center gap-2 mt-0.5 px-2">
+                            <div className="flex items-center gap-1 mt-0.5 px-2">
                               <span className="text-xs text-gray-500">
                                 {formatTime(message.createdAt)}
                               </span>
@@ -674,14 +736,14 @@ export default function ChatInterface({
                     onChange={(e) => setMessageInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Type a message..."
-                    className="w-full px-4 py-2.5 border border-gray-300 focus:outline-none focus:border-blue-500 text-sm"
+                    className="w-full px-4 py-2.5 border border-gray-300 focus:outline-none focus:border-blue-500 text-sm rounded-lg"
                   />
                 </div>
                 <button
                   onClick={handleSendMessage}
                   disabled={!messageInput.trim()}
-                  className="px-5 py-2.5 bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm font-medium"
-                >
+                  className="px-5 py-2.5 bg-gradient-to-r from-gray-900 to-blue-700 text-white hover:from-gray-800 hover:to-blue-600 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 text-sm font-medium rounded-xl shadow-sm hover:shadow-md"
+                  >
                   <Send size={16} />
                   <span>Send</span>
                 </button>
