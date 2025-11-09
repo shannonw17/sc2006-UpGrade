@@ -3,7 +3,6 @@
 
 import prisma from "@/lib/db";
 
-
 // Close groups whose start <= now, then delete groups already-closed
 // whose start <= cutoff (grace window).
 

@@ -69,6 +69,7 @@ export async function fetchGroupsWithFilters(
       ...whereCommon, 
       id: { in: Array.from(joinedSet) },
       isClosed: false,
+      ...(Object.keys(whereCommon).length > 0 ? whereCommon : {}),
       ...(educationLevel && {
         host: { eduLevel: educationLevel as any }
       })

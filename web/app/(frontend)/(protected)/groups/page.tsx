@@ -40,6 +40,14 @@ export default async function GroupPage({ searchParams }: PageProps) {
   // Use normalizeFilters for other filters
   const filters = normalizeFilters(sp);
 
+    const hasActiveFilters = !!(
+    filters.q ||
+    (filters as any).from ||
+    (filters as any).to ||
+    (filters as any).location ||
+    (filters as any).open
+  );
+
   const {
     allGroups,
     myCreatedGroups,
@@ -50,7 +58,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
   // If joinedGroups is empty, fetch them manually with education level filter
   let joinedGroups = justJoinedNotCreated;
 
-  if (tab === 'joined' && joinedGroups.length === 0) {
+  if (tab === 'joined' && joinedGroups.length === 0 && !hasActiveFilters) {
     joinedGroups = await prisma.group.findMany({
       where: {
         members: {
@@ -77,14 +85,6 @@ export default async function GroupPage({ searchParams }: PageProps) {
       }
     });
   }
-
-  const hasActiveFilters = !!(
-    filters.q ||
-    (filters as any).from ||
-    (filters as any).to ||
-    (filters as any).location ||
-    (filters as any).open
-  );
 
   // Extract preserved filter parameters for SearchBox
   const preservedFilters = {
