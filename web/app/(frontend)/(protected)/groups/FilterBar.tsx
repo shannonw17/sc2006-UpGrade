@@ -27,7 +27,7 @@ export default function FilterBar() {
     };
     if (isOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
