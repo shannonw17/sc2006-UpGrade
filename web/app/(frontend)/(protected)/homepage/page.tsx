@@ -66,7 +66,7 @@ const GenderMap: Record<string, "MALE" | "FEMALE" | "OTHER"> = {
 };
 
 const YearMap: Record<string, "S1"|"S2"|"S3"|"S4"|"S5"|"J1"|"J2"|"P1"|"P2"|"P3"|"U1"|"U2"|"U3"|"U4"> = {
-  // Sec
+  // sec
   "s1": "S1", "sec1": "S1", "secondary 1": "S1", "year 1 (sec)": "S1",
   "s2": "S2", "sec2": "S2", "secondary 2": "S2",
   "s3": "S3", "sec3": "S3", "secondary 3": "S3",
@@ -75,11 +75,11 @@ const YearMap: Record<string, "S1"|"S2"|"S3"|"S4"|"S5"|"J1"|"J2"|"P1"|"P2"|"P3"|
   // JC
   "j1": "J1", "year 1 (jc)": "J1",
   "j2": "J2", "year 2 (jc)": "J2",
-  // Poly
+  // poly
   "p1": "P1", "year 1 (poly)": "P1",
   "p2": "P2", "year 2 (poly)": "P2",
   "p3": "P3", "year 3 (poly)": "P3",
-  // Uni
+  // uni
   "u1": "U1", "year 1": "U1", "year 1 (uni)": "U1",
   "u2": "U2", "year 2": "U2", "year 2 (uni)": "U2",
   "u3": "U3", "year 3": "U3", "year 3 (uni)": "U3",
@@ -125,6 +125,7 @@ async function getProfilesWithFilters(
   const AND: any[] = [
     { id: { not: currentUserId } },             // exclude me
     { eduLevel: me.eduLevel },                   // same edu level
+    { status: "ACTIVE" },                     // only active users
   ];
 
   if (q) AND.push({ username: { contains: q } });
