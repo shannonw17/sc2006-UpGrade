@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Send, Trash2, Clock, User, MessageSquare, Check, CheckCheck, MoreVertical, X } from "lucide-react";
+import { Search, Send, Trash2, User, MessageSquare, Check, CheckCheck, MoreVertical, X } from "lucide-react";
 
 interface User {
   id: string;
@@ -49,8 +49,8 @@ export default function ChatInterface({
   currentUsername = "Demo User",
   existingChats: initialChats = [],
   availableUsers = [],
-  initialChatToOpen, // NEW
-  initialUserToChat, // NEW - userId to start chat with
+  initialChatToOpen, 
+  initialUserToChat, 
 }: ChatInterfaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,14 +64,14 @@ export default function ChatInterface({
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const hasAutoOpenedRef = useRef(false); // NEW: prevent multiple auto-opens
-  const hasAutoStartedRef = useRef(false); // NEW: prevent multiple auto-starts
+  const hasAutoOpenedRef = useRef(false); 
+  const hasAutoStartedRef = useRef(false); 
 
-  // Close menu when clicking outside
+  //close message menu when clicking outside any menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement | null;
+      if (!target || !target.closest(".message-menu")) {
         setMessageMenuOpen(null);
       }
     };
@@ -80,73 +80,58 @@ export default function ChatInterface({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // NEW: Auto-open chat when initialChatToOpen is provided
+
   useEffect(() => {
     const autoOpenChat = async () => {
-      // Only run once
       if (hasAutoOpenedRef.current || !initialChatToOpen) return;
       hasAutoOpenedRef.current = true;
 
       try {
-        // The chatId is already created by the button click, just open it
         await handleSelectChat(initialChatToOpen);
 
-        // Clear the URL parameter
         const params = new URLSearchParams(searchParams.toString());
         params.delete('openChat');
         const newUrl = params.toString() ? `/chats?${params.toString()}` : '/chats';
         router.replace(newUrl);
       } catch (error) {
         console.error("Error auto-opening chat:", error);
-        hasAutoOpenedRef.current = false; // Allow retry on error
+        hasAutoOpenedRef.current = false; 
       }
     };
 
     autoOpenChat();
-  }, [initialChatToOpen]); // Only depend on initialChatToOpen
-
-  // NEW: Auto-start chat with user when initialUserToChat is provided
+  }, [initialChatToOpen]);
   useEffect(() => {
     const autoStartChat = async () => {
-      // Only run once
       if (hasAutoStartedRef.current || !initialUserToChat) return;
-      
-      // Mark as started immediately to prevent re-runs
       hasAutoStartedRef.current = true;
 
       try {
-        // FIRST: Check if chat already exists with this user
         const existingChat = chats.find((c) => c.otherUser.id === initialUserToChat);
         
         if (existingChat) {
-          // Open the existing chat instead of creating new one
-          console.log('Found existing chat, opening it:', existingChat.chatId);
           await handleSelectChat(existingChat.chatId);
         } else {
-          // No existing chat, find user and create new one
           const targetUser = availableUsers.find(u => u.id === initialUserToChat);
           
           if (targetUser) {
-            console.log('No existing chat, creating new one with:', targetUser.username);
             await handleSelectUser(targetUser);
           }
         }
 
-        // Clear the URL parameter
         const params = new URLSearchParams(searchParams.toString());
         params.delete('newChatWith');
         const newUrl = params.toString() ? `/chats?${params.toString()}` : '/chats';
         router.replace(newUrl);
       } catch (error) {
         console.error("Error starting new chat:", error);
-        hasAutoStartedRef.current = false; // Allow retry on error
+        hasAutoStartedRef.current = false; 
       }
     };
 
     autoStartChat();
-  }, [initialUserToChat]); // Only depend on initialUserToChat - don't depend on chats!
+  }, [initialUserToChat]);
 
-  // Reload chats when component mounts to get fresh unread counts
   useEffect(() => {
     const loadFreshChats = async () => {
       try {
@@ -159,14 +144,13 @@ export default function ChatInterface({
     };
     
     loadFreshChats();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
-  // Update chats when initialChats prop changes (e.g., after navigation)
   useEffect(() => {
     setChats(initialChats || []);
   }, [initialChats]);
 
-  // Function to reload chat list with updated counts
+  //function to reload chat list with updated counts
   const reloadChats = async () => {
     try {
       const { viewAllChats } = await import("./chatHelpers");
@@ -198,7 +182,7 @@ export default function ChatInterface({
     if (chat) {
       setSelectedUser(chat.otherUser);
       
-      // Immediately clear the unread count in local state
+      //immediately clear the unread count in local state
       setChats(prevChats => 
         prevChats.map(c => 
           c.chatId === chatId 
@@ -211,17 +195,17 @@ export default function ChatInterface({
     try {
       const { viewSelectedChat, markMessagesAsRead } = await import("./chatHelpers");
       
-      // Load messages
+      //load messages
       const chatData = await viewSelectedChat(chatId);
       setMessages(chatData.messages);
       
-      // Mark messages as read in database
+      //mark messages as read in database
       await markMessagesAsRead(chatId);
       
-      // Reload chat list to get updated unread counts
+      //reload chat list to get updated unread counts
       await reloadChats();
       
-      // Refresh the page data from server (this updates sidebar counts)
+      //refresh the page data from server (this updates sidebar counts)
       router.refresh();
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -469,7 +453,7 @@ export default function ChatInterface({
                 Cancel
               </button>
               <button
-                onClick={() => handleDeleteMessage(messageToDelete)}
+                onClick={() => handleDeleteMessage(messageToDelete!)}
                 className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-all duration-200 rounded-lg flex-1 shadow-sm"
               >
                 Delete
@@ -550,7 +534,7 @@ export default function ChatInterface({
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      {/* First row: Name and Time on same line */}
+                      {/* First row: Name and time on same line */}
                       <div className="flex items-baseline justify-between gap-2 mb-1">
                         <span className="font-medium text-gray-800 text-sm truncate">
                           {chat.otherUser.username}
@@ -564,7 +548,7 @@ export default function ChatInterface({
                         )}
                       </div>
                       
-                      {/* Second row: Message preview and Badge on same line */}
+                      {/* Second row: Message preview and badge on same line */}
                       {chat.lastMessage && (
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-xs text-gray-500 truncate">
@@ -674,7 +658,7 @@ export default function ChatInterface({
 
                             {/* Message Menu Button */}
                             {isOwn && (
-                              <div ref={menuRef} className="relative">
+                              <div className="relative message-menu">
                                 <button
                                   onClick={() => setMessageMenuOpen(messageMenuOpen === message.id ? null : message.id)}
                                   className="p-1 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-200 rounded-lg"

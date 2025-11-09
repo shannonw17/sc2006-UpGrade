@@ -1,17 +1,14 @@
 "use server";
 
 import { requireUser } from "@/lib/requireUser";
-import { viewAllChats as viewAllMessages } from "@/app/(backend)/ChatController/viewAllChats";
-import { viewSelectedChat as viewMessages } from "@/app/(backend)/ChatController/viewSelectedChat";
-import { sendMessage as sendMsg } from "@/app/(backend)/ChatController/sendMessage";
-import { deleteMessage as delMsg } from "@/app/(backend)/ChatController/deleteMessage";
-import { deleteChat as delChat } from "@/app/(backend)/ChatController/deleteChat";
 import prisma from "@/lib/db";
 
-// Get all users at the same education level (for search)
+
+ //get all users at the same education level (for search)
+
 export async function getAllChatsUsers() {
   const currentUser = await requireUser();
-  
+
   const user = await prisma.user.findUnique({
     where: { id: currentUser.id },
     select: { eduLevel: true },
@@ -38,29 +35,23 @@ export async function getAllChatsUsers() {
   return users;
 }
 
-// Get all existing chats for current user with structured format
+
+//get all existing chats for current user 
+
 export async function viewAllChats() {
   const currentUser = await requireUser();
-  
+
   const messages = await prisma.message.findMany({
     where: {
-      OR: [
-        { senderId: currentUser.id },
-        { receiverId: currentUser.id },
-      ],
+      OR: [{ senderId: currentUser.id }, { receiverId: currentUser.id }],
     },
     include: {
-      sender: {
-        select: { id: true, username: true, email: true },
-      },
-      receiver: {
-        select: { id: true, username: true, email: true },
-      },
+      sender: { select: { id: true, username: true, email: true } },
+      receiver: { select: { id: true, username: true, email: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  // Group messages by conversation partner
   const conversationsMap = new Map<string, any>();
 
   for (const msg of messages) {
@@ -68,7 +59,6 @@ export async function viewAllChats() {
     const otherUser = msg.senderId === currentUser.id ? msg.receiver : msg.sender;
 
     if (!conversationsMap.has(otherUserId)) {
-      // Count unread messages from this specific user
       const unreadCount = await prisma.message.count({
         where: {
           senderId: otherUserId,
@@ -79,15 +69,15 @@ export async function viewAllChats() {
 
       conversationsMap.set(otherUserId, {
         chatId: `${currentUser.id}-${otherUserId}`,
-        otherUser: otherUser,
+        otherUser,
         lastMessage: {
           content: msg.message,
           createdAt: msg.createdAt,
           senderId: msg.senderId,
-          // Set status based on isRead - if current user sent it and it's read, show 'read' (blue)
-          status: (msg.senderId === currentUser.id && msg.isRead) ? 'read' as const : 'delivered' as const,
+          status:
+            msg.senderId === currentUser.id && msg.isRead ? ("read" as const) : ("delivered" as const),
         },
-        unreadCount: unreadCount,
+        unreadCount,
       });
     }
   }
@@ -95,14 +85,14 @@ export async function viewAllChats() {
   return Array.from(conversationsMap.values());
 }
 
-// View selected chat messages
+
+//view selected chat messages
+
 export async function viewSelectedChat(chatId: string) {
   const currentUser = await requireUser();
-  
-  const [user1Id, user2Id] = chatId.split('-');
+  const [user1Id, user2Id] = chatId.split("-");
   const otherUserId = user1Id === currentUser.id ? user2Id : user1Id;
 
-  // Fetch messages directly with Prisma to get isRead field
   const messages = await prisma.message.findMany({
     where: {
       OR: [
@@ -110,7 +100,7 @@ export async function viewSelectedChat(chatId: string) {
         { senderId: otherUserId, receiverId: currentUser.id },
       ],
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: "asc" },
   });
 
   const otherUser = await prisma.user.findUnique({
@@ -121,95 +111,115 @@ export async function viewSelectedChat(chatId: string) {
   if (!otherUser) throw new Error("User not found");
 
   return {
-    chatId: chatId,
-    otherUser: otherUser,
-    messages: messages.map((msg: any) => ({
+    chatId,
+    otherUser,
+    messages: messages.map((msg) => ({
       id: msg.id,
       content: msg.message,
       senderId: msg.senderId,
       createdAt: msg.createdAt,
-      // If YOU sent it and receiver has read it → 'read' (blue)
-      // Otherwise → 'delivered' (gray)
-      status: (msg.senderId === currentUser.id && msg.isRead) ? 'read' as const : 'delivered' as const,
+      status:
+        msg.senderId === currentUser.id && msg.isRead ? ("read" as const) : ("delivered" as const),
       sender: {
         id: msg.senderId,
-        username: msg.senderId === currentUser.id ? currentUser.username : otherUser.username,
+        username:
+          msg.senderId === currentUser.id
+            ? currentUser.username
+            : otherUser.username,
       },
     })),
   };
 }
 
-// Send message
+
+//send a new message
+
 export async function sendMessage(chatId: string, content: string) {
   const currentUser = await requireUser();
-  
-  const [user1Id, user2Id] = chatId.split('-');
+  const [user1Id, user2Id] = chatId.split("-");
   const receiverId = user1Id === currentUser.id ? user2Id : user1Id;
 
-  await sendMsg(currentUser.id, receiverId, content);
+  await prisma.message.create({
+    data: {
+      senderId: currentUser.id,
+      receiverId,
+      message: content,
+      isRead: false,
+    },
+  });
 }
 
-// Mark messages as read when opening a chat
+
+//mark all unread messages from the other user as read
+ 
 export async function markMessagesAsRead(chatId: string) {
   const currentUser = await requireUser();
-  
-  const [user1Id, user2Id] = chatId.split('-');
+  const [user1Id, user2Id] = chatId.split("-");
   const otherUserId = user1Id === currentUser.id ? user2Id : user1Id;
 
-  // Mark all unread messages from the other user as read
   await prisma.message.updateMany({
     where: {
       senderId: otherUserId,
       receiverId: currentUser.id,
       isRead: false,
     },
-    data: {
-      isRead: true,
-    },
+    data: { isRead: true },
   });
-  
-  return { 
-    success: true, 
-    chatId,
-    otherUserId 
-  };
+
+  return { success: true, chatId, otherUserId };
 }
 
-// Delete message
+
+//delete a single message 
+
 export async function deleteMessage(messageId: string) {
   const currentUser = await requireUser();
-  await delMsg(messageId, currentUser.id);
+
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+  });
+
+  //handle if not found
+  if (!message) return;
+
+  if (message.senderId !== currentUser.id)
+    throw new Error("Not authorised to delete this message");
+
+  await prisma.message.delete({ where: { id: messageId } });
 }
 
-// Create or get existing chat
+
+//create or get existing chat
+
 export async function createOrGetChat(otherUserId: string) {
   const currentUser = await requireUser();
 
-  if (otherUserId === currentUser.id) {
-    throw new Error("Cannot chat with yourself");
-  }
+  if (otherUserId === currentUser.id) throw new Error("Cannot chat with yourself");
 
   const otherUser = await prisma.user.findUnique({
     where: { id: otherUserId },
   });
 
-  if (!otherUser) {
-    throw new Error("User not found");
-  }
-
-  if (otherUser.status !== "ACTIVE") {
-    throw new Error("Cannot chat with inactive user");
-  }
+  if (!otherUser) throw new Error("User not found");
+  if (otherUser.status !== "ACTIVE") throw new Error("Cannot chat with inactive user");
 
   return `${currentUser.id}-${otherUserId}`;
 }
 
-// Delete entire chat
+
+//delete an entire chat (all messages between two users)
+
 export async function deleteChat(chatId: string) {
   const currentUser = await requireUser();
-  
-  const [user1Id, user2Id] = chatId.split('-');
+  const [user1Id, user2Id] = chatId.split("-");
   const otherUserId = user1Id === currentUser.id ? user2Id : user1Id;
 
-  await delChat(currentUser.id, otherUserId);
+  await prisma.message.deleteMany({
+    where: {
+      OR: [
+        { senderId: currentUser.id, receiverId: otherUserId },
+        { senderId: otherUserId, receiverId: currentUser.id },
+      ],
+    },
+  });
 }
