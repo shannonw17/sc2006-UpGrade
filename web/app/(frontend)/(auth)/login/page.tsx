@@ -19,32 +19,27 @@ export default function LoginForm() {
   );
 
   const [selectedRole, setSelectedRole] = useState<"user" | "admin">("user");
-  const [resendEmail, setResendEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Track the email/username
   
   const isUnverifiedError =
     !!loginState?.error && loginState.error.toLowerCase().includes("verify your email");
 
-  //prefill email for resend
-  const presetEmail =
-    resendState?.presetEmail ||
-    (loginState?.identifier && loginState.identifier.includes("@")
-      ? loginState.identifier
-      : "");
-
-  useEffect(() => {
-    if (isUnverifiedError) {
-      setResendEmail(presetEmail);
-    }
-  }, [isUnverifiedError, presetEmail]);
+  // Extract email from identifier if it's an email
+  const extractEmail = (id: string): string => {
+    return id.includes("@") ? id : "";
+  };
 
   const handleRoleChange = (role: "user" | "admin") => {
     setSelectedRole(role);
   };
 
-  const closeVerificationModal = () => {
-    //reset the login state to hide the modal
-    window.location.reload();
-  };
+  // Redirect to verify-email page when resend is successful
+  useEffect(() => {
+    if (resendState?.ok && resendState.userId && identifier) {
+      const email = extractEmail(identifier);
+      window.location.href = `/verify-email?userId=${resendState.userId}&email=${encodeURIComponent(email)}&fromLogin=true`;
+    }
+  }, [resendState, identifier]);
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -67,7 +62,7 @@ export default function LoginForm() {
               {/* Close Button */}
               <div className="flex justify-end p-4 pb-0">
                 <button
-                  onClick={closeVerificationModal}
+                  onClick={() => window.location.reload()}
                   className="text-gray-400 hover:text-gray-600 transition-colors p-1"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,22 +83,15 @@ export default function LoginForm() {
                   <p className="text-gray-600 text-sm">{loginState.error}</p>
                 </div>
 
-                {/* Resend Verification Form */}
-                <form action={resendAction} className="space-y-4">
-                  <div>
-                    <label htmlFor="resend-email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Enter your email to resend verification code
-                    </label>
-                    <input
-                      id="resend-email"
-                      type="email"
-                      name="email"
-                      value={resendEmail}
-                      onChange={(e) => setResendEmail(e.target.value)}
-                      placeholder="your.email@school.edu.sg"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                      required
-                    />
+                {/* Simplified Resend Verification - Just a button */}
+                <form action={resendAction}>
+                  <input type="hidden" name="email" value={extractEmail(identifier)} />
+                  <input type="hidden" name="identifier" value={identifier} />
+                  
+                  <div className="text-center mb-4">
+                    <p className="text-sm text-gray-600">
+                      We'll send a verification code to your email.
+                    </p>
                   </div>
 
                   {/* Action Button */}
@@ -115,7 +103,7 @@ export default function LoginForm() {
                     {resendPending ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Sending...
+                        Sending Code...
                       </>
                     ) : (
                       "Send Verification Code"
@@ -124,13 +112,9 @@ export default function LoginForm() {
                 </form>
 
                 {/* Success/Error Messages */}
-                {resendState?.message && (
-                  <div className={`mt-4 p-3 rounded-lg text-center ${
-                    resendState.ok 
-                      ? "bg-green-50 text-green-700 border border-green-200" 
-                      : "bg-red-50 text-red-700 border border-red-200"
-                  }`}>
-                    <p className="text-sm font-medium">{resendState.message}</p>
+                {resendState?.message && !resendState.ok && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600 text-center">{resendState.message}</p>
                   </div>
                 )}
 
@@ -208,7 +192,8 @@ export default function LoginForm() {
                 id="identifier"
                 name="identifier"
                 required
-                defaultValue={loginState?.identifier ?? ""}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 text-gray-900"
                 placeholder="Enter your username or email"
                 autoComplete="username"

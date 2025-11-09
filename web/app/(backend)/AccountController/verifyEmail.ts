@@ -53,6 +53,7 @@ export type ResendVerificationState = {
   ok?: boolean;
   message?: string;
   presetEmail?: string;
+  userId?: string;
 };
 
 export async function resendVerificationAction(
@@ -61,27 +62,25 @@ export async function resendVerificationAction(
 ): Promise<ResendVerificationState> {
   const raw = String(formData.get("email") ?? "").trim().toLowerCase();
   const userId = String(formData.get("userId") ?? "").trim();
+  const identifier = String(formData.get("identifier") ?? "").trim();
 
   let user = null as Awaited<ReturnType<typeof prisma.user.findUnique>>;
 
   if (raw) user = await prisma.user.findUnique({ where: { email: raw } });
   else if (userId) user = await prisma.user.findUnique({ where: { id: userId } });
+  else if (identifier) user = await prisma.user.findFirst({ where: { OR: [ { email: identifier }, { username: identifier } ] } });
 
   if (!user) return { ok: false, message: "No account found for that email/user." };
-
-  // Optional guard to avoid spamming verified accounts:
-  // if (user.status === "ACTIVE") return { ok: false, message: "This account is already verified." };
 
   try {
     await sendVerificationCode(user.id);
     console.log("Resent verification code to", user.email);
-    return { ok: true, message: "Verification code sent. Please check your inbox.", presetEmail: user.email };
+    return { ok: true, message: "Verification code sent. Please check your inbox.", presetEmail: user.email, userId: user.id };
   } catch (e) {
     return { ok: false, message: (e as Error)?.message || "Failed to send verification email." };
   }
 }
 
-// --- NEW: Verify code (server action wrapper) ---
 export type VerifyCodeState = {
   ok?: boolean;
   message?: string;
@@ -104,7 +103,6 @@ export async function verifyCodeAction(
     : { ok: false, message: "Invalid or expired code." };
 }
 
-// --- NEW: Lookup by email (server action) ---
 export type FindUserByEmailState = {
   ok?: boolean;
   message?: string;
@@ -121,9 +119,6 @@ export async function findUserByEmailAction(
 
   const user = await prisma.user.findUnique({ where: { email: raw } });
   if (!user) return { ok: false, message: "No account found for that email." };
-
-  // Optionally restrict to non-ACTIVE accounts:
-  // if (user.status === "ACTIVE") return { ok: false, message: "Account is already verified." };
-
+  
   return { ok: true, userId: user.id, normalizedEmail: user.email };
 }
