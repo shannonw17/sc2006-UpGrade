@@ -154,8 +154,8 @@ export default function AdminHomepageClient({ reportedGroups }: AdminHomepageCli
         {/* header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <Shield className="w-6 h-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Report Management</h1>
+            <Shield className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900">Report Management</h1>
           </div>
           <p className="text-gray-600 text-sm">
             {reports.length} pending report{reports.length !== 1 ? 's' : ''} to review

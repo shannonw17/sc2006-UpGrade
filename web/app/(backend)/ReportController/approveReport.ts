@@ -20,19 +20,13 @@ export async function approveReport(
     if (!group) throw new Error("Group not found");
 
     const hostId = group.hostId;
-    const host = await prisma.user.findUnique({ where: { id: hostId } });
-    const warning = host?.warning;
 
     // handle host action
     if (userAction !== "none") {
-      if (warning) {
-        if (userAction === "ban") {
-          await banUser(hostId, true);
-        }
-      } else {
-        if (userAction === "warn") {
-          await warnUser(hostId, true, groupId);
-        }
+      if (userAction === "ban") {
+        await banUser(hostId, true);
+      } else if (userAction === "warn") {
+        await warnUser(hostId, true, groupId);
       }
     }
 

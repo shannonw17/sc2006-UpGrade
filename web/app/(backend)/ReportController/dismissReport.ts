@@ -15,20 +15,14 @@ export async function dismissReport(
     if (!report) throw new Error("Report not found");
     
     const reporterId = report.userId;
-    const reporter = await prisma.user.findUnique({ where: { id: reporterId } });
-    const warning = reporter?.warning;
     const groupId = report.groupId;
 
     // handle reporter action
     if (userAction !== "none") {
-      if (warning) {
-        if (userAction === "ban") {
-          await banUser(reporterId, false);
-        }
-      } else {
-        if (userAction === "warn") {
-          await warnUser(reporterId, false, groupId);
-        }
+      if (userAction === "ban") {
+        await banUser(reporterId, false);
+      } else if (userAction === "warn") {
+        await warnUser(reporterId, false, groupId);
       }
     }
 
