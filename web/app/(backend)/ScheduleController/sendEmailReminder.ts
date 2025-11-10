@@ -20,7 +20,7 @@ function floorTo5Min(d: Date) {
   return m;
 }
 
-// simple placeholder email sender
+// placeholder email sender for testing
 // async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
 //   console.log(`[email → ${to}] ${subject}`);
 // }
@@ -54,11 +54,9 @@ export async function sendInWebsiteAlert(): Promise<
   return messages;
 }
 
-/**
- * Sends inbox + (optional) email reminders for groups starting soon.
- * Bucketed window (5 min) and also scans the **previous** bucket to avoid misses.
- * Emails are idempotent via EmailReminderLog unique([userId, groupId, window]).
- */
+// Sends inbox + (optional) email reminders for groups starting soon.
+// Bucketed window (5 min) 
+
 export async function sendGroupReminders(windowLabel: WindowLabel) {
   const now = new Date(); // UTC
   const tick = floorTo5Min(now); // e.g., 11:45, 11:50, 11:55, 12:00...
@@ -68,7 +66,7 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
   const currFrom = baseCurr;
   const currTo = addMinutes(baseCurr, 5);
 
-  // Previous bucket (e.g., 11:55..12:00) shifted by the same lookahead
+  // Previous bucket (e.g., 11:55..12:00)
   const basePrev = addMinutes(
     addMinutes(tick, -5),
     WINDOW_TO_MINUTES[windowLabel]
@@ -121,7 +119,7 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
   });
 
 
-    // Inbox notifications (SQLite has no skipDuplicates; add your own guard if needed)
+    // Inbox notifications
     if (users.length) {
       await prisma.notification.createMany({
         data: users.map((u) => ({
@@ -136,7 +134,7 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
       });
     }
 
-    // Email reminders (only for users with emailReminder = true) with de-dupe log
+    // Email reminders 
     const toEmail = users.filter((u) => u!.emailReminder === true);
     if (toEmail.length) {
       const existing = await prisma.emailReminderLog.findMany({
@@ -153,7 +151,6 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
       for (const u of fresh) {
 
          const subject = `Reminder: ${g.name} starts soon`;
-        // Use plain text (your emailer signature is `text`)
         const text =
         `Hi ${u!.username},
 
