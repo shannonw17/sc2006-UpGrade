@@ -123,11 +123,6 @@ export default function GroupsPageClient({
             <h3 className="text-xl font-semibold ...">
     {hasActiveFilters ? "No joined groups match your search" : "You haven't joined any groups yet"}
   </h3>
-  {hasActiveFilters && (
-    <Link href="/groups?tab=joined" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-      Clear search & filters
-    </Link>
-  )}
             <p className="text-gray-600 mb-6 text-center max-w-md">
               Explore available study groups and join ones that match your interests and schedule.
             </p>

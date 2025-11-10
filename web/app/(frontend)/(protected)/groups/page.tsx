@@ -40,13 +40,14 @@ export default async function GroupPage({ searchParams }: PageProps) {
   // Use normalizeFilters for other filters
   const filters = normalizeFilters(sp);
 
-    const hasActiveFilters = !!(
-    filters.q ||
-    (filters as any).from ||
-    (filters as any).to ||
-    (filters as any).location ||
-    (filters as any).open
-  );
+    const hasActiveFilters = Boolean(
+  filters.q ||
+  filters.loc ||
+  filters.fromISO ||
+  filters.toISO ||
+  filters.openOnly
+);
+
 
   const {
     allGroups,
