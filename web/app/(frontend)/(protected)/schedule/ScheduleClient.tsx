@@ -230,19 +230,24 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
       return null;
     }
 
-    // Calculate minutes from start of day (e.g., 12:00 AM = 0 minutes)
+    // Calculate minutes from start of day
     const startMinutes = displayStart.getHours() * 60 + displayStart.getMinutes();
     let endMinutes = displayEnd.getHours() * 60 + displayEnd.getMinutes();
 
-    // Handle events that end exactly at midnight
-    if (endMinutes === 0 && displayEnd.getDate() > currentDate.getDate()) {
-      endMinutes = 1440; // End of day
+    // Handle events that cross midnight - for the first day, show from start time to end of day
+    if (start.toDateString() === currentDate.toDateString() && end.toDateString() !== currentDate.toDateString()) {
+      endMinutes = 1440; // End of day (24 hours * 60 minutes)
+    }
+
+    // Handle events that started previous day and end this day - show from start of day to end time
+    if (start.toDateString() !== currentDate.toDateString() && end.toDateString() === currentDate.toDateString()) {
+      // startMinutes remains 0 (start of day)
     }
 
     // Calculate duration in minutes
     let duration = endMinutes - startMinutes;
 
-    // Ensure minimum duration for visibility (at least 30 minutes)
+    // Ensure minimum duration for visibility (30 minutes)
     const minDuration = 30;
     if (duration < minDuration) {
       duration = minDuration;
@@ -251,16 +256,13 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     const topPercentage = (startMinutes / 1440) * 100;
     const heightPercentage = (duration / 1440) * 100;
 
-    // For readability
-    const minHeightPixels = 40;
-    const totalDayHeight = 1200; 
-    const calculatedHeightPixels = (duration / 1440) * totalDayHeight;
-    const finalMinHeight = Math.max(minHeightPixels, calculatedHeightPixels);
+    // Use fixed minimum height that can comfortably show content
+    const minHeightPixels = 70; // Increased to ensure content fits
 
     return {
       top: `${topPercentage}%`,
       height: `${heightPercentage}%`,
-      minHeight: `${finalMinHeight}px`
+      minHeight: `${minHeightPixels}px`
     };
   };
 
@@ -522,23 +524,16 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
                               onClick={(e) => handleViewDetails(group, e)}
                             >
                               <div className="p-1.5 h-full flex flex-col">
-                                {/* Group Name */}
+                                {/* Simplified content for small boxes */}
                                 <div className="font-bold text-xs leading-tight mb-0.5 line-clamp-1">
                                   {group.name}
                                 </div>
-                                
-                                {/* Location */}
-                                <div className="text-[10px] mb-0.5 flex items-start gap-0.5">
-                                  <span className="text-[8px]">📍</span>
-                                  <span className="line-clamp-1 flex-1">{group.location}</span>
+                                <div className="text-[10px] mb-0.5 line-clamp-1">
+                                  📍 {group.location}
                                 </div>
-                                
-                                {/* Time */}
                                 <div className="text-[10px] font-medium mb-0.5">
                                   {displayText}
                                 </div>
-                                
-                                {/* View Details */}
                                 <div className="text-[10px] italic underline mt-auto">
                                   view details
                                 </div>
