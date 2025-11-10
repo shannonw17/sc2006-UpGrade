@@ -137,7 +137,7 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
     }
 
     // Email reminders (only for users with emailReminder = true) with de-dupe log
-    const toEmail = users.filter((u) => u!.emailReminder);
+    const toEmail = users.filter((u) => u!.emailReminder === true);
     if (toEmail.length) {
       const existing = await prisma.emailReminderLog.findMany({
         where: {
@@ -162,22 +162,6 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
         Group ID: ${g.groupID}
 
         See you there!`;
-        // await sendEmail({
-        //   to: u!.email,
-        //   subject: `Reminder: ${g.name} starts soon`,
-        //   html: `
-        //     <p>Hi ${u!.username},</p>
-        //     <p>Your study group <strong>${
-        //       g.name
-        //     }</strong> will start on <strong>${g.start.toISOString()}</strong> (UTC).</p>
-        //     <p>Location: ${g.location}</p>
-        //     <p>Group ID: ${g.groupID}</p>
-        //   `,
-        // });
-
-        // await prisma.emailReminderLog.create({
-        //   data: { userId: u!.id, groupId: g.id, window: windowLabel },
-        // });
         try {
           await sendEmail(u!.email, subject, text);
           await prisma.emailReminderLog.create({
