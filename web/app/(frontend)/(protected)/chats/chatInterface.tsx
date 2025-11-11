@@ -248,19 +248,19 @@ export default function ChatInterface({
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChatId) return;
 
-    const tempMessageId = Date.now().toString();
-    const messageContent = messageInput;
-    const newMessage: Message = {
-      id: tempMessageId,
-      content: messageContent,
-      senderId: currentUserId,
-      createdAt: new Date(),
-      status: 'sent',
-      sender: {
-        id: currentUserId,
-        username: currentUsername,
-      },
-    };
+      // 1) temp id clearly marked as temp
+  const tempMessageId = "temp-" + Date.now();
+  const messageContent = messageInput;
+
+
+     const newMessage: Message = {
+    id: tempMessageId,
+    content: messageContent,
+    senderId: currentUserId,
+    createdAt: new Date(),
+    status: "sent",
+    sender: { id: currentUserId, username: currentUsername },
+  };
 
     setMessages([...messages, newMessage]);
     setMessageInput("");
@@ -274,7 +274,7 @@ export default function ChatInterface({
                 content: messageContent,
                 createdAt: new Date(),
                 senderId: currentUserId,
-                status: 'sent' as const,
+                status: 'sent' as const, 
               }
             }
           : chat
@@ -282,41 +282,41 @@ export default function ChatInterface({
     );
 
     try {
-      const { sendMessage } = await import("./chatHelpers");
-      await sendMessage(selectedChatId, messageContent);
+      // 3) call server and get REAL id back
+    const { sendMessage } = await import("./chatHelpers");
+    const saved = await sendMessage(selectedChatId, messageContent);
       
-      setMessages(prevMessages => 
-        prevMessages.map(msg => 
-          msg.id === tempMessageId 
-            ? { ...msg, status: 'delivered' as const }
-            : msg
-        )
-      );
+      // 4) swap temp -> real id + mark delivered
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === tempMessageId
+          ? { ...msg, id: saved.id, status: "delivered" as const, createdAt: saved.createdAt ?? msg.createdAt }
+          : msg
+      )
+    );
 
-      setChats(prevChats => 
-        prevChats.map(chat => 
-          chat.chatId === selectedChatId && chat.lastMessage
-            ? {
-                ...chat,
-                lastMessage: {
-                  ...chat.lastMessage,
-                  status: 'delivered' as const,
-                }
-              }
-            : chat
-        )
-      );
+      setChats(prev =>
+      prev.map(chat =>
+        chat.chatId === selectedChatId && chat.lastMessage
+          ? { ...chat, lastMessage: { ...chat.lastMessage, status: "delivered" as const } }
+          : chat
+      )
+    );
     } catch (error) {
       console.error("Error sending message:", error);
-      alert("Failed to send message");
-      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== tempMessageId));
-      
-      setChats(prevChats => 
-        prevChats.map(chat => 
-          chat.chatId === selectedChatId
-            ? {
-                ...chat,
-                lastMessage: messages.length > 0 
+    alert("Failed to send message");
+
+    // rollback optimistic add
+    setMessages(prev => prev.filter(m => m.id !== tempMessageId));
+
+    // restore lastMessage if needed
+    setChats(prev =>
+      prev.map(chat =>
+        chat.chatId === selectedChatId
+          ? {
+              ...chat,
+              lastMessage:
+                messages.length > 0
                   ? {
                       content: messages[messages.length - 1].content,
                       createdAt: messages[messages.length - 1].createdAt,
@@ -332,6 +332,8 @@ export default function ChatInterface({
   };
 
   const handleDeleteMessage = async (messageId: string) => {
+
+    if (messageId.startsWith("temp-")) return;
     if (isDeleting) return;
     
     setIsDeleting(true);
@@ -677,7 +679,7 @@ export default function ChatInterface({
                               <p className="text-sm leading-relaxed break-words">{message.content}</p>
                             </div>
 
-                            {/* Message Menu Button */}
+                           {/* Message Menu Button */}
                             {isOwn && (
                               <div className="relative message-menu">
                                 <button
@@ -697,7 +699,7 @@ export default function ChatInterface({
                                       }}
                                       className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
                                     >
-                                      <Trash2 size={14} />
+                                       <Trash2 size={14} />
                                       Delete
                                     </button>
                                   </div>

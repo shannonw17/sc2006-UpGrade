@@ -126,12 +126,13 @@ export async function viewSelectedChat(chatId: string) {
 }
 
 //send a new message
+// send a new message
 export async function sendMessage(chatId: string, content: string) {
   const currentUser = await requireUser();
   const [user1Id, user2Id] = chatId.split("-");
   const receiverId = user1Id === currentUser.id ? user2Id : user1Id;
 
-  await prisma.message.create({
+  const m = await prisma.message.create({
     data: {
       senderId: currentUser.id,
       receiverId,
@@ -139,6 +140,8 @@ export async function sendMessage(chatId: string, content: string) {
       isRead: false,
     },
   });
+
+  return { id: m.id, createdAt: m.createdAt };
 }
 
 //mark all unread messages from the other user as read
@@ -159,22 +162,37 @@ export async function markMessagesAsRead(chatId: string) {
   return { success: true, chatId, otherUserId };
 }
 
-//delete a single message 
+// delete a single message (hard delete by either participant)
+// delete a single message (sender-only) + return count for sanity
 export async function deleteMessage(messageId: string) {
   const currentUser = await requireUser();
 
-  const message = await prisma.message.findUnique({
-    where: { id: messageId },
+  // use deleteMany to get a count back
+  const { count } = await prisma.message.deleteMany({
+    where: {
+      id: messageId,
+      senderId: currentUser.id, // keep this line if you want sender-only
+      // (note: no isRead here)
+    },
   });
 
-  //handle if not found
-  if (!message) return;
+  if (count === 0) {
+    // Useful debugging: check if the message exists and why it didn't delete
+    const exists = await prisma.message.findUnique({ where: { id: messageId } });
+    if (!exists) {
+      throw new Error("Message not found (wrong id or different database).");
+    }
+    if (exists.senderId !== currentUser.id) {
+      throw new Error("Not authorised to delete this message (not the sender).");
+    }
+    throw new Error("Delete failed unexpectedly.");
+  }
 
-  if (message.senderId !== currentUser.id)
-    throw new Error("Not authorised to delete this message");
-
-  await prisma.message.delete({ where: { id: messageId } });
+  return { deleted: count };
 }
+
+
+
 
 //create or get existing chat
 export async function createOrGetChat(otherUserId: string) {
