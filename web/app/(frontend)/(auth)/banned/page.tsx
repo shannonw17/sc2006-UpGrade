@@ -26,7 +26,7 @@ export default function BannedPage() {
           </p>
           {/* to be edited hehe just for fun cos idk if we have a support mail */}
           <a 
-            href="mailto:support@upgrade.com" 
+            href="mailto:NTUshannon1011@gmail.com" 
             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
           >
             NTUshannon1011@gmail.com
