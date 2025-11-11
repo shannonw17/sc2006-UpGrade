@@ -150,10 +150,10 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   });
 
   const timingOptions = [
-    { value: "morning", label: "Morning (6am-12pm)" },
-    { value: "afternoon", label: "Afternoon (12pm-6pm)" },
-    { value: "evening", label: "Evening (6pm-12am)" },
-    { value: "night", label: "Night (12am-6am)" },
+    { value: "Morning", label: "Morning (6am-12pm)" },
+    { value: "Afternoon", label: "Afternoon (12pm-6pm)" },
+    { value: "Evening", label: "Evening (6pm-12am)" },
+    { value: "Night", label: "Night (12am-6am)" },
   ];
 
   const handleInputChange = (field: string, value: any) =>
