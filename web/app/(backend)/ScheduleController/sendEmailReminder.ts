@@ -120,19 +120,46 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
 
 
     // Inbox notifications
-    if (users.length) {
-      await prisma.notification.createMany({
-        data: users.map((u) => ({
-          userId: u!.id,
-          groupId: g.id,
-          type: "GROUP_START_REMINDER",
-          message: `Reminder: "${
-            g.name
-          }" starting at ${localStart} (SGT) @ ${g.location}`,
-          // expiresAt: g.end,
-        })),
-      });
-    }
+    // if (users.length) {
+    //   await prisma.notification.createMany({
+    //     data: users.map((u) => ({
+    //       userId: u!.id,
+    //       groupId: g.id,
+    //       type: "GROUP_START_REMINDER",
+    //       message: `Reminder: "${
+    //         g.name
+    //       }" starting at ${localStart} (SGT) @ ${g.location}`,
+    //       // expiresAt: g.end,
+    //     })),
+    //   });
+    // }
+
+    // Inbox notifications
+if (users.length) {
+  const existing = await prisma.notification.findMany({
+    where: {
+      type: "GROUP_START_REMINDER",
+      groupId: g.id,
+      userId: { in: users.map(u => u!.id) },
+      createdAt: { gte: prevFrom, lt: currTo },
+    },
+    select: { userId: true },
+  });
+  const already = new Set(existing.map(e => e.userId));
+  const freshUsers = users.filter(u => !already.has(u!.id));
+
+  if (freshUsers.length) {
+    await prisma.notification.createMany({
+      data: freshUsers.map(u => ({
+        userId: u!.id,
+        groupId: g.id,
+        type: "GROUP_START_REMINDER",
+        message: `Reminder: "${g.name}" starting at ${localStart} (SGT) @ ${g.location}`,
+        // expiresAt: g.end,
+      })),
+    });
+  }
+}
 
     // Email reminders 
     const toEmail = users.filter((u) => u!.emailReminder === true);
