@@ -51,7 +51,7 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
             }
           }
         },
-        tags: true // This should work after updating Prisma schema
+        tags: true
       },
     }),
     requireUser(),
@@ -73,7 +73,6 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
   const isHost = user.id === group.hostId;
   const isMember = group.members.some((member: any) => member.userId === user.id);
   
-  // Determine which tab to go back to
   const getBackTabInfo = () => {
     if (fromTab === 'mine') {
       return { tab: 'mine', label: 'Created Groups' };
@@ -87,7 +86,6 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
   const { tab: backTab, label: backLabel } = getBackTabInfo();
   const backHref = `/groups?tab=${backTab}`;
   
-  // Get all members including the host
   const allMembers = [
     { username: group.host?.username || "Unknown", isHost: true, id: group.hostId },
     ...group.members
@@ -193,7 +191,6 @@ export default async function GroupDetailPage({ params, searchParams }: GroupPag
           )}
         </div>
 
-        {/* Members List Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Group Members ({allMembers.length})</h2>
           

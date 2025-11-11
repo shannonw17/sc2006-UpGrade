@@ -11,7 +11,6 @@ interface EditGroupModalProps {
   onUpdate: () => void;
 }
 
-// Helper function to convert UTC date to local datetime string for input
 function utcToLocalDatetimeString(utcDate: Date): string {
   const date = new Date(utcDate);
   const year = date.getFullYear();
@@ -30,13 +29,11 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
   const [visibility, setVisibility] = useState(group.visibility ? "public" : "private");
   const router = useRouter();
   
-  // New state for main tag and additional tags
   const [mainTag, setMainTag] = useState(group.tags?.[0]?.name || "");
   const [additionalTags, setAdditionalTags] = useState<string[]>(group.tags?.slice(1).map((tag: any) => tag.name) || []);
   const [currentAdditionalTag, setCurrentAdditionalTag] = useState("");
   const [nameLength, setNameLength] = useState(group.name.length);
 
-  // Load location from session storage when component mounts
   useEffect(() => {
     const savedLocation = sessionStorage.getItem('selectedLocation');
     if (savedLocation) {
@@ -46,7 +43,6 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
   }, []);
 
   const goToMap = () => {
-    // Save current form state to session storage
     const formState = {
       name: group.name,
       location: location,
@@ -93,13 +89,11 @@ export default function EditGroupModal({ group, onClose, onUpdate }: EditGroupMo
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Validate main tag
     if (!mainTag.trim()) {
       setError("Main tag is required");
       return;
     }
 
-    // Validate tags length
     const allTags = [mainTag, ...additionalTags];
     if (allTags.length === 0) {
       setError("At least one tag is required");

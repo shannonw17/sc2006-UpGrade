@@ -255,10 +255,10 @@ export default function HomepageClient({
 
   const hasShown = useRef(false);
 
-  // Avoid duplicate toasts on React StrictMode double-mount in dev
+  // avoid duplicate toasts on React StrictMode double-mount in dev
 const shownThisMount = useRef<Set<string>>(new Set());
 
-  // Keep list in sync when server sends new results after URL changes
+  // keep list in sync when server sends new results after URL changes
   useEffect(() => {
   setProfiles(formatProfiles(initialProfiles));
   setTotal(initialTotal);
@@ -275,17 +275,17 @@ const shownThisMount = useRef<Set<string>>(new Set());
   setInputValue(initialFilters.searchQuery || "");
 }, [initialProfiles, initialTotal, initialFilters]);
 
-// Normalize inputs: show real unread notifications first; fall back to legacy messages
+// normalize inputs: show real unread notifications first; fall back to legacy messages
 // update your helper:
 function getUnreadToasts(): { id: string; text: string; legacy: boolean }[] {
-  // If the server passed notifications (even []), use them exclusively.
+  // if the server passed notifications (even []), use them exclusively.
   if (typeof notifications !== "undefined") {
     return (notifications || [])
       .filter((n) => n && n.read === false)
       .map((n) => ({ id: n.id, text: n.message, legacy: false }));
   }
 
-  // Only if notifications prop wasn't provided at all, use legacy messages
+  // only if notifications prop wasn't provided at all, use legacy messages
   return (messages || []).map((m, i) => ({
     id: `legacy-${i}-${m}`,
     text: m,
@@ -488,13 +488,11 @@ useEffect(() => {
   };
 
   //backend filter function
-  // Was: const applyFilters = () => runBackendFilter({ closePopup: true, pushUrl: true });
 const applyFilters = () => {
   setShowFilterPopup(false);
   syncUrl(inputValue);
 };
 
-// Was doing a POST + replace; now only reset local state then update URL
 const clearAllFilters = (e?: React.MouseEvent) => {
   e?.preventDefault();
   setSearchQuery("");
@@ -507,15 +505,13 @@ const clearAllFilters = (e?: React.MouseEvent) => {
 };
 
 
-  // Live search: debounce URL update (SSR will refetch results on each keypress)
-// Live search: only keys trigger a GET
 useEffect(() => {
   const id = setTimeout(() => {
     setSearchQuery(inputValue);
     syncUrl(inputValue);
   }, 450);
   return () => clearTimeout(id);
-}, [inputValue]); // 👈 only input, not filters
+}, [inputValue]);
 
 
   const handleSearchClear = async () => {

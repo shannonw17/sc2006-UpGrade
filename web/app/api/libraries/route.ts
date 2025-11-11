@@ -21,7 +21,7 @@ export async function GET() {
 
   const data = await res.json();
 
-  // ✅ Step 1: Map relevant info
+
   const rawLibraries = Array.isArray(data.branches)
     ? data.branches.slice(3).map((branch: any) => ({
         name: branch.branchName,
@@ -30,7 +30,7 @@ export async function GET() {
       }))
     : [];
 
-  // ✅ Step 2: Filter out invalid entries
+
   const validLibraries = rawLibraries.filter((lib) => {
     const hasCoords =
       lib.coordinates &&
@@ -49,7 +49,7 @@ export async function GET() {
     return hasCoords && hasAddress;
   });
 
-  // ✅ Step 3: Remove duplicates by coordinate pair
+
   const seen = new Set<string>();
   const uniqueLibraries = validLibraries.filter((lib) => {
     const lat = lib.coordinates.geoLatitude;

@@ -23,7 +23,7 @@ interface NavLink {
 export default function Sidebar({ unreadCount, unreadMessageCount = 0, isAdmin = false }: SidebarProps) {
   const pathname = usePathname();
 
-  // User links
+  // user links
   const userLinks: NavLink[] = [
     { href: "/homepage", icon: Home, label: "Home" },
     { href: "/groups", icon: Users, label: "Study groups" },
@@ -34,13 +34,12 @@ export default function Sidebar({ unreadCount, unreadMessageCount = 0, isAdmin =
     { href: "/myprofile", icon: User, label: "Profile" },
   ];
 
-  // Admin links
+  // admin links
   const adminLinks: NavLink[] = [
     { href: "/admin", icon: Shield, label: "Admin Dashboard" },
     { href: "/reports", icon: Users, label: "Report Management" },
   ];
 
-  // Use admin links if user is admin, otherwise user links
   const links = isAdmin ? adminLinks : userLinks;
 
   return (

@@ -16,7 +16,6 @@ export function MessageMemberButton({ memberId, memberName }: MessageMemberButto
   const handleMessageMember = async () => {
     setIsLoading(true);
     
-    // Simply navigate with userId - let ChatInterface handle it
     router.push(`/chats?newChatWith=${memberId}`);
   };
 

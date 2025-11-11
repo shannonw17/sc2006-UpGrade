@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/db";
 import Sidebar from "./sidebar";
 
-// Function to check for unread notifications
+// function to check for unread notifications
 async function getUnreadNotificationCount(userId: string) {
   try {
     const unreadCount = await prisma.notification.count({
@@ -19,14 +19,13 @@ async function getUnreadNotificationCount(userId: string) {
   }
 }
 
-// Function to get unread message count - counts UNREAD messages sent TO the user
+// function to get unread message count - counts UNREAD messages sent TO the user
 async function getUnreadMessageCount(userId: string) {
   try {
-    // Count messages where the current user is the receiver AND isRead is false
     const unreadCount = await prisma.message.count({
       where: {
         receiverId: userId,
-        isRead: false,  // Only count unread messages
+        isRead: false,  // only count unread messages
       }
     });
     
@@ -49,10 +48,10 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  // Check if user is admin
+
   const isAdmin = !!adminSession;
 
-  // Get user ID safely
+
   const currentUserId = (userSession as any)?.userId || 
                        (userSession as any)?.id || 
                        (adminSession as any)?.userId || 
@@ -68,7 +67,7 @@ export default async function ProtectedLayout({
     await clearAdminSession();
   }
 
-  // Safe display name
+
   const displayName = (userSession as any)?.name || 
                      (userSession as any)?.username || 
                      (adminSession as any)?.name || 

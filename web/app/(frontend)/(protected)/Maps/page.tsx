@@ -23,7 +23,7 @@ interface Library {
     geoLatitude: string;
     geoLongitude: string;
   };
-  distance?: number; // Added distance field
+  distance?: number; 
 }
 
 export default function Maps() {
@@ -54,10 +54,10 @@ export default function Maps() {
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     const distance = R * c;
-    return Math.round(distance * 10) / 10; // Round to 1 decimal place
+    return Math.round(distance * 10) / 10; 
   };
 
-  // Sort libraries by distance from search location
+
   const sortLibrariesByDistance = (libraries: Library[], searchLat: number, searchLng: number): Library[] => {
     return libraries
       .map(lib => {
@@ -68,8 +68,6 @@ export default function Maps() {
         const distance = calculateDistance(searchLat, searchLng, libLat, libLng);
         return { ...lib, distance };
       })
-      //.filter(lib => lib.distance !== Infinity)
-      //.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
       .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
   };
 
@@ -137,7 +135,6 @@ export default function Maps() {
     if (!mapInstance) return;
     if (!filteredLibraries || filteredLibraries.length === 0) return;
 
-    // Clear existing markers
     markersRef.current.forEach(({ marker }) => marker.setMap(null));
     markersRef.current = [];
 
@@ -180,9 +177,7 @@ export default function Maps() {
         },
       });
 
-      // Clicking a LIBRARY marker selects that library
       marker.addListener("click", () => {
-        // Remove the free-click red marker if present
         if (markerRef.current) {
           markerRef.current.setMap(null);
           markerRef.current = null;
@@ -259,10 +254,8 @@ export default function Maps() {
     });
 
     map.addListener("click", async (e) => {
-      // Clear any red library selection
       setSelectedLibName(null);
 
-      // Make all library markers blue
       markersRef.current.forEach(({ marker }) => {
         marker.setIcon({
           url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
@@ -284,7 +277,6 @@ export default function Maps() {
       setLocation(address);
       setSelectedLocation(address);
 
-      // Replace previous free-click marker with a single red one
       if (markerRef.current) markerRef.current.setMap(null);
       markerRef.current = new window.google.maps.Marker({
         position: { lat, lng },
@@ -332,7 +324,6 @@ export default function Maps() {
         setSelectedLocation(results[0].formatted_address);
         setSearchLocation({ lat, lng });
 
-        // Sort libraries by distance from searched location
         const sortedLibraries = sortLibrariesByDistance(libraries, lat, lng);
         setFilteredLibraries(sortedLibraries);
 
@@ -517,7 +508,6 @@ export default function Maps() {
                               mapInstance.setZoom(16);
                             }
 
-                            // Remove the red free-click marker if present
                             if (markerRef.current) {
                               markerRef.current.setMap(null);
                               markerRef.current = null;
@@ -544,7 +534,6 @@ export default function Maps() {
                             setSelectedLocation(fullAddress);
                             setLocation(fullAddress);
 
-                            // Repaint marker icons according to selectedLibName
                             markersRef.current.forEach(
                               ({ libName, marker }) => {
                                 marker.setIcon({

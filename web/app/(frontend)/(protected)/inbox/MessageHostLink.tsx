@@ -16,7 +16,6 @@ export function MessageHostLink({ hostId }: MessageHostLinkProps) {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simply navigate with userId - let ChatInterface handle it
     router.push(`/chats?newChatWith=${hostId}`);
   };
 

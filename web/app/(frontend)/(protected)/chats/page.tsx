@@ -16,7 +16,6 @@ export default async function ChatsPage({ searchParams }: ChatsPageProps) {
   const existingChats = await viewAllChats();
   const availableUsers = await getAllChatsUsers();
 
-  // Pass parameters to client component
   const chatToOpen = params?.openChat;
   const userToStartChat = params?.newChatWith;
 

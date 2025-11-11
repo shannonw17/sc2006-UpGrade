@@ -33,7 +33,7 @@ export default function LoginForm() {
     setSelectedRole(role);
   };
 
-  // Redirect to verify-email page when resend is successful
+  // redirect to verify-email page when resend is successful
   useEffect(() => {
     if (resendState?.ok && resendState.userId && identifier) {
       const email = extractEmail(identifier);

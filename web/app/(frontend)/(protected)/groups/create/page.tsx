@@ -93,10 +93,9 @@ export default function CreateGroupPage() {
     }
   };
 
-  // Function to validate minimum 30-minute duration
   const validateDuration = () => {
     if (!startDate || !startTime || !endDate || !endTime) {
-      return true; // Let required field validation handle empty fields
+      return true;
     }
 
     const startDateTime = new Date(`${startDate}T${startTime}`);
@@ -110,7 +109,6 @@ export default function CreateGroupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Validate main tag
     if (!mainTag.trim()) {
       setError("Main tag is required");
       return;
@@ -124,7 +122,6 @@ export default function CreateGroupPage() {
       return;
     }
 
-    // Validate duration (minimum 30 minutes)
     if (!validateDuration()) {
       setError("Study group duration must be at least 30 minutes");
       return;
@@ -134,7 +131,6 @@ export default function CreateGroupPage() {
     setError("");
 
     try {
-      // Combine date and time into datetime strings
       const start = `${startDate}T${startTime}`;
       const end = `${endDate}T${endTime}`;
       
@@ -142,14 +138,11 @@ export default function CreateGroupPage() {
       formData.set('start', start);
       formData.set('end', end);
       
-      // Combine main tag and additional tags
       const allTags = [mainTag, ...additionalTags];
       formData.set('tags', allTags.join(','));
       
       await createGroup(formData);
-      // The redirect in createGroup will handle navigation
     } catch (error: any) {
-      // Only show error if it's NOT a redirect error
       if (!error?.digest?.startsWith('NEXT_REDIRECT')) {
         setError(error.message || "Failed to create group");
       }
@@ -158,7 +151,6 @@ export default function CreateGroupPage() {
     }
   };
 
-  // Calculate and display duration
   const calculateDuration = () => {
     if (!startDate || !startTime || !endDate || !endTime) {
       return null;

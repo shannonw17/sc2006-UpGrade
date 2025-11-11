@@ -20,14 +20,13 @@ export default async function GroupPage({ searchParams }: PageProps) {
 
   const sp = await searchParams;
 
-  // 🔗 Build a tab href that preserves current query params (q/from/to/loc/open/etc.)
   const buildTabHref = (target: "all" | "mine" | "joined") => {
     const p = new URLSearchParams(sp as any ?? {});
     p.set("tab", target);
     return `/groups?${p.toString()}`;
   };
 
-  // Handle tab parameter directly
+  // handle tab parameter directly
   const rawTab = sp?.tab as string | undefined;
 
   let tab: "all" | "mine" | "joined" = "all";
@@ -37,7 +36,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
     redirect("/groups?tab=all");
   }
 
-  // Use normalizeFilters for other filters
+  // use normalizeFilters for other filters
   const filters = normalizeFilters(sp);
 
     const hasActiveFilters = Boolean(
@@ -56,7 +55,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
     joinedSet,
   } = await fetchGroupsWithFilters(CURRENT_USER_ID, filters, user.eduLevel);
 
-  // If joinedGroups is empty, fetch them manually with education level filter
+  // ff joinedGroups is empty, fetch them manually with education level filter
   let joinedGroups = justJoinedNotCreated;
 
   if (tab === 'joined' && joinedGroups.length === 0 && !hasActiveFilters) {
@@ -68,7 +67,7 @@ export default async function GroupPage({ searchParams }: PageProps) {
           }
         },
         hostId: { not: CURRENT_USER_ID },
-        // Add education level filter for joined groups too
+        // add education level filter for joined groups too
         host: {
           eduLevel: user.eduLevel
         }
@@ -87,7 +86,6 @@ export default async function GroupPage({ searchParams }: PageProps) {
     });
   }
 
-  // Extract preserved filter parameters for SearchBox
   const preservedFilters = {
     from: (filters as any).from || (sp?.from as string),
     to: (filters as any).to || (sp?.to as string),
@@ -138,8 +136,6 @@ export default async function GroupPage({ searchParams }: PageProps) {
     </div>
   );
 }
-
-/* ---------- Tab Component ---------- */
 
 function Tab({
   href,

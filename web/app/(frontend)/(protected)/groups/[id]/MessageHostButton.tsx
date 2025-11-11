@@ -16,7 +16,6 @@ export function MessageHostButton({ hostId }: MessageHostButtonProps) {
     console.log('MessageHostButton clicked, hostId:', hostId);
     setIsLoading(true);
     
-    // Simply navigate with userId - let ChatInterface handle it
     router.push(`/chats?newChatWith=${hostId}`);
   };
 

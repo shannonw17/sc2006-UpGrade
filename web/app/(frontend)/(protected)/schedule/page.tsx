@@ -8,13 +8,11 @@ export default async function SchedulePage() {
     
     console.log('SchedulePage: Fetched', studyGroups?.length, 'study groups');
     
-    // Ensure we have a proper array and transform dates
     const processedStudyGroups = studyGroups?.map(group => ({
       ...group,
       start: new Date(group.start),
       end: new Date(group.end),
       createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
-      // Ensure all required fields are present
       name: group.name || 'Unnamed Group',
       location: group.location || 'No location specified',
       capacity: group.capacity || 1,
@@ -25,7 +23,6 @@ export default async function SchedulePage() {
     return <ScheduleClient initialStudyGroups={processedStudyGroups} />;
   } catch (error) {
     console.error("Error in SchedulePage:", error);
-    // Return empty array on error
     return <ScheduleClient initialStudyGroups={[]} />;
   }
 }

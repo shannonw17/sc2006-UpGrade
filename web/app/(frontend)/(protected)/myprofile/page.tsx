@@ -74,7 +74,6 @@ export default async function ProfilePage() {
     ],
   };
 
-  // Ensure strings are properly formatted, never undefined
   const preferredTiming = user.preferredTiming || "";
   const preferredLocations = user.preferredLocations || "";
 

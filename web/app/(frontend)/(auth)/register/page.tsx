@@ -61,10 +61,9 @@ export default function RegisterForm() {
     ],
   };
 
-  // Redirect to verification page after successful registration
   useEffect(() => {
     if (state?.success && state?.userId) {
-      // Redirect to verification page
+ 
       window.location.href = `/verify-email?userId=${state.userId}&email=${encodeURIComponent(email)}&fromRegistration=true`;
     }
   }, [state, email]);
@@ -73,7 +72,6 @@ export default function RegisterForm() {
     const newPassword = e.target.value;
     setPassword(newPassword);
     
-    // Update password requirements
     setPasswordRequirements({
       minLength: newPassword.length >= 12,
       hasUppercase: /[A-Z]/.test(newPassword),
@@ -98,7 +96,6 @@ export default function RegisterForm() {
     setEmail(newEmail);
     setEmailTouched(true);
     
-    // Validate email ends with .edu.sg
     const isValid = newEmail.toLowerCase().endsWith('.edu.sg');
     setEmailValid(isValid);
   };
@@ -114,10 +111,10 @@ export default function RegisterForm() {
       e.preventDefault();
       return;
     }
-    // Let the form submit normally if email is valid
+   
   };
 
-  // Check if form can be submitted
+
   const canSubmit = emailValid && passwordMatch && 
     passwordRequirements.minLength && 
     passwordRequirements.hasUppercase &&
@@ -125,7 +122,7 @@ export default function RegisterForm() {
     passwordRequirements.hasNumber &&
     passwordRequirements.hasSpecial;
 
-  // Registration form
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-2xl">

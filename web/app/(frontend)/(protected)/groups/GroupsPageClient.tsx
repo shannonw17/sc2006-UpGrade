@@ -8,7 +8,6 @@ import EditGroupModal from "./components/EditGroupModal";
 import Link from "next/link";
 
 
-
 interface GroupsPageClientProps {
   allGroups: any[];
   myCreatedGroups: any[];
@@ -32,18 +31,17 @@ export default function GroupsPageClient({
   const [editingGroup, setEditingGroup] = useState<any>(null);
   const searchParams = useSearchParams();
 
-  // Check if we're returning from Maps with a group to edit
+  // check if we're returning from Maps with a group to edit
   useEffect(() => {
     const editGroupId = searchParams.get('edit');
     
     if (editGroupId) {
-      // Find the group in myCreatedGroups
       const groupToEdit = myCreatedGroups.find(group => group.id === editGroupId);
       if (groupToEdit) {
         setEditingGroup(groupToEdit);
         setEditModalOpen(true);
         
-        // Clean up the URL
+        // clean up the URL
         const newUrl = window.location.pathname + '?tab=mine';
         window.history.replaceState({}, '', newUrl);
       }
@@ -62,11 +60,10 @@ export default function GroupsPageClient({
   };
 
   const handleGroupUpdate = () => {
-    // Refresh the page to show updated data
     window.location.reload();
   };
 
-  // Render empty states
+  // render empty states
   const renderEmptyState = () => {
     if (tab === "all" && allGroups.length === 0) {
       return (
@@ -192,7 +189,6 @@ export default function GroupsPageClient({
           ))}
         </>
       ) : (
-        // Joined Groups Tab
         <>
           {joinedGroups.map((group) => (
             <div key={group.id} className="group hover:scale-[1.02] transition-all duration-300">
@@ -237,7 +233,6 @@ export default function GroupsPageClient({
   );
 }
 
-/* ====== 🔎 Named export: Client SearchBox you can use in page.tsx ====== */
 export function SearchBox({ tab, initialQ = "", preserved = {} }: {
   tab: "all" | "mine" | "joined";
   initialQ?: string;

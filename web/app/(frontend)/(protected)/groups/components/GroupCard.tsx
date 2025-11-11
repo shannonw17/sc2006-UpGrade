@@ -35,7 +35,6 @@ function getTagColor(tagName: string): string {
     "bg-orange-100 text-orange-800",
   ];
   
-  // Hash function to get consistent colors for same tag names
   let hash = 0;
   for (let i = 0; i < tagName.length; i++) {
     hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
@@ -69,7 +68,6 @@ export default function GroupCard({
   const [showReportModal, setShowReportModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Determine highlight color based on group status
   const getHighlightColor = () => {
     if (isHost) return "bg-green-500"; // Host's own groups - green
     if (isJoined) return "bg-blue-500"; // Joined groups - blue
@@ -89,7 +87,6 @@ export default function GroupCard({
       formData.append('userId', CURRENT_USER_ID);
       
       await joinGroup(formData);
-      // The page will revalidate and update automatically
     } catch (error: any) {
       alert(`Failed to join group: ${error.message}`);
     } finally {
@@ -109,7 +106,6 @@ export default function GroupCard({
       formData.append('userId', CURRENT_USER_ID);
       
       await leaveGroup(formData);
-      // The page will revalidate and update automatically
     } catch (error: any) {
       alert(`Failed to leave group: ${error.message}`);
     } finally {
@@ -131,7 +127,6 @@ export default function GroupCard({
   };
 
   const getActionButton = () => {
-    // Host's own groups - show Edit button ONLY if showEdit is true (Created groups tab)
     if (isHost && showEdit) {
       return (
         <button 
@@ -143,7 +138,6 @@ export default function GroupCard({
       );
     }
 
-    // Host's own groups in All groups tab - show View Only message
     if (isHost && !showEdit) {
       return (
         <div className="w-full bg-gray-100 text-gray-400 font-medium px-4 py-2 rounded-full text-sm text-center">
@@ -152,7 +146,6 @@ export default function GroupCard({
       );
     }
 
-    // User has joined this group - show Leave button
     if (isJoined) {
       return (
         <button
@@ -165,7 +158,6 @@ export default function GroupCard({
       );
     }
 
-    // User hasn't joined - show Join button (or Full if capacity reached)
     return (
       <button
         onClick={handleJoinGroup}

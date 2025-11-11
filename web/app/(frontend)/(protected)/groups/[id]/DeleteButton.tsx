@@ -19,16 +19,13 @@ export function DeleteButton({ groupId }: DeleteButtonProps) {
         const result = await deleteGroup(formData);
         
         if (result?.success) {
-          // Success - redirect to groups page
           router.push("/groups?tab=mine");
-          router.refresh(); // Refresh to show updated list
+          router.refresh();
         } else {
           alert('Failed to delete group. Please try again.');
         }
       } catch (error: any) {
-        // Check if it's a redirect error (which we're not using anymore)
         if (error?.digest?.startsWith('NEXT_REDIRECT')) {
-          // If it's a redirect error, just redirect manually
           router.push("/groups?tab=mine");
           router.refresh();
         } else {

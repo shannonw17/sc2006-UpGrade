@@ -211,43 +211,34 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     const currentDayEnd = new Date(currentDate);
     currentDayEnd.setHours(23, 59, 59, 999);
 
-    // For events that span multiple days, calculate the portion for this specific day
     let displayStart = new Date(Math.max(start.getTime(), currentDayStart.getTime()));
     let displayEnd = new Date(Math.min(end.getTime(), currentDayEnd.getTime()));
 
-    // If this is the first day of a multi-day event, use the actual start time
     if (start.toDateString() === currentDate.toDateString()) {
       displayStart = start;
     }
 
-    // If this is the last day of a multi-day event, use the actual end time
     if (end.toDateString() === currentDate.toDateString()) {
       displayEnd = end;
     }
 
-    // If the event doesn't occur on this day at all, return null
     if (displayStart >= displayEnd) {
       return null;
     }
 
-    // Calculate minutes from start of day
     const startMinutes = displayStart.getHours() * 60 + displayStart.getMinutes();
     let endMinutes = displayEnd.getHours() * 60 + displayEnd.getMinutes();
 
-    // Handle events that cross midnight - for the first day, show from start time to end of day
     if (start.toDateString() === currentDate.toDateString() && end.toDateString() !== currentDate.toDateString()) {
-      endMinutes = 1440; // End of day (24 hours * 60 minutes)
+      endMinutes = 1440;
     }
 
-    // Handle events that started previous day and end this day - show from start of day to end time
     if (start.toDateString() !== currentDate.toDateString() && end.toDateString() === currentDate.toDateString()) {
       // startMinutes remains 0 (start of day)
     }
 
-    // Calculate duration in minutes
     let duration = endMinutes - startMinutes;
 
-    // Ensure minimum duration for visibility (30 minutes)
     const minDuration = 30;
     if (duration < minDuration) {
       duration = minDuration;
@@ -256,8 +247,7 @@ export default function ScheduleClient({ initialStudyGroups }: { initialStudyGro
     const topPercentage = (startMinutes / 1440) * 100;
     const heightPercentage = (duration / 1440) * 100;
 
-    // Use fixed minimum height that can comfortably show content
-    const minHeightPixels = 70; // Increased to ensure content fits
+    const minHeightPixels = 70;
 
     return {
       top: `${topPercentage}%`,
