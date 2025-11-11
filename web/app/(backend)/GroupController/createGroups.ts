@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/requireUser";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getRandomTagColor } from "@/lib/tagColors";
+import { checkOverlapRange } from "../ConflictController/checkOverlap";
 
 /**
  * Convert an HTML <input type="datetime-local"> value (local wall-clock)
@@ -150,21 +151,34 @@ export async function createGroup(formData: FormData) {
   const nowUtc = new Date();
   if (start < nowUtc) throw new Error("Start time must be in the future");
 
-  // Check if host already has groups at the same time
-  const timeConflict = await checkHostTimeConflict(hostId, start, end);
-  if (timeConflict.conflict) {
-    const conflictingGroup = timeConflict.conflictingGroup;
-    if (conflictingGroup) {
-      const conflictStart = new Date(conflictingGroup.start).toLocaleString();
-      const conflictEnd = new Date(conflictingGroup.end).toLocaleString();
-      
-      throw new Error(
-        `You already have a group "${conflictingGroup.name}" at ${conflictingGroup.location} during this time (${conflictStart} - ${conflictEnd}). You cannot host multiple groups at the same time.`
-      );
-    } else {
-      throw new Error("You already have a conflicting group at this time. You cannot host multiple groups at the same time.");
-    }
+  const overlap = await checkOverlapRange(hostId, start, end);
+  if (overlap.conflict && overlap.conflictingGroup) {
+    const cg = overlap.conflictingGroup;
+    const s = new Date(cg.start).toLocaleString();
+    const e = new Date(cg.end).toLocaleString();
+    throw new Error(
+      `This group overlaps with "${cg.name}" at ${cg.location} (${s} – ${e}). ` +
+      `You cannot host another group during a time you’re already committed.`
+    );
   }
+
+  // Check if host already has groups at the same time
+  // const timeConflict = await checkHostTimeConflict(hostId, start, end);
+  // if (timeConflict.conflict) {
+  //   const conflictingGroup = timeConflict.conflictingGroup;
+  //   if (conflictingGroup) {
+  //     const conflictStart = new Date(conflictingGroup.start).toLocaleString();
+  //     const conflictEnd = new Date(conflictingGroup.end).toLocaleString();
+      
+  //     throw new Error(
+  //       `You already have a group "${conflictingGroup.name}" at ${conflictingGroup.location} during this time (${conflictStart} - ${conflictEnd}). You cannot host multiple groups at the same time.`
+  //     );
+  //   } else {
+  //     throw new Error("You already have a conflicting group at this time. You cannot host multiple groups at the same time.");
+  //   }
+  // }
+
+
 
   // Ensure user exists
   const exists = await prisma.user.findUnique({ 

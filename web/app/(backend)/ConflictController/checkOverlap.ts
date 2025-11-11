@@ -78,7 +78,7 @@ export async function checkOverlap(userId: string, newGroupId: string) {
       const hasOverlap = newStart < existingEnd && newEnd > existingStart;
 
       if (hasOverlap) {
-        console.log(`[checkOverlap] ⚠️ OVERLAP DETECTED between "${newGroup.name}" and "${existingGroup.name}"`);
+        console.log(`[checkOverlap] OVERLAP DETECTED between "${newGroup.name}" and "${existingGroup.name}"`);
         return {
           conflict: true,
           conflictingGroup: {
@@ -98,10 +98,56 @@ export async function checkOverlap(userId: string, newGroupId: string) {
       }
     }
 
-    console.log(`[checkOverlap] ✅ No overlaps found`);
+    console.log(`[checkOverlap] No overlaps found`);
     return { conflict: false };
   } catch (error) {
     console.error("[checkOverlap] Error checking overlap:", error);
+    return { conflict: false };
+  }
+}
+
+export async function checkOverlapRange(
+  userId: string,
+  newStart: Date,
+  newEnd: Date,
+  skipGroupId?: string
+) {
+  try {
+    const overlapping = await prisma.group.findFirst({
+      where: {
+        OR: [
+          { hostId: userId },
+          { members: { some: { userId } } },
+        ],
+        isClosed: false,
+        AND: [
+          { start: { lt: newEnd } }, // existing starts before new ends
+          { end:   { gt: newStart } }, // existing ends after new starts
+        ],
+        ...(skipGroupId ? { id: { not: skipGroupId } } : {}),
+      },
+      select: {
+        id: true, name: true, start: true, end: true, location: true,
+      },
+    });
+
+    if (overlapping) {
+      return {
+        conflict: true,
+        conflictingGroup: {
+          id: overlapping.id,
+          name: overlapping.name,
+          start: overlapping.start,
+          end: overlapping.end,
+          location: overlapping.location,
+        },
+      };
+    }
+
+    return { conflict: false };
+  } catch (err) {
+    console.error("[checkOverlapRange] Error:", err);
+    // Be conservative: if something goes wrong, allow creation to proceed
     return { conflict: false };
   }
 }
