@@ -63,6 +63,7 @@ export default function ChatInterface({
   const [isSearching, setIsSearching] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasAutoOpenedRef = useRef(false); 
   const hasAutoStartedRef = useRef(false); 
@@ -79,7 +80,6 @@ export default function ChatInterface({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
 
   useEffect(() => {
     const autoOpenChat = async () => {
@@ -101,6 +101,7 @@ export default function ChatInterface({
 
     autoOpenChat();
   }, [initialChatToOpen]);
+
   useEffect(() => {
     const autoStartChat = async () => {
       if (hasAutoStartedRef.current || !initialUserToChat) return;
@@ -331,16 +332,35 @@ export default function ChatInterface({
   };
 
   const handleDeleteMessage = async (messageId: string) => {
+    if (isDeleting) return;
+    
+    setIsDeleting(true);
     try {
       const { deleteMessage } = await import("./chatHelpers");
       await deleteMessage(messageId);
-      setMessages(messages.filter((msg) => msg.id !== messageId));
+      
+      //update local state 
+      setMessages(prevMessages => prevMessages.filter((msg) => msg.id !== messageId));
       setMessageToDelete(null);
       setMessageMenuOpen(null);
+      
+      //refresh to get latest data
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting message:", error);
-      alert("Failed to delete message");
+      
+      //show specific error message
+      if (error.message.includes("Not authorised")) {
+        alert("You are not authorized to delete this message");
+      } else {
+        alert("Failed to delete message");
+      }
+      
+      //reset states
+      setMessageToDelete(null);
+      setMessageMenuOpen(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -454,9 +474,10 @@ export default function ChatInterface({
               </button>
               <button
                 onClick={() => handleDeleteMessage(messageToDelete!)}
-                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-all duration-200 rounded-lg flex-1 shadow-sm"
+                disabled={isDeleting}
+                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 transition-all duration-200 rounded-lg flex-1 shadow-sm"
               >
-                Delete
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>

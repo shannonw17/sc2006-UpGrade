@@ -2,12 +2,13 @@
 
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
-
+import { requireUser } from "@/lib/requireUser";
 
 //delete a message (only allowed for the sender)
 //if message already deleted or not found, it safely ignores it
+export async function deleteMessage(messageId: string) {
+  const currentUser = await requireUser();
 
-export async function deleteMessage(messageId: string, userId: string) {
   if (!messageId) throw new Error("Missing message");
 
   const message = await prisma.message.findUnique({
@@ -20,7 +21,7 @@ export async function deleteMessage(messageId: string, userId: string) {
     return;
   }
 
-  if (message.senderId !== userId) {
+  if (message.senderId !== currentUser.id) {
     throw new Error("Not authorised to delete this message");
   }
 

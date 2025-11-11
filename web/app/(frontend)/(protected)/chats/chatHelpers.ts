@@ -3,9 +3,7 @@
 import { requireUser } from "@/lib/requireUser";
 import prisma from "@/lib/db";
 
-
- //get all users at the same education level (for search)
-
+//get all users at the same education level (for search)
 export async function getAllChatsUsers() {
   const currentUser = await requireUser();
 
@@ -35,9 +33,7 @@ export async function getAllChatsUsers() {
   return users;
 }
 
-
 //get all existing chats for current user 
-
 export async function viewAllChats() {
   const currentUser = await requireUser();
 
@@ -85,9 +81,7 @@ export async function viewAllChats() {
   return Array.from(conversationsMap.values());
 }
 
-
 //view selected chat messages
-
 export async function viewSelectedChat(chatId: string) {
   const currentUser = await requireUser();
   const [user1Id, user2Id] = chatId.split("-");
@@ -131,9 +125,7 @@ export async function viewSelectedChat(chatId: string) {
   };
 }
 
-
 //send a new message
-
 export async function sendMessage(chatId: string, content: string) {
   const currentUser = await requireUser();
   const [user1Id, user2Id] = chatId.split("-");
@@ -149,9 +141,7 @@ export async function sendMessage(chatId: string, content: string) {
   });
 }
 
-
 //mark all unread messages from the other user as read
- 
 export async function markMessagesAsRead(chatId: string) {
   const currentUser = await requireUser();
   const [user1Id, user2Id] = chatId.split("-");
@@ -169,9 +159,7 @@ export async function markMessagesAsRead(chatId: string) {
   return { success: true, chatId, otherUserId };
 }
 
-
 //delete a single message 
-
 export async function deleteMessage(messageId: string) {
   const currentUser = await requireUser();
 
@@ -188,9 +176,7 @@ export async function deleteMessage(messageId: string) {
   await prisma.message.delete({ where: { id: messageId } });
 }
 
-
 //create or get existing chat
-
 export async function createOrGetChat(otherUserId: string) {
   const currentUser = await requireUser();
 
@@ -206,9 +192,7 @@ export async function createOrGetChat(otherUserId: string) {
   return `${currentUser.id}-${otherUserId}`;
 }
 
-
 //delete an entire chat (all messages between two users)
-
 export async function deleteChat(chatId: string) {
   const currentUser = await requireUser();
   const [user1Id, user2Id] = chatId.split("-");
