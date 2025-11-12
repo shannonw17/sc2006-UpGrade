@@ -185,10 +185,11 @@ model Notification {
   //optional link to Invitation (to delete inbox entry when invite remove when accept or reject)
   invitationId String? 
   invitation   Invitation?      @relation("InvitationNotifications", fields: [invitationId], references: [id], onDelete: Cascade)
-
+  reminderWindow String? // "24h" | "2h" | "15m" (nullable for other types)
   group        Group?            @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, groupId, type, reminderWindow])
 }
 
 model EmailReminderLog {
