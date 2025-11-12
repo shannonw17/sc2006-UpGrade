@@ -4,7 +4,6 @@
 
 import prisma from "@/lib/db";
 
-// ---------- helpers ----------
 function toArray(csv?: string | null) {
   if (!csv) return [];
   return csv.split(",").map(s => s.trim()).filter(Boolean);
@@ -27,32 +26,26 @@ const YearMap: Record<string,
   | "P1"|"P2"|"P3"
   | "U1"|"U2"|"U3"|"U4"
 > = {
-  // Secondary
+  //Secondary
   "s1": "S1", "sec1": "S1", "secondary 1": "S1", "year 1 (sec)": "S1",
   "s2": "S2", "sec2": "S2", "secondary 2": "S2",
   "s3": "S3", "sec3": "S3", "secondary 3": "S3",
   "s4": "S4", "sec4": "S4", "secondary 4": "S4",
   "s5": "S5", "sec5": "S5", "secondary 5": "S5",
-  // JC
+  //JC
   "j1": "J1", "year 1 (jc)": "J1",
   "j2": "J2", "year 2 (jc)": "J2",
-  // Poly
+  //Poly
   "p1": "P1", "year 1 (poly)": "P1",
   "p2": "P2", "year 2 (poly)": "P2",
   "p3": "P3", "year 3 (poly)": "P3",
-  // Uni
+  //Uni
   "u1": "U1", "year 1": "U1", "year 1 (uni)": "U1",
   "u2": "U2", "year 2": "U2", "year 2 (uni)": "U2",
   "u3": "U3", "year 3": "U3", "year 3 (uni)": "U3",
   "u4": "U4", "year 4": "U4", "year 4 (uni)": "U4",
 };
 
-// “Whole word” CSV matching for SQLite (String column):
-// We emulate array overlap by OR-ing these patterns:
-//   equals "Morning"
-//   startsWith "Morning,"
-//   endsWith ",Morning"
-//   contains ",Morning,"
 function csvWordOR(field: "preferredTiming", token: string) {
   return {
     OR: [
@@ -64,20 +57,19 @@ function csvWordOR(field: "preferredTiming", token: string) {
   };
 }
 
-// --------- types ----------
+
 type FilterInput = {
   searchQuery?: string;
   yearFilter?: string;
   genderFilter?: string;
-  timingFilter?: string; // "Morning,Evening"
+  timingFilter?: string; 
   take?: number | string;
   skip?: number | string;
-  // Optional: constrain results to same edu level as current user (SEC|JC|POLY|UNI)
   eduLevel?: "SEC" | "JC" | "POLY" | "UNI";
   excludeUserId?: string;
 };
 
-// Accept FormData or POJO
+
 function getter(formDataOrObj: FormData | FilterInput) {
   return (k: string) =>
     formDataOrObj instanceof FormData
@@ -85,7 +77,6 @@ function getter(formDataOrObj: FormData | FilterInput) {
       : ((formDataOrObj as any)[k] as string | undefined);
 }
 
-// ---------- action ----------
 export async function filterProfilesAction(formDataOrObj: FormData | FilterInput) {
   try {
     const get = getter(formDataOrObj);
@@ -112,11 +103,9 @@ export async function filterProfilesAction(formDataOrObj: FormData | FilterInput
         ? eduKey
         : undefined;
 
-    // Build WHERE
     const andConditions: any[] = [];
     andConditions.push({ status: "ACTIVE" });
 
-    // Constrain to same eduLevel
     if (eduLevel) andConditions.push({ eduLevel });
 
     const notClause = excludeId ? { NOT: { id: excludeId } } : undefined; 

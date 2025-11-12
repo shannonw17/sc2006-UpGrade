@@ -7,13 +7,10 @@ import { revalidatePath } from "next/cache";
 import { deleteNotifs } from "@/app/(backend)/NotificationController/deleteNotifs";
 
 type DeleteOptions = {
-  /** When true, also delete member notifs (JOINED/LEFT/START_REMINDER/INVITE_REJECTED). */
-  purgeMemberNotifs?: boolean; // use for admin-ban or system removals
+  purgeMemberNotifs?: boolean; 
 };
-
- // Internal core delete that assumes authorization has already been checked.
- // Used by both the user action and the system (cron).
  
+// Core delete function used by various delete scenarios
 async function _deleteGroupCore(groupId: string, opts: DeleteOptions = {}) {
   const grp = await prisma.group.findUnique({
     where: { id: groupId },
@@ -21,13 +18,12 @@ async function _deleteGroupCore(groupId: string, opts: DeleteOptions = {}) {
   });
   if (!grp) return { deleted: 0, name: "" };
 
-  // If requested (e.g., admin ban), purge member notifications for this group
+ //Purge member notifications if specified
   if (opts.purgeMemberNotifs) {
     try {
       await deleteNotifs(groupId);
     } catch (e) {
       console.error(`[deleteGroup] deleteNotifs failed for group=${groupId}`, e);
-      // continue with deletion anyway
     }
   }
 
@@ -40,9 +36,7 @@ async function _deleteGroupCore(groupId: string, opts: DeleteOptions = {}) {
 }
 
 
-// User-initiated delete (from UI). Requires ownership.
-// Default: do NOT purge member notifs (keeps users' feed unless it's an admin ban).
-
+//User-initiated delete (from UI)
 export async function deleteGroup(formData: FormData) {
   const user = await requireUser();
   const groupId = String(formData.get("groupId") || "");
@@ -64,8 +58,8 @@ export async function deleteGroup(formData: FormData) {
 }
 
 
-// System-initiated delete (cron/admin cleanup). Skips requireUser.
-// Automated cleanup of expired/closed groups.
+//cron/admin cleanup, skips requireUser.
+//Automated cleanup of expired/closed groups.
  
 export async function deleteGroupSystem(groupId: string) {
   if (!groupId) return { deleted: 0, message: "Missing groupId" };
@@ -77,9 +71,7 @@ export async function deleteGroupSystem(groupId: string) {
   };
 }
 
-// Admin-ban delete. Purges member notifs (JOINED/LEFT/START_REMINDER/INVITE_REJECTED)
-// but intentionally leaves GROUP_REPORTED (your deleteNotifs() already excludes it).
-
+//Admin-ban delete. 
 export async function deleteGroupByAdminBan(groupId: string) {
   if (!groupId) return { deleted: 0, message: "Missing groupId" };
   const res = await _deleteGroupCore(groupId, { purgeMemberNotifs: true });

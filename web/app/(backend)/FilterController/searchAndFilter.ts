@@ -21,7 +21,7 @@ export async function fetchGroupsWithFilters(
   }
 
   const [allGroupsRaw, myMemberships, myCreatedGroupsRaw] = await Promise.all([
-    // all tab
+    //all tab
     prisma.group.findMany({
       where: { 
         ...whereCommon, 
@@ -45,12 +45,12 @@ export async function fetchGroupsWithFilters(
       select: { groupId: true },
     }),
 
-    // created tab 
+    //created tab 
     prisma.group.findMany({
       where: { 
         ...whereCommon, 
         hostId: currentUserId,
-        // isClosed: false,
+        //isClosed: false,
       },
       orderBy: { createdAt: "desc" },
       include: { 
@@ -63,7 +63,7 @@ export async function fetchGroupsWithFilters(
 
   const joinedSet = new Set(myMemberships.map(m => m.groupId));
 
-  // joined tab
+  //joined tab
   const joinedGroupsRaw = await prisma.group.findMany({
     where: { 
       ...whereCommon, 

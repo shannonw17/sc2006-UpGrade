@@ -9,7 +9,7 @@ type InviteResult =
   | { ok: true; invitedUsername: string; inviteId: string; message: string }
   | { ok: false; error: string };
 
-// Helper function to get user-friendly error messages
+//Helper function to get user-friendly error messages
 function getInviteErrorMessage(error: string, groupName?: string, username?: string): string {
   const messages: Record<string, string> = {
     "missing-fields": "Please provide both a group and username.",
@@ -29,7 +29,7 @@ function getInviteErrorMessage(error: string, groupName?: string, username?: str
 
 export async function sendInvite(formData: FormData): Promise<InviteResult> {
   try {
-    const me = await requireUser(); // sender
+    const me = await requireUser(); 
 
     const groupId = String(formData.get("groupId") ?? "");
     const receiverUsername = String(formData.get("receiverUsername") ?? "").trim();
@@ -41,7 +41,7 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
       };
     }
 
-    // Look up receiver by username FIRST
+    //Look up receiver by username FIRST
     const receiver = await prisma.user.findUnique({
       where: { username: receiverUsername },
       select: { id: true, username: true },
@@ -61,7 +61,7 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
       };
     }
 
-    // Load group & basic state
+    //Load group
     const group = await prisma.group.findUnique({
       where: { id: groupId },
       select: {
@@ -87,10 +87,10 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
       };
     }
 
-    // Permission: host can invite to any group, members can only invite to public groups
+    //host can invite to any group, members can only invite to public groups
     const canInvite = 
-      me.id === group.hostId || // Host can always invite
-      (group.members.some((m) => m.userId === me.id) && group.visibility === true); // Members can only invite to public groups
+      me.id === group.hostId || //Host can always invite
+      (group.members.some((m) => m.userId === me.id) && group.visibility === true); //Members can only invite to public groups
 
     if (!canInvite) {
       return { 
@@ -98,8 +98,8 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
         error: getInviteErrorMessage("forbidden", group.name) 
       };
     }
-
-    // State checks
+    
+    //State checks
     if (group.isClosed) {
       return { 
         ok: false, 
@@ -114,7 +114,7 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
       };
     }
 
-    // Already member?
+    //Already member?
     if (group.members.some((m) => m.userId === receiver.id)) {
       return { 
         ok: false, 
@@ -122,7 +122,7 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
       };
     }
 
-    // Existing invite? - Check for ANY existing invite from ANY sender to this user for this group
+    //Check for any existing invite from any sender to this user for this group
     const existingInvite = await prisma.invitation.findFirst({
       where: { 
         receiverId: receiver.id, 

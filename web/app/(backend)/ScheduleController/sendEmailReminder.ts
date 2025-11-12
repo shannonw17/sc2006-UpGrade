@@ -118,7 +118,6 @@ export async function sendGroupReminders(windowLabel: WindowLabel) {
   hour12: true,
   });
 
-
     // Inbox notifications
     // if (users.length) {
     //   await prisma.notification.createMany({

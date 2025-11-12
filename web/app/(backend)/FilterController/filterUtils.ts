@@ -7,26 +7,26 @@ export type RawFilters = {
   from?: string; // "YYYY-MM-DD"
   to?: string;   // "YYYY-MM-DD"
   loc?: string;
-  open?: string; // "1"
+  open?: string; 
 };
 
 export type NormalizedFilters = {
   tab: "all" | "mine" | "joined";
   q: string;
   loc: string;
-  fromISO?: Date; // inclusive lower bound (00:00 local)
-  toISO?: Date;   // exclusive upper bound (next day 00:00 local)
+  fromISO?: Date; 
+  toISO?: Date;   
   openOnly: boolean;
 };
 
-/** Build a Date at local 00:00 for the given yyyy-mm-dd (avoids TZ surprises) */
+//build a Date for local start-of-day (inclusive)
 function startOfDayLocal(dateStr: string): Date | undefined {
   if (!dateStr) return undefined;
   const d = new Date(`${dateStr}T00:00:00`);
   return isNaN(+d) ? undefined : d;
 }
 
-/** Build a Date for next day local 00:00 (exclusive upper bound) */
+//build a Date for local start-of-next-day (exclusive)
 function nextDayStartLocal(dateStr: string): Date | undefined {
   const d = startOfDayLocal(dateStr);
   if (!d) return undefined;
@@ -41,9 +41,6 @@ export function normalizeFilters(sp?: RawFilters): NormalizedFilters {
   const q = (sp?.q ?? "").trim();
   const loc = (sp?.loc ?? "").trim();
 
-  // IMPORTANT:
-  // fromISO  = start-of-day inclusive
-  // toISO    = start-of-next-day exclusive
   const fromISO = sp?.from ? startOfDayLocal(sp.from) : undefined;
   const toISO   = sp?.to   ? nextDayStartLocal(sp.to) : undefined;
 
@@ -60,7 +57,6 @@ export function normalizeFilters(sp?: RawFilters): NormalizedFilters {
 export function buildWhereCommon(f: NormalizedFilters): Prisma.GroupWhereInput {
   const AND: Prisma.GroupWhereInput[] = [];
 
-  // 🔎 Keyword search across name, location, host.username, and TAG NAMES (case-insensitive)
   if (f.q) {
     AND.push({
       OR: [
@@ -72,14 +68,13 @@ export function buildWhereCommon(f: NormalizedFilters): Prisma.GroupWhereInput {
     });
   }
 
-  // Location filter (case-insensitive)
+  //location filter (case-insensitive)
   if (f.loc) {
     AND.push({ location: { contains: f.loc } });
   }
 
-  // 📅 Date window on group.start:
-  // fromISO: start >= fromISO  (inclusive)
-  // toISO:   start <  toISO    (exclusive of next day)
+  //fromISO: start >= fromISO  (inclusive)
+  //toISO:   start <  toISO    (exclusive of next day)
   if (f.fromISO && f.toISO) {
     AND.push({ start: { gte: f.fromISO, lt: f.toISO } });
   } else if (f.fromISO) {

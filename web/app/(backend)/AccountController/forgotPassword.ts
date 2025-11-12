@@ -81,9 +81,7 @@ export async function validateResetCode(userId: string, inputCode: string) {
   return true; // Code is valid
 }
 
-/**
- * Step 2: Reset password after verifying code
- */
+// Reset password after verifying code
 export async function resetPassword(
   userId: string,
   code: string,
@@ -103,10 +101,10 @@ export async function resetPassword(
     throw new Error(pwCheck.message || "Invalid password");
   }
 
-  // First validate the code again (for security)
+  // First validate the code again 
   await validateResetCode(userId, code);
 
-  // If we get here, the code is valid - proceed with password reset
+  // proceed with password reset
   const passwordHash = await bcrypt.hash(newPassword, 10);
 
   await prisma.user.update({

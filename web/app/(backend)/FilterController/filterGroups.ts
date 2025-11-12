@@ -9,7 +9,7 @@ import {
   buildWhereCommon,
 } from "./filterUtils";
 
-// ---------- helpers ----------
+//helper functions to extract form data or object properties
 type AnyInput = FormData | Record<string, any>;
 function get(of: AnyInput, k: keyof RawFilters | string) {
   return of instanceof FormData ? of.get(k as string)?.toString() : (of as any)[k];
@@ -19,7 +19,7 @@ function toInt(v: string | undefined, d = 0) {
   return Number.isFinite(n) ? n : d;
 }
 
-// Optional: accept either FormData or POJO of RawFilters.
+//convert form data or object to raw filters
 function toRawFilters(input: AnyInput): RawFilters {
   return {
     tab: (get(input, "tab") as any) === "mine" ? "mine" : "all",
@@ -31,16 +31,7 @@ function toRawFilters(input: AnyInput): RawFilters {
   };
 }
 
-// ---------- main ----------
-/**
- * Fetch groups using the same filter model as your FilterUtils:
- * - Accepts FormData or plain object with RawFilters keys
- * - Normalizes to NormalizedFilters
- * - Builds Prisma where via buildWhereCommon(f)
- * - Enforces public + same eduLevel for "all" (if provided)
- * - Post-filters openOnly (members < capacity)
- * - ✨ Includes `tags` for the cards
- */
+//fetch groups with filters applied
 export async function fetchGroupsWithFilters(
   currentUserId: string,
   input: FormData | RawFilters,
@@ -53,18 +44,16 @@ export async function fetchGroupsWithFilters(
   const take = Math.min(opts?.take ?? 1000, 1000);
   const skip = toInt(String(opts?.skip ?? 0));
 
-  // Helper: members count < capacity
   const openFilter = (g: any) => (g?._count?.members ?? 0) < g.capacity;
 
-  // Common include for all queries — now includes tags 👇
   const baseInclude = {
     _count: { select: { members: true } },
     host: { select: { id: true, username: true, eduLevel: true } },
     members: { where: { userId: currentUserId }, select: { id: true } },
-    tags: { select: { id: true, name: true, color: true } }, // <- needed for UI chips
+    tags: { select: { id: true, name: true, color: true } },
   } as const;
 
-  // --- ALL (public + optional same edu level as current user) ---
+  //all groups
   const allGroupsRaw = await prisma.group.findMany({
     where: {
       ...whereCommon,
@@ -77,7 +66,7 @@ export async function fetchGroupsWithFilters(
     skip,
   });
 
-  // --- MINE (hosted by me) ---
+  //hosted groups
   const myCreatedGroupsRaw = await prisma.group.findMany({
     where: { ...whereCommon, hostId: currentUserId },
     include: baseInclude,
@@ -86,7 +75,7 @@ export async function fetchGroupsWithFilters(
     skip,
   });
 
-  // --- JOINED (not hosted by me) ---
+  //joined groups
   const joinedGroupsRaw = await prisma.group.findMany({
     where: {
       ...whereCommon,
@@ -100,18 +89,15 @@ export async function fetchGroupsWithFilters(
     skip,
   });
 
-  // Build joined set for quick UI checks
   const joinedSet = new Set<string>();
   for (const g of [...allGroupsRaw, ...myCreatedGroupsRaw, ...joinedGroupsRaw]) {
     if (g.members?.length) joinedSet.add(g.id);
   }
 
-  // Apply openOnly post-query to lists that have _count
   const allGroups       = f.openOnly ? allGroupsRaw.filter(openFilter)       : allGroupsRaw;
   const myCreatedGroups = f.openOnly ? myCreatedGroupsRaw.filter(openFilter) : myCreatedGroupsRaw;
   const joinedGroups    = f.openOnly ? joinedGroupsRaw.filter(openFilter)    : joinedGroupsRaw;
 
-  // Avoid duplicates between "mine" and "joined"
   const myIds = new Set(myCreatedGroups.map(g => g.id));
   const justJoinedNotCreated = joinedGroups.filter(g => !myIds.has(g.id));
 

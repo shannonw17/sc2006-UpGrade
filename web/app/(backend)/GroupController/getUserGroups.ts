@@ -12,9 +12,9 @@ export async function getUserGroups() {
     const groups = await prisma.group.findMany({
       where: {
         OR: [
-          // User is host - can invite to both public and private groups
+          //User is host - can invite to both public and private groups
           { hostId: user.id },
-          // User is member AND group is public - can invite to public groups
+          //User is member AND group is public - can invite to public groups
           { 
             members: {
               some: {
@@ -50,7 +50,7 @@ export async function getUserGroups() {
       }
     });
 
-    // Filter out full groups and add role information
+    //Filter out full groups and add role information
     const availableGroups = groups
       .filter(group => group.currentSize < group.capacity)
       .map(group => ({

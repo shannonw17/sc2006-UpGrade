@@ -214,7 +214,7 @@ export default function GroupCard({
                 </div>
             </div>
 
-            {/* Right side - View Details, Members Count and Actions */}
+            {/* Right side - View Details, Members Count */}
             <div className="flex items-center gap-4">
               {/* View Details Link */}
               <Link 

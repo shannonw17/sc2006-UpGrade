@@ -17,7 +17,7 @@ export async function dismissReport(
     const reporterId = report.userId;
     const groupId = report.groupId;
 
-    // handle reporter action
+    //handle reporter action
     if (userAction !== "none") {
       if (userAction === "ban") {
         await banUser(reporterId, false);
@@ -26,7 +26,7 @@ export async function dismissReport(
       }
     }
 
-    // handle group action
+    //handle group action
     if (groupAction === "delete") {
       const group = await prisma.group.findUnique({ where: { id: groupId } });
       if (group) {

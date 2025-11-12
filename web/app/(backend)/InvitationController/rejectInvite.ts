@@ -14,13 +14,13 @@ export async function rejectInviteById(userId: string, inviteId: string) {
   if (invite.receiverId !== userId) throw new Error("Not authorized to reject this invite");
   //if (invite.status !== "PENDING") return { success: false, reason: "Invite not pending" };
 
-  // Delete invitation (and delete any notification referencing it)
+  //Delete invitation (and delete any notification referencing it)
   await prisma.$transaction([
     prisma.notification.deleteMany({ where: { invitationId: invite.id } }),
     prisma.invitation.delete({ where: { id: invite.id } }),
   ]);
 
-  // Notify the sender that recipient rejected the invite
+  //Notify the sender that recipient rejected the invite
   await rejectNotify(invite.senderId, invite.receiverId, invite.groupId);
 
   revalidatePath("/inbox");

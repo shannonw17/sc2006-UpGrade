@@ -31,8 +31,7 @@ export async function viewProfile(){
         username: currentUser.username,
         eduLevel: eduLevelMap[currentUser.eduLevel],
         gender: formatGender(currentUser.gender),
-        // add "relevant subjects/modules", "preferred study location(s)"
-        preferredTiming: currentUser.preferredTiming, //already a astring
+        preferredTiming: currentUser.preferredTiming,
         preferredLocations: currentUser.preferredLocations,
         school: currentUser.school,
         currentCourse: currentUser.currentCourse,

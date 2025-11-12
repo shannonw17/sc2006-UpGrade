@@ -22,7 +22,7 @@ type InviteResult =
 
 export async function sendInvite(formData: FormData): Promise<InviteResult> {
   try {
-    const me = await requireUser(); // sender
+    const me = await requireUser();
 
     const groupId = String(formData.get("groupId") ?? "");
     const receiverUsername = String(formData.get("receiverUsername") ?? "").trim();
@@ -31,7 +31,6 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
       return { ok: false, error: "missing-fields" };
     }
 
-    // Load group & basic state
     const group = await prisma.group.findUnique({
       where: { id: groupId },
       select: {
@@ -46,7 +45,7 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
     });
     if (!group) return { ok: false, error: "group-not-found" };
 
-    // Look up receiver by username
+    //Look up receiver by username
     const receiver = await prisma.user.findUnique({
       where: { username: receiverUsername },
       select: { id: true, username: true },
@@ -54,27 +53,27 @@ export async function sendInvite(formData: FormData): Promise<InviteResult> {
     if (!receiver) return { ok: false, error: "user-not-found" };
     if (receiver.id === me.id) return { ok: false, error: "cannot-invite-self" };
 
-    // Permission: host or member can invite (tweak to host-only if you want)
+    //Permission: host or member can invite (tweak to host-only if you want)
     const canInvite = me.id === group.hostId || group.members.some((m) => m.userId === me.id);
     if (!canInvite) return { ok: false, error: "forbidden" };
 
-    // State checks
+    //State checks
     if (group.isClosed) return { ok: false, error: "group-closed" };
     if (group.currentSize >= group.capacity) return { ok: false, error: "group-full" };
 
-    // Already member?
+    //Already member?
     if (group.members.some((m) => m.userId === receiver.id)) {
       return { ok: false, error: "already-member" };
     }
 
-    // Existing invite?
+    //Existing invite?
     const existing = await prisma.invitation.findFirst({
       where: { receiverId: receiver.id, groupId: group.id },
       select: { id: true },
     });
     if (existing) return { ok: false, error: "invite-already-sent" };
 
-    // Create invite + notification in a transaction
+    //Create invite + notification in a transaction
     const invite = await prisma.$transaction(async (tx) => {
       const inv = await tx.invitation.create({
         data: {

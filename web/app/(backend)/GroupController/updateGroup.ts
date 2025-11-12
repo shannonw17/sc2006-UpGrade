@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/requireUser";
 import { revalidatePath } from "next/cache";
 import { getRandomTagColor } from "@/lib/tagColors";
 
-// Convert an HTML <input type="datetime-local"> to UTC Date
+//Convert an HTML <input type="datetime-local"> to UTC Date
 function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
   const norm = local.length === 16 ? `${local}:00` : local;
   const [datePart, timePart] = norm.split("T");
@@ -36,7 +36,7 @@ function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
 }
 
 
-// Check if user already has groups that overlap with the proposed time (exclude current group)
+//Check if user already has groups that overlap with the proposed time (exclude current group)
 async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Date, excludeGroupId: string) {
   const existingGroups = await prisma.group.findMany({
     where: {
@@ -119,7 +119,7 @@ export async function updateGroup(formData: FormData) {
   if (!groupId || !name || !location) throw new Error("Missing required fields");
   if (name.length > 30) throw new Error("Group name cannot exceed 30 characters");
 
-  // Check if user is the host of this group
+  //Check if user is the host of this group
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     select: { hostId: true, currentSize: true }
@@ -129,10 +129,10 @@ export async function updateGroup(formData: FormData) {
   if (group.hostId !== user.id) throw new Error("Only the host can edit this group");
   if (capacity < group.currentSize) throw new Error("Capacity cannot be less than current members");
 
-  // SGT = UTC+8 → offset +480 minutes
+  //SGT = UTC+8 → offset +480 minutes
   const SGT_OFFSET_MIN = 8 * 60;
 
-  // Convert local wall-clock (SGT) to absolute UTC instants
+  //Convert local wall-clock (SGT) to absolute UTC instants
   const start = localDatetimeToUTC(startLocal, SGT_OFFSET_MIN);
   const end = localDatetimeToUTC(endLocal, SGT_OFFSET_MIN);
 
@@ -140,7 +140,7 @@ export async function updateGroup(formData: FormData) {
   if (isNaN(+end)) throw new Error("Invalid end datetime");
   if (end <= start) throw new Error("End must be after start");
 
-  // Check if host already has other groups at the same time
+  //Check if host already has other groups at the same time
   const timeConflict = await checkHostTimeConflict(user.id, start, end, groupId);
   if (timeConflict.conflict && timeConflict.conflictingGroup) {
     const conflictingGroup = timeConflict.conflictingGroup;
@@ -152,7 +152,7 @@ export async function updateGroup(formData: FormData) {
     );
   }
 
-  // Update group in database
+  //Update group in database
   const updatedGroup = await prisma.$transaction(async (tx) => {
     const group = await tx.group.update({
         where: { id: groupId },

@@ -17,14 +17,14 @@ export async function joinGroup(formData: FormData) {
 
   const confirmResolve = String(formData.get("confirmResolve") || "false") === "true";
 
-  // Check if user is already a member of the target group
+  //Check if user is already a member of the target group
   const existingMembership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId, groupId } },
     select: { userId: true, groupId: true },
   });
 
   if (existingMembership) {
-    // Already in target group: at most resolve overlap with some other group.
+    //Already in target group: at most resolve overlap with some other group.
     const overlap = await checkOverlap(userId, groupId);
     if (overlap.conflict && overlap.conflictingGroup) {
       if (!confirmResolve) {
@@ -37,7 +37,7 @@ export async function joinGroup(formData: FormData) {
         userId,
         overlap.conflictingGroup.id, // oldGroupId
         groupId,                     // newGroupId (this group)
-        /* isInvite */ false,
+        /*isInvite*/ false,
         /* userConfirmed */ true
       );
     }
@@ -72,7 +72,7 @@ export async function joinGroup(formData: FormData) {
     return;
   }
 
-  // Join the group directly
+  //Join the group directly
   let didJoinHere = false;
   await prisma.$transaction(async (tx) => {
     const group = await tx.group.findUnique({
@@ -99,7 +99,7 @@ export async function joinGroup(formData: FormData) {
     didJoinHere = true;
   });
 
-  // Only notify if the join happened here (resolveConflict already notifies)
+  //Only notify if the join happened here (resolveConflict already notifies)
   if (didJoinHere) {
     await joinNotify(groupId, userId);
   }

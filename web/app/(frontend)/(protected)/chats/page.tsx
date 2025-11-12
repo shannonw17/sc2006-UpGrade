@@ -1,7 +1,7 @@
 // app/(frontend)/(protected)/chats/page.tsx
 import { requireUser } from "@/lib/requireUser";
 import ChatInterface from "./chatInterface";
-import { viewAllChats, getAllChatsUsers } from "./chatHelpers";
+import { viewAllChats, getAllChatsUsers } from "../../../(backend)/ChatController/chatHelpers";
 
 interface ChatsPageProps {
   searchParams?: Promise<{ 

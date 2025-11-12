@@ -3,8 +3,8 @@
 
 import prisma from "@/lib/db";
 
-// Close groups whose start <= now, then delete groups already-closed
-// whose start <= cutoff (grace window).
+//Close groups whose start <= now, then delete groups already-closed
+//whose start <= cutoff (grace window).
 
 export async function expireGroupsNow(now = new Date()): Promise<{
   closedCount: number;
@@ -18,7 +18,7 @@ export async function expireGroupsNow(now = new Date()): Promise<{
   let deletedCount = 0;
   const deletedIds: string[] = [];
 
-  // Close newly expired groups
+  //Close newly expired groups
   const toExpire = await prisma.group.findMany({
     where: { isClosed: false, start: { lte: now } },
     select: { id: true },
@@ -39,8 +39,8 @@ export async function expireGroupsNow(now = new Date()): Promise<{
     invitationsDeleted = delInv.count;
   }
 
-  // Delete closed groups older than the grace window
-  const cutoff = new Date(now.getTime() - 1 * 60 * 1000); // 1 minute grace
+  //Delete closed groups older than the grace window
+  const cutoff = new Date(now.getTime() - 1 * 60 * 1000); //1 minute grace window
   const oldClosed = await prisma.group.findMany({
     where: { isClosed: true, start: { lte: cutoff } },
     select: { id: true, start: true },

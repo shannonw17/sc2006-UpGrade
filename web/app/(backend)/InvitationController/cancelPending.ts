@@ -9,7 +9,6 @@ import prisma from "@/lib/db";
 export async function cancelPending(groupId?: string) {
     const now = new Date();
 
-    // helper fn to delete notifs and invites (db) for specific inviteId
     async function deleteInvAndNotif(inviteIds: string[]) {
         if (inviteIds.length === 0) return 0;
         await prisma.$transaction([
@@ -34,7 +33,7 @@ export async function cancelPending(groupId?: string) {
         return { success: true, expiredCount: deleted };
       }
     
-    // Global mode: find all pending invites and filter those whose group meets the expire conditions
+      // No groupId provided, check all pending invitations
     const pending = await prisma.invitation.findMany({ include: { group: true } });
     const toExpire = pending.filter((inv) => {
         const g = inv.group;

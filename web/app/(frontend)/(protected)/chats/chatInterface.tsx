@@ -136,7 +136,7 @@ export default function ChatInterface({
   useEffect(() => {
     const loadFreshChats = async () => {
       try {
-        const { viewAllChats } = await import("./chatHelpers");
+        const { viewAllChats } = await import("../../../(backend)/ChatController/chatHelpers");
         const freshChats = await viewAllChats();
         setChats(freshChats);
       } catch (error) {
@@ -154,7 +154,7 @@ export default function ChatInterface({
   //function to reload chat list with updated counts
   const reloadChats = async () => {
     try {
-      const { viewAllChats } = await import("./chatHelpers");
+      const { viewAllChats } = await import("../../../(backend)/ChatController/chatHelpers");
       const updatedChats = await viewAllChats();
       setChats(updatedChats);
     } catch (error) {
@@ -194,7 +194,7 @@ export default function ChatInterface({
     }
 
     try {
-      const { viewSelectedChat, markMessagesAsRead } = await import("./chatHelpers");
+      const { viewSelectedChat, markMessagesAsRead } = await import("../../../(backend)/ChatController/chatHelpers");
       
       //load messages
       const chatData = await viewSelectedChat(chatId);
@@ -225,7 +225,7 @@ export default function ChatInterface({
     }
 
     try {
-      const { createOrGetChat } = await import("./chatHelpers");
+      const { createOrGetChat } = await import("../../../(backend)/ChatController/chatHelpers");
       const chatId = await createOrGetChat(user.id);
       
       const newChat: Chat = {
@@ -248,7 +248,7 @@ export default function ChatInterface({
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChatId) return;
 
-      // 1) temp id clearly marked as temp
+      // temp id marked as temp
   const tempMessageId = "temp-" + Date.now();
   const messageContent = messageInput;
 
@@ -282,11 +282,11 @@ export default function ChatInterface({
     );
 
     try {
-      // 3) call server and get REAL id back
-    const { sendMessage } = await import("./chatHelpers");
+      // call server and get REAL id back
+    const { sendMessage } = await import("../../../(backend)/ChatController/chatHelpers");
     const saved = await sendMessage(selectedChatId, messageContent);
       
-      // 4) swap temp -> real id + mark delivered
+      // swap temp -> real id + mark delivered
     setMessages(prev =>
       prev.map(msg =>
         msg.id === tempMessageId
@@ -306,10 +306,8 @@ export default function ChatInterface({
       console.error("Error sending message:", error);
     alert("Failed to send message");
 
-    // rollback optimistic add
     setMessages(prev => prev.filter(m => m.id !== tempMessageId));
 
-    // restore lastMessage if needed
     setChats(prev =>
       prev.map(chat =>
         chat.chatId === selectedChatId
@@ -338,7 +336,7 @@ export default function ChatInterface({
     
     setIsDeleting(true);
     try {
-      const { deleteMessage } = await import("./chatHelpers");
+      const { deleteMessage } = await import("../../../(backend)/ChatController/chatHelpers");
       await deleteMessage(messageId);
       
       //update local state 
@@ -371,7 +369,7 @@ export default function ChatInterface({
     if (!confirm("Are you sure you want to delete this entire chat? This action cannot be undone.")) return;
 
     try {
-      const { deleteChat } = await import("./chatHelpers");
+      const { deleteChat } = await import("../../../(backend)/ChatController/chatHelpers");
       await deleteChat(selectedChatId);
       setChats(chats.filter((c) => c.chatId !== selectedChatId));
       setSelectedChatId(null);

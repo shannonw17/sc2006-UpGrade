@@ -8,10 +8,6 @@ import { redirect } from "next/navigation";
 import { getRandomTagColor } from "@/lib/tagColors";
 import { checkOverlapRange } from "../ConflictController/checkOverlap";
 
-/**
- * Convert an HTML <input type="datetime-local"> value (local wall-clock)
- * to a UTC Date, assuming a fixed timezone offset (e.g., SGT = +08:00).
- */
 function localDatetimeToUTC(local: string, offsetMinutes: number): Date {
   const norm = local.length === 16 ? `${local}:00` : local;
   const [datePart, timePart] = norm.split("T");
@@ -47,7 +43,7 @@ function generateGroupID(length = 9) {
   return out;
 }
 
-// Check if user already has groups that overlap with the proposed time
+//Check if user already has groups that overlap with the proposed time
 async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Date) {
   const existingGroups = await prisma.group.findMany({
     where: {
@@ -67,7 +63,7 @@ async function checkHostTimeConflict(hostId: string, newStart: Date, newEnd: Dat
     const existingStart = new Date(group.start);
     const existingEnd = new Date(group.end);
 
-    // Check for time overlap
+    //Check for time overlap
     const hasOverlap = newStart < existingEnd && newEnd > existingStart;
 
     if (hasOverlap) {
@@ -101,11 +97,11 @@ export async function createGroup(formData: FormData) {
   const tagsInput = String(formData.get("tags") || "").trim();
   const tags = tagsInput.split(',').map(tag => tag.trim()).filter(Boolean);
 
-  // Validation
+  //Validation
   if (!name) throw new Error("Group name is required");
   if (!location) throw new Error("Location is required");
   
-  // Check Capacity
+  //Check Capacity
   if (!Number.isFinite(capacity) || capacity < 2) {
     throw new Error("Capacity must be at least 2 members");
   }
@@ -116,7 +112,7 @@ export async function createGroup(formData: FormData) {
   if (!startLocal) throw new Error("Start time is required");
   if (!endLocal) throw new Error("End time is required");
 
-  // Check Tags
+  //Check Tags
   if (tags.length === 0) {
     throw new Error("At least one tag is required");
   }
@@ -136,10 +132,10 @@ export async function createGroup(formData: FormData) {
   if (name.length > 30) throw new Error("Group name cannot exceed 30 characters");
   if (!location) throw new Error("Location is required");
 
-  // SGT = UTC+8 
+  //SGT = UTC+8 
   const SGT_OFFSET_MIN = 8 * 60;
 
-  // Convert local (SGT) to UTC
+  //Convert local (SGT) to UTC
   const start = localDatetimeToUTC(startLocal, SGT_OFFSET_MIN);
   const end = localDatetimeToUTC(endLocal, SGT_OFFSET_MIN);
 
@@ -147,7 +143,7 @@ export async function createGroup(formData: FormData) {
   if (isNaN(+end)) throw new Error("Invalid end datetime");
   if (end <= start) throw new Error("End time must be after start time");
 
-  // Prevent creating groups in the past
+  //Prevent creating groups in the past
   const nowUtc = new Date();
   if (start < nowUtc) throw new Error("Start time must be in the future");
 
@@ -178,16 +174,14 @@ export async function createGroup(formData: FormData) {
   //   }
   // }
 
-
-
-  // Ensure user exists
+  //Ensure user exists
   const exists = await prisma.user.findUnique({ 
     where: { id: hostId }, 
     select: { id: true } 
   });
   if (!exists) throw new Error("Host user not found");
 
-  // Generate unique groupID
+  //Generate unique groupID
   let groupID = generateGroupID();
   while (await prisma.group.findUnique({ where: { groupID } })) {
     groupID = generateGroupID();
@@ -209,7 +203,7 @@ export async function createGroup(formData: FormData) {
       select: { id: true },
     });
 
-    // Create tags
+    //Create tags
     if (tags.length > 0) {
       await tx.tag.createMany({
         data: tags.map(tagName => ({
@@ -220,7 +214,7 @@ export async function createGroup(formData: FormData) {
       });
     }
 
-    // Check host membership
+    //Check host membership
     await tx.groupMember.create({
       data: { userId: hostId, groupId: group.id },
     });

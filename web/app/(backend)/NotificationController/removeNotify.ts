@@ -10,7 +10,7 @@ export async function removeNotify(groupId: string) {
   const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group) return;
 
-  // find members except the new user
+  //find members except the new user
   const members = await prisma.groupMember.findMany({
     where: { groupId },
     select: { userId: true },

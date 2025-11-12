@@ -27,7 +27,7 @@ schedule("24h");
 schedule("2h");
 schedule("15m");
 
-// scripts/dev-cron.ts (snippet)
+// Expire groups that have reached their end time
 cron.schedule("* * * * *", async () => {
   try {
     const r = await expireGroupsNow();

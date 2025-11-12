@@ -31,7 +31,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const looksLikeEmail = identifier.includes("@");
 
   if (as === "admin") {
-    // --- ADMIN LOGIN ---
+    // admin login
     const admin = looksLikeEmail
       ? await prisma.admin.findUnique({ where: { email: identifier } })
       : await prisma.admin.findUnique({ where: { username: identifier } });
@@ -42,9 +42,9 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     if (!ok) return { error: "Invalid admin credentials." };
 
     await createAdminSession({ adminId: admin.id, username: admin.username });
-    redirect("/admin"); // let it throw; do NOT wrap in try/catch
+    redirect("/admin"); 
   } else {
-    // --- USER LOGIN ---
+    // user login
     const user = looksLikeEmail
       ? await prisma.user.findUnique({ where: { email: identifier } })
       : await prisma.user.findUnique({ where: { username: identifier } });
@@ -66,9 +66,8 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     if (!ok) return { error: "Invalid username/email or password.", identifier: raw };
 
     await createSessionCookie({ userId: user.id, name: user.username });
-    redirect("/homepage"); // let it throw; do NOT wrap in try/catch
+    redirect("/homepage"); 
   }
 
-  // Unreachable, but satisfies return type
   return {};
 }

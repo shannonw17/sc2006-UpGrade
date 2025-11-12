@@ -126,7 +126,6 @@ export async function viewSelectedChat(chatId: string) {
 }
 
 //send a new message
-// send a new message
 export async function sendMessage(chatId: string, content: string) {
   const currentUser = await requireUser();
   const [user1Id, user2Id] = chatId.split("-");
@@ -162,22 +161,19 @@ export async function markMessagesAsRead(chatId: string) {
   return { success: true, chatId, otherUserId };
 }
 
-// delete a single message (hard delete by either participant)
-// delete a single message (sender-only) + return count for sanity
+//delete a single message
 export async function deleteMessage(messageId: string) {
   const currentUser = await requireUser();
 
-  // use deleteMany to get a count back
   const { count } = await prisma.message.deleteMany({
     where: {
       id: messageId,
-      senderId: currentUser.id, // keep this line if you want sender-only
-      // (note: no isRead here)
+      senderId: currentUser.id, 
     },
   });
 
   if (count === 0) {
-    // Useful debugging: check if the message exists and why it didn't delete
+
     const exists = await prisma.message.findUnique({ where: { id: messageId } });
     if (!exists) {
       throw new Error("Message not found (wrong id or different database).");
