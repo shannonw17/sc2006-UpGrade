@@ -77,7 +77,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U1",
       gender: "FEMALE",
-      preferredTiming: ["morning", "evening"].join(","),
+      preferredTiming: ["Morning", "Evening"].join(","),
       preferredLocations: ["NTU", "Woodlands"].join(","),
       currentCourse: "Computer Science",
       status: "ACTIVE",
@@ -94,7 +94,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U1",
       gender: "FEMALE",
-      preferredTiming: ["morning", "evening"].join(","),
+      preferredTiming: ["Morning", "Evening"].join(","),
       preferredLocations: ["NTU", "Woodlands"].join(","),
       currentCourse: "Computer Science",
       status: "ACTIVE",
@@ -111,7 +111,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U1",
       gender: "MALE",
-      preferredTiming: "evening",
+      preferredTiming: "Evening",
       preferredLocations: ["NTU", "Choa Chu Kang"].join(","),
       currentCourse: "Computer Engineering",
       status: "ACTIVE",
@@ -128,7 +128,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U2",
       gender: "FEMALE",
-      preferredTiming: "morning",
+      preferredTiming: "Morning",
       preferredLocations: ["Woodlands", "Jurong East"].join(","),
       currentCourse: "Data Science and AI",
       status: "ACTIVE",
@@ -145,7 +145,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U3",
       gender: "FEMALE",
-      preferredTiming: ["afternoon", "evening"].join(","),
+      preferredTiming: ["Afternoon", "Evening"].join(","),
       preferredLocations: ["NTU", "Clementi Mall"].join(","),
       currentCourse: "Business Analytics",
       relevantSubjects: "Data Analysis, SQL, Tableau",
@@ -164,7 +164,7 @@ async function main() {
       eduLevel: "UNI",
       yearOfStudy: "U4",
       gender: "MALE",
-      preferredTiming: ["morning", "afternoon"].join(","),
+      preferredTiming: ["Morning", "Afternoon"].join(","),
       preferredLocations: ["NUS Central Library", "Clementi"].join(","),
       currentCourse: "Mechanical Engineering",
       school: "National University of Singapore",
@@ -183,7 +183,7 @@ async function main() {
       eduLevel: "POLY",
       yearOfStudy: "P3",
       gender: "MALE",
-      preferredTiming: "morning",
+      preferredTiming: "Morning",
       preferredLocations: "Woodlands",
       currentCourse: "Interior Design",
       warning: true,
@@ -201,7 +201,7 @@ async function main() {
       eduLevel: "POLY",
       yearOfStudy: "P1",
       gender: "MALE",
-      preferredTiming: "evening",
+      preferredTiming: "Evening",
       preferredLocations: "Jurong East Library",
       currentCourse: "Electrical Engineering",
       academicGrades: "Year 1 GPA: 3.5/4.0",
@@ -219,7 +219,7 @@ async function main() {
       eduLevel: "POLY",
       yearOfStudy: "P2",
       gender: "FEMALE",
-      preferredTiming: ["morning", "afternoon"].join(","),
+      preferredTiming: ["Morning", "Afternoon"].join(","),
       preferredLocations: ["SP Library", "Tampines Hub"].join(","),
       currentCourse: "Mechanical Engineering",
       status: "ACTIVE",
@@ -237,7 +237,7 @@ async function main() {
       eduLevel: "JC",
       yearOfStudy: "J1",
       gender: "FEMALE",
-      preferredTiming: ["afternoon", "evening"].join(","),
+      preferredTiming: ["Afternoon", "Evening"].join(","),
       preferredLocations: ["School Library", "Bishan"].join(","),
       currentCourse: "A-Levels",
       relevantSubjects: "Mathematics, Economics, Geography",
@@ -256,7 +256,7 @@ async function main() {
       eduLevel: "JC",
       yearOfStudy: "J2",
       gender: "MALE",
-      preferredTiming: "morning",
+      preferredTiming: "Morning",
       preferredLocations: "Bedok Library",
       currentCourse: "A-Levels",
       school: "Jurong Pioneer Junior College",
@@ -275,7 +275,7 @@ async function main() {
       eduLevel: "SEC",
       yearOfStudy: "S2",
       gender: "MALE",
-      preferredTiming: "afternoon",
+      preferredTiming: "Afternoon",
       preferredLocations: "Bishan Library",
       currentCourse: "O-Levels",
       relevantSubjects: "Mathematics, Science, English",
@@ -294,7 +294,7 @@ async function main() {
       eduLevel: "SEC",
       yearOfStudy: "S3",
       gender: "FEMALE",
-      preferredTiming: ["afternoon", "evening"].join(","),
+      preferredTiming: ["Afternoon", "Evening"].join(","),
       preferredLocations: ["School Library", "Clementi Mall"].join(","),
       currentCourse: "O-Levels",
       relevantSubjects: "Mathematics, Science, English",
@@ -313,7 +313,7 @@ async function main() {
       eduLevel: "SEC",
       yearOfStudy: "S4",
       gender: "MALE",
-      preferredTiming: ["evening", "night"].join(","),
+      preferredTiming: ["Evening", "Night"].join(","),
       preferredLocations: ["School Study Room", "Jurong East"].join(","),
       currentCourse: "O-Levels",
       relevantSubjects: "Mathematics, Physics, Chemistry",
@@ -716,12 +716,7 @@ async function main() {
   console.log("\nADMINS:");
   console.log("  admin1   / admin1@gmail.com         | password: admin123987");
   console.log("  admin2   / admin2@gmail.com         | password: admin543678");
-  
-  console.log("\n DEMO:");
-  console.log("1. Create account 'X', a university student");
-  console.log("2. Join Alice's group (Math Revision) to see capacity full message");
-  console.log("3. Create new group on 20/12/2025, 10pm and invite Sarah to show time conflict with Sarah's group (Programming Workshop)");
-}
+  }
 
 main()
   .finally(() => prisma.$disconnect())
